@@ -21,14 +21,12 @@ class AuthenticationLogResource extends Resource
     protected static ?string $model = AuthenticationLog::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-    
-    protected static ?string $navigationLabel = 'Authentication Logs';
-    
-    protected static ?string $navigationGroup = 'Monitoring';
-    
-    protected static ?int $navigationSort = 10;
 
-    // Use permission-based access
+    protected static ?string $navigationLabel = 'Authentication Logs';
+
+    protected static ?string $navigationGroup = '9. Monitoring & Audit';
+
+    protected static ?int $navigationSort = 1;    // Use permission-based access
     public static function canViewAny(): bool
     {
         return auth()->user()?->can('view_any_authentication::log') ?? false;
@@ -73,11 +71,11 @@ class AuthenticationLogResource extends Resource
                     ->limit(50)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
-                        
+
                         if (strlen($state) <= $column->getCharacterLimit()) {
                             return null;
                         }
-                        
+
                         return $state;
                     }),
                 TextColumn::make('login_at')
@@ -87,11 +85,11 @@ class AuthenticationLogResource extends Resource
                 TextColumn::make('login_successful')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         '1' => 'success',
                         '0' => 'danger',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         '1' => 'Success',
                         '0' => 'Failed',
                     }),
@@ -121,11 +119,11 @@ class AuthenticationLogResource extends Resource
                         return $query
                             ->when(
                                 $data['login_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('login_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('login_at', '>=', $date),
                             )
                             ->when(
                                 $data['login_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('login_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('login_at', '<=', $date),
                             );
                     }),
             ])
@@ -154,7 +152,7 @@ class AuthenticationLogResource extends Resource
             'view' => Pages\ViewAuthenticationLog::route('/{record}'),
         ];
     }
-    
+
     public static function canCreate(): bool
     {
         return false; // Authentication logs are created automatically

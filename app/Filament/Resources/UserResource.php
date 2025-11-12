@@ -25,12 +25,12 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    
-    protected static ?string $navigationLabel = 'Users';
-    
-    protected static ?string $navigationGroup = 'User Management';
-    
-    protected static ?int $navigationSort = 20;
+
+    protected static ?string $navigationLabel = 'Pengguna';
+
+    protected static ?string $navigationGroup = '9. Manajemen Pengguna';
+
+    protected static ?int $navigationSort = 1;
 
     // Use permission-based access instead of hardcoded role check
     public static function canViewAny(): bool
@@ -72,10 +72,10 @@ class UserResource extends Resource
                     ->maxLength(255),
                 TextInput::make('password')
                     ->password()
-                    ->required(fn (string $context): bool => $context === 'create')
+                    ->required(fn(string $context): bool => $context === 'create')
                     ->minLength(8)
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->dehydrated(fn ($state) => filled($state))
+                    ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                    ->dehydrated(fn($state) => filled($state))
                     ->revealable(),
                 Select::make('roles')
                     ->multiple()
@@ -83,7 +83,7 @@ class UserResource extends Resource
                     ->options(Role::all()->pluck('name', 'id'))
                     ->preload(),
                 DateTimePicker::make('email_verified_at')
-                    ->label('Email Verified At'),
+                    ->label('Email Terverifikasi Pada'),
                 TextInput::make('avatar_url')
                     ->url()
                     ->maxLength(255),

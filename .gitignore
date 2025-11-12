@@ -22,3 +22,43 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Testing and Demo files
+*_test.php
+test_*.php
+demo_*.php
+*_demo.php
+
+# Temporary files
+*.tmp
+*.cache
+*.bak
+*~
+
+# Documentation drafts (keep only final docs)
+*_DRAFT.md
+*_TODO.md
+TESTING_*.md
+DEBUG_*.md
+
+# IDE files
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Laravel specific
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+!/storage/logs/.gitkeep

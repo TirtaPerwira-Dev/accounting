@@ -21,14 +21,12 @@ class ActivityLogResource extends Resource
     protected static ?string $model = Activity::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    
-    protected static ?string $navigationLabel = 'Activity Logs';
-    
-    protected static ?string $navigationGroup = 'Monitoring';
-    
-    protected static ?int $navigationSort = 20;
 
-    // Use permission-based access
+    protected static ?string $navigationLabel = 'Activity Logs';
+
+    protected static ?string $navigationGroup = '9. Monitoring & Audit';
+
+    protected static ?int $navigationSort = 2;    // Use permission-based access
     public static function canViewAny(): bool
     {
         return auth()->user()?->can('view_any_activity::log') ?? false;
@@ -71,7 +69,8 @@ class ActivityLogResource extends Resource
                     ->limit(50),
                 TextColumn::make('subject_type')
                     ->label('Subject Type')
-                    ->formatStateUsing(fn (?string $state): string => 
+                    ->formatStateUsing(
+                        fn(?string $state): string =>
                         $state ? class_basename($state) : 'N/A'
                     ),
                 TextColumn::make('subject_id')
@@ -83,7 +82,7 @@ class ActivityLogResource extends Resource
                 TextColumn::make('event')
                     ->label('Event')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'created' => 'success',
                         'updated' => 'warning',
                         'deleted' => 'danger',
@@ -110,11 +109,11 @@ class ActivityLogResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
@@ -143,7 +142,7 @@ class ActivityLogResource extends Resource
             'view' => Pages\ViewActivityLog::route('/{record}'),
         ];
     }
-    
+
     public static function canCreate(): bool
     {
         return false; // Activity logs are created automatically

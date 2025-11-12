@@ -3,5 +3,5 @@
 return [
     App\Providers\AppServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
-    App\Providers\ShieldConfigProvider::class,
+    App\Providers\ModelServiceProvider::class,
 ];

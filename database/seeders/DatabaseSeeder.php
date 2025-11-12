@@ -15,13 +15,18 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-        ]);
+            AdminUserSeeder::class,
+            CompanySeeder::class,
+            KelompokSeeder::class,
+            RekeningSeeder::class,
+            NomorBantuSeeder::class,
+            // SakepCoaSeeder::class,  // Use new hierarchical seeders instead
+            // ChartOfAccountSeeder::class, // Old seeder
+            // Uncomment for full test data (takes longer)
+            // TestDataSeeder::class,
 
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            // Quick test data for immediate testing
+            //QuickTestDataSeeder::class,
         ]);
     }
 }

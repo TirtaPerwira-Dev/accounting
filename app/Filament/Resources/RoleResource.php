@@ -24,12 +24,12 @@ class RoleResource extends Resource
     protected static ?string $model = Role::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-    
-    protected static ?string $navigationLabel = 'Roles';
-    
-    protected static ?string $navigationGroup = 'User Management';
-    
-    protected static ?int $navigationSort = 30;
+
+    protected static ?string $navigationLabel = 'Peran & Hak Akses';
+
+    protected static ?string $navigationGroup = '9. Manajemen Pengguna';
+
+    protected static ?int $navigationSort = 2;
 
     // Use permission-based access
     public static function canViewAny(): bool
@@ -67,7 +67,7 @@ class RoleResource extends Resource
         // Group permissions by module/resource
         $permissions = Permission::all()->groupBy(function ($permission) {
             $name = $permission->name;
-            
+
             // Extract resource name from permission
             if (str_contains($name, '_user')) {
                 return 'User Management';
@@ -87,27 +87,27 @@ class RoleResource extends Resource
         });
 
         $sections = [
-            Section::make('Role Information')
+            Section::make('Informasi Peran')
                 ->schema([
                     TextInput::make('name')
                         ->required()
                         ->unique(ignoreRecord: true)
-                        ->label('Role Name')
-                        ->placeholder('Enter role name (e.g., Admin, Editor, Viewer)')
+                        ->label('Nama Peran')
+                        ->placeholder('Masukkan nama peran (mis: Admin, Editor, Viewer)')
                         ->maxLength(255),
                 ])
                 ->icon('heroicon-o-identification')
                 ->columnSpanFull(),
-                
+
             Grid::make(2)
                 ->schema([])
                 ->columnSpanFull(),
         ];
-        
+
         $gridSections = [];
-        
+
         foreach ($permissions as $module => $modulePermissions) {
-            $moduleIcon = match($module) {
+            $moduleIcon = match ($module) {
                 'User Management' => 'heroicon-o-users',
                 'Role Management' => 'heroicon-o-shield-check',
                 'Authentication Logs' => 'heroicon-o-key',
@@ -116,7 +116,7 @@ class RoleResource extends Resource
                 'Widgets' => 'heroicon-o-squares-2x2',
                 default => 'heroicon-o-cog-6-tooth'
             };
-            
+
             $gridSections[] = Section::make($module)
                 ->schema([
                     CheckboxList::make('permissions')
@@ -125,7 +125,7 @@ class RoleResource extends Resource
                         ->options($modulePermissions->pluck('name', 'id')->toArray())
                         ->columns([
                             'sm' => 1,
-                            'md' => 2, 
+                            'md' => 2,
                             'lg' => 2,
                             'xl' => 3,
                         ])
@@ -165,18 +165,18 @@ class RoleResource extends Resource
 
         return $form->schema($sections);
     }
-    
+
     private static function formatPermissionDescription(string $permission): string
     {
         // Convert permission name to readable description
         $parts = explode('_', $permission);
         $action = $parts[0] ?? '';
         $resource = implode(' ', array_slice($parts, 1));
-        
+
         $actionLabels = [
             'view' => 'View',
             'create' => 'Create',
-            'update' => 'Update', 
+            'update' => 'Update',
             'delete' => 'Delete',
             'restore' => 'Restore',
             'replicate' => 'Replicate',
@@ -185,10 +185,10 @@ class RoleResource extends Resource
             'page' => 'Access Page',
             'widget' => 'View Widget',
         ];
-        
+
         $actionLabel = $actionLabels[$action] ?? ucfirst($action);
         $resourceLabel = ucwords(str_replace(['::', '_'], [' ', ' '], $resource));
-        
+
         return $actionLabel . ' ' . $resourceLabel;
     }
 
@@ -197,20 +197,20 @@ class RoleResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Role Name')
+                    ->label('Nama Peran')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('permissions_count')
                     ->counts('permissions')
-                    ->label('Permissions Count')
+                    ->label('Jumlah Izin')
                     ->sortable(),
-                    
+
                 TextColumn::make('users_count')
                     ->counts('users')
-                    ->label('Users Count')
+                    ->label('Jumlah Pengguna')
                     ->sortable(),
-                    
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
