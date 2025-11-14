@@ -2,19 +2,16 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\JournalResource\Pages;
-use App\Filament\Resources\JournalResource\Widgets;
+use App\Filament\Resources\PenerimaanJournalResource\Pages;
+use App\Filament\Resources\PenerimaanJournalResource\Widgets;
 use App\Models\Journal;
 use App\Models\JournalDetail;
 use App\Models\NomorBantu;
-use App\Models\OpeningBalance;
-use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,26 +22,29 @@ use Filament\Forms\Components\Section;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class JournalResource extends Resource
+class PenerimaanJournalResource extends Resource
 {
     protected static ?string $model = Journal::class;
-    protected static ?string $navigationIcon = 'heroicon-o-book-open';
-    protected static ?string $navigationLabel = 'Jurnal Umum';
-    protected static ?string $modelLabel = 'Jurnal Umum';
-    protected static ?string $pluralModelLabel = 'Jurnal Umum';
+
+    protected static ?string $navigationIcon = 'heroicon-o-plus-circle';
+
+    protected static ?string $navigationLabel = 'Jurnal Penerimaan';
+
+    protected static ?string $modelLabel = 'Jurnal Penerimaan';
+
+    protected static ?string $pluralModelLabel = 'Jurnal Penerimaan';
+
     protected static ?string $navigationGroup = 'Transaksi Kas';
-    protected static ?int $navigationSort = 3;
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'reference';
 
     public static function getNavigationBadge(): ?string
     {
         try {
             $count = Journal::where('status', 'draft')
-                ->where(function ($query) {
-                    $query->whereNull('transaction_type')
-                        ->orWhere('transaction_type', '')
-                        ->orWhereNotIn('transaction_type', [Journal::TYPE_PENERIMAAN, Journal::TYPE_PENGELUARAN]);
-                })
+                ->where('transaction_type', Journal::TYPE_PENERIMAAN)
                 ->count();
             return $count > 0 ? (string) $count : null;
         } catch (\Exception $e) {
@@ -54,24 +54,20 @@ class JournalResource extends Resource
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning';
+        return 'success';
     }
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where(function ($query) {
-            $query->whereNull('transaction_type')
-                ->orWhere('transaction_type', '')
-                ->orWhereNotIn('transaction_type', [Journal::TYPE_PENERIMAAN, Journal::TYPE_PENGELUARAN]);
-        });
+        return parent::getEloquentQuery()->where('transaction_type', Journal::TYPE_PENERIMAAN);
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Informasi Dasar Jurnal Umum')
-                    ->description('Khusus untuk jurnal penyesuaian, reklasifikasi, koreksi, dan transaksi non-kas lainnya')
+                Section::make('Informasi Jurnal Penerimaan Kas')
+                    ->description('Input transaksi penerimaan kas/uang masuk')
                     ->schema([
                         Forms\Components\Grid::make(2)->schema([
                             Forms\Components\Select::make('company_id')
@@ -81,9 +77,21 @@ class JournalResource extends Resource
                                 ->searchable()
                                 ->preload()
                                 ->hidden()
-                                ->default(1) // Default company
-                                ->disabled(), // Tidak dapat diubah
+                                ->default(1)
+                                ->disabled(),
 
+                            Forms\Components\TextInput::make('reference')
+                                ->label('No. Referensi')
+                                ->placeholder('Auto-generate: KM-YYYYMM-XXX')
+                                ->disabled()
+                                ->dehydrated(false),
+
+                            Forms\Components\DatePicker::make('transaction_date')
+                                ->label('Tanggal Penerimaan')
+                                ->required()
+                                ->default(now())
+                                ->native(false)
+                                ->helperText('Tanggal uang diterima'),
 
                             Forms\Components\Select::make('status')
                                 ->label('Status')
@@ -95,36 +103,22 @@ class JournalResource extends Resource
                                 ->required()
                                 ->disabled()
                                 ->hidden(),
-
-                            Forms\Components\TextInput::make('reference')
-                                ->label('No. Referensi')
-                                ->placeholder('Auto-generate : JU-YYYYMM-XX')
-                                ->disabled()
-                                ->dehydrated(false)
-                                ->helperText('Format: JU = Jurnal Umum'),
-
-                            Forms\Components\DatePicker::make('transaction_date')
-                                ->label('Tanggal Transaksi')
-                                ->required()
-                                ->default(now())
-                                ->native(false)
-                                ->helperText('Pilih tanggal transaksi (default: today)'),
                         ]),
 
-
+                        Forms\Components\Hidden::make('transaction_type')
+                            ->default(Journal::TYPE_PENERIMAAN),
 
                         Forms\Components\Textarea::make('description')
-                            ->label('Keterangan Jurnal Umum')
-                            ->placeholder('Jelaskan transaksi jurnal penyesuaian/reklasifikasi ini...')
+                            ->label('Keterangan Penerimaan')
+                            ->placeholder('Contoh: Penerimaan dari penjualan air bulan November 2025')
                             ->required()
                             ->rows(2)
-                            ->columnSpanFull()
-                            ->helperText('Contoh: Penyesuaian depresiasi, reklasifikasi aset, koreksi saldo awal'),
+                            ->columnSpanFull(),
                     ]),
 
-                // === FORM JURNAL SEDERHANA ===
-                Section::make('Entry Jurnal Umum')
-                    ->description('Masukkan detail transaksi debit dan kredit untuk jurnal penyesuaian/reklasifikasi. Semua akun tersedia untuk fleksibilitas maksimal.')
+                // === FORM JURNAL PENERIMAAN ===
+                Section::make('Entry Jurnal Penerimaan')
+                    ->description('💰 Masukkan detail penerimaan kas. Akun yang tersedia: Kas/Bank (💰), Pendapatan (📈), dan Piutang')
                     ->schema([
                         Forms\Components\Repeater::make('simple_entries')
                             ->label('')
@@ -138,22 +132,13 @@ class JournalResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->allowHtml()
-                                    ->columnSpan(2)
-                                    ->rules([
-                                        function () {
-                                            return function (string $attribute, $value, \Closure $fail) {
-                                                if ($value && !static::isValidAccountForJournal($value)) {
-                                                    $fail('Akun yang dipilih belum memiliki saldo awal atau belum pernah digunakan dalam transaksi.');
-                                                }
-                                            };
-                                        }
-                                    ]),
+                                    ->columnSpan(2),
 
                                 Forms\Components\Select::make('account_type')
-                                    ->label('Tipe')
+                                    ->label('Posisi')
                                     ->options([
-                                        'debit' => '➕ Debit',
-                                        'credit' => '➖ Kredit',
+                                        'debit' => '💰 Debit (Kas/Bank Bertambah)',
+                                        'credit' => '📈 Kredit (Pendapatan/Piutang Berkurang)',
                                     ])
                                     ->required()
                                     ->live()
@@ -185,54 +170,51 @@ class JournalResource extends Resource
 
                                 Forms\Components\TextInput::make('description')
                                     ->label('Keterangan')
-                                    ->placeholder('Detail transaksi...')
+                                    ->placeholder('Detail penerimaan...')
                                     ->required()
                                     ->columnSpan(2),
                             ])
                             ->columns(6)
                             ->minItems(2)
                             ->defaultItems(2)
-                            ->addActionLabel('Tambah Baris Jurnal')
-                            ->addAction(fn($action) => $action->color('info'))
-                            ->deleteAction(
-                                fn($action) => $action->requiresConfirmation()
-                            )
+                            ->addActionLabel('Tambah Baris Entry')
+                            ->addAction(fn($action) => $action->color('success'))
+                            ->deleteAction(fn($action) => $action->requiresConfirmation())
                             ->reorderableWithButtons()
                             ->collapsible()
                             ->itemLabel(function (array $state): ?string {
                                 $amount = $state['amount'] ?? 0;
 
-                                // Clean amount formatting if it's a string
                                 if (is_string($amount)) {
                                     $amount = str_replace(['.', ',', ' ', 'Rp'], '', $amount);
                                 }
 
                                 $amount = is_numeric($amount) ? (float)$amount : 0;
                                 $type = $state['account_type'] ?? '';
-                                $icon = $type === 'debit' ? '➕' : '➖';
+                                $icon = $type === 'debit' ? '💰' : '📈';
 
                                 if ($amount > 0) {
                                     return $icon . ' Rp ' . number_format($amount, 0, ',', '.');
                                 }
-                                return 'Entry Baru';
+                                return 'Entry Penerimaan Baru';
                             })
                             ->columnSpanFull(),
                     ]),
 
-                // === RINGKASAN REAL-TIME ===
+                // === BALANCE CHECKER ===
                 Section::make('Ringkasan Balance')
                     ->description('Monitor keseimbangan jurnal secara real-time')
                     ->schema([
                         Forms\Components\Grid::make(3)->schema([
                             Forms\Components\Placeholder::make('total_debit')
-                                ->label('➕ Total Debit')
+                                ->label('💰 Total Debit')
                                 ->content(function (Get $get) {
                                     $total = static::calculateTotal($get, 'debit');
                                     return 'Rp ' . number_format($total, 0, ',', '.');
                                 }),
 
                             Forms\Components\Placeholder::make('total_credit')
-                                ->label('➖ Total Kredit')
+                                ->label('📈 Total Kredit')
                                 ->content(function (Get $get) {
                                     $total = static::calculateTotal($get, 'credit');
                                     return 'Rp ' . number_format($total, 0, ',', '.');
@@ -250,8 +232,7 @@ class JournalResource extends Resource
                                     }
 
                                     $higher = $debit > $credit ? 'Debit' : 'Kredit';
-                                    return '❌ TIDAK SEIMBANG!!
-                                           ' . $higher . ' lebih Rp ' . number_format($diff, 0, ',', '.');
+                                    return '❌ TIDAK SEIMBANG! ' . $higher . ' lebih Rp ' . number_format($diff, 0, ',', '.');
                                 }),
                         ]),
                     ])
@@ -265,19 +246,20 @@ class JournalResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('transaction_date')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('reference')
                     ->label('No. Referensi')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->badge()
-                    ->color('primary'),
+                    ->color('success')
+                    ->weight('bold'),
+
+                Tables\Columns\TextColumn::make('transaction_date')
+                    ->label('Tanggal')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
@@ -317,9 +299,7 @@ class JournalResource extends Resource
                     })
                     ->wrap(),
 
-                // === KOLOM BARU YANG DITAMBAHKAN ===
-
-                // 1. Kode/Nama Akun (gabung 1 kolom)
+                // Kode/Nama Akun
                 Tables\Columns\TextColumn::make('kode_nama_akun')
                     ->label('Kode/Nama Akun')
                     ->formatStateUsing(function ($state, $record): string {
@@ -350,7 +330,7 @@ class JournalResource extends Resource
                                                 $nb->rekening->no_rek .
                                                 str_pad($nb->no_bantu, 2, '0', STR_PAD_LEFT);
 
-                                            $lines[] = '<span class="font-mono text-xs bg-blue-50 text-blue-700 px-1 py-0.5 rounded">[' .
+                                            $lines[] = '<span class="font-mono text-xs bg-green-50 text-green-700 px-1 py-0.5 rounded">[' .
                                                 $code . ']</span> <span class="text-gray-800">' .
                                                 e($nb->nm_bantu) . '</span>';
                                         }
@@ -372,7 +352,7 @@ class JournalResource extends Resource
                     ->searchable()
                     ->toggleable(),
 
-                // 2. Debet/nominal
+                // Debet Nominal
                 Tables\Columns\TextColumn::make('debet_nominal')
                     ->label('Debet')
                     ->formatStateUsing(function ($state, $record): string {
@@ -420,7 +400,7 @@ class JournalResource extends Resource
                     ->alignment('right')
                     ->toggleable(),
 
-                // 3. Kredit/nominal
+                // Kredit Nominal
                 Tables\Columns\TextColumn::make('kredit_nominal')
                     ->label('Kredit')
                     ->formatStateUsing(function ($state, $record): string {
@@ -468,42 +448,31 @@ class JournalResource extends Resource
                     ->alignment('right')
                     ->toggleable(),
 
-                // 4. Keterangan detail
-                Tables\Columns\TextColumn::make('keterangan_detail')
-                    ->label('Keterangan Detail')
+                // Detail Description
+                Tables\Columns\TextColumn::make('detail_descriptions')
+                    ->label('Detail Keterangan')
                     ->formatStateUsing(function ($state, $record): string {
                         try {
-                            if (!$record) {
-                                return '<span class="text-gray-400">No Record</span>';
+                            if (!$record || !$record->details) {
+                                return '-';
                             }
 
-                            // Load details if not loaded
-                            if (!$record->relationLoaded('details')) {
-                                $record->load('details');
-                            }
-
-                            $details = $record->details;
-                            if (!$details || $details->isEmpty()) {
-                                return '<span class="text-gray-400">No Details</span>';
+                            $details = collect($record->details);
+                            if ($details->isEmpty()) {
+                                return '-';
                             }
 
                             $lines = [];
                             foreach ($details as $detail) {
-                                try {
-                                    if ($detail) {
-                                        $desc = $detail->description ?? 'No Description';
-                                        $lines[] = '<span class="text-gray-700">' . e($desc) . '</span>';
-                                    }
-                                } catch (\Exception $e) {
-                                    $lines[] = '<span class="text-red-400">Error loading description</span>';
+                                if ($detail) {
+                                    $desc = $detail->description ?? '-';
+                                    $lines[] = $desc;
                                 }
                             }
 
-                            return empty($lines) ?
-                                '<span class="text-gray-400">No Descriptions</span>' :
-                                implode('<br>', $lines);
+                            return empty($lines) ? '-' : implode('<br>', $lines);
                         } catch (\Exception $e) {
-                            return '<span class="text-red-400">Error: ' . e($e->getMessage()) . '</span>';
+                            return '-';
                         }
                     })
                     ->html()
@@ -511,48 +480,28 @@ class JournalResource extends Resource
                     ->searchable()
                     ->toggleable(),
 
-                // 5. Balance Status
+                // Balance Status
                 Tables\Columns\TextColumn::make('balance_status')
                     ->label('Balance Status')
                     ->formatStateUsing(function ($state, $record): string {
                         try {
-                            if (!$record) {
-                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">No Record</span>';
-                            }
-
-                            // Load details if not loaded
-                            if (!$record->relationLoaded('details')) {
-                                $record->load('details');
-                            }
-
-                            $details = $record->details;
-                            if (!$details || $details->isEmpty()) {
+                            if (!$record || !$record->details) {
                                 return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">No Data</span>';
                             }
 
-                            $totalDebit = 0;
-                            $totalCredit = 0;
-
-                            foreach ($details as $detail) {
-                                try {
-                                    if ($detail) {
-                                        $totalDebit += (float)($detail->debit ?? 0);
-                                        $totalCredit += (float)($detail->credit ?? 0);
-                                    }
-                                } catch (\Exception $e) {
-                                    // Skip this detail if error
-                                    continue;
-                                }
+                            $details = collect($record->details);
+                            if ($details->isEmpty()) {
+                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">No Data</span>';
                             }
 
+                            $totalDebit = $details->sum('debit') ?? 0;
+                            $totalCredit = $details->sum('credit') ?? 0;
                             $isBalanced = abs($totalDebit - $totalCredit) < 0.01;
 
                             if ($isBalanced) {
-                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">✅ Seimbang</span>';
+                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Seimbang</span>';
                             } else {
-                                $diff = abs($totalDebit - $totalCredit);
-                                $diffText = 'Rp ' . number_format($diff, 0, ',', '.');
-                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">❌ Selisih: ' . $diffText . '</span>';
+                                return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Tidak Seimbang</span>';
                             }
                         } catch (\Exception $e) {
                             return '<span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">Error</span>';
@@ -563,12 +512,11 @@ class JournalResource extends Resource
 
                 Tables\Columns\TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->badge()
-                    ->color('gray'),
+                    ->toggleable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Waktu Dibuat')
+                    ->label('Tanggal Buat')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -592,7 +540,6 @@ class JournalResource extends Resource
                     ->options([
                         'draft' => 'Draft',
                         'posted' => 'Posted',
-                        'reversed' => 'Dibatalkan',
                     ])
                     ->default(['draft', 'posted'])
                     ->multiple(),
@@ -634,17 +581,9 @@ class JournalResource extends Resource
                         ->icon('heroicon-o-eye'),
 
                     Tables\Actions\EditAction::make()
-                        ->label('Edit Jurnal')
+                        ->label('Edit Penerimaan')
                         ->icon('heroicon-o-pencil-square')
                         ->visible(fn(Journal $record) => $record->status === 'draft'),
-
-                    Tables\Actions\Action::make('print_journal')
-                        ->label('🖨️ Print Jurnal')
-                        ->icon('heroicon-o-printer')
-                        ->color('gray')
-                        ->action(function (Journal $record) {
-                            return static::printJournal($record);
-                        }),
 
                     Tables\Actions\Action::make('post')
                         ->label('Post Jurnal')
@@ -654,10 +593,24 @@ class JournalResource extends Resource
                         ->requiresConfirmation()
                         ->action(fn(Journal $record) => $record->post()),
 
+                    Tables\Actions\Action::make('print')
+                        ->label('Print Jurnal')
+                        ->icon('heroicon-o-printer')
+                        ->color('info')
+                        ->action(function (Journal $record): StreamedResponse {
+                            return static::printJournal($record);
+                        })
+                        ->openUrlInNewTab(),
+
                     Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->icon('heroicon-o-trash')
                         ->visible(fn(Journal $record) => $record->status === 'draft'),
                 ])
                     ->label('Aksi')
+                    ->color('primary')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->size('sm')
                     ->button(),
             ])
             ->bulkActions([
@@ -666,58 +619,52 @@ class JournalResource extends Resource
                 ]),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('export_report')
-                    ->label('Laporan Jurnal Umum')
-                    ->color('info')
+                Tables\Actions\Action::make('report')
+                    ->label('Laporan Penerimaan')
                     ->icon('heroicon-o-document-text')
+                    ->color('info')
                     ->form([
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\DatePicker::make('date_from')
-                                ->label('Dari Tanggal')
-                                ->required()
-                                ->default(now()->startOfMonth())
-                                ->native(false),
-                            Forms\Components\DatePicker::make('date_to')
-                                ->label('Sampai Tanggal')
-                                ->required()
-                                ->default(now()->endOfMonth())
-                                ->native(false),
-                        ]),
-                        Forms\Components\Select::make('status_filter')
-                            ->label('Filter Status')
+                        Forms\Components\DatePicker::make('from')
+                            ->label('Dari Tanggal')
+                            ->default(now()->startOfMonth())
+                            ->required()
+                            ->native(false),
+                        Forms\Components\DatePicker::make('until')
+                            ->label('Sampai Tanggal')
+                            ->default(now()->endOfMonth())
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Select::make('status')
+                            ->label('Status')
                             ->options([
                                 'all' => 'Semua Status',
-                                'draft' => 'Draft Saja',
-                                'posted' => 'Posted Saja',
+                                'draft' => 'Draft',
+                                'posted' => 'Posted',
                             ])
                             ->default('all')
                             ->required(),
                     ])
-                    ->action(function (array $data) {
+                    ->action(function (array $data): StreamedResponse {
                         return static::generateJournalReport($data);
                     }),
-            ])
-            ->defaultSort('transaction_date', 'desc')
-            ->striped()
-            ->paginated([10, 25, 50, 100])
-            ->defaultPaginationPageOption(25);
+            ]);
     }
 
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Informasi Jurnal')
+                Infolists\Components\Section::make('Informasi Jurnal Penerimaan')
                     ->schema([
                         Infolists\Components\Grid::make(3)
                             ->schema([
                                 Infolists\Components\TextEntry::make('reference')
                                     ->label('No. Referensi')
                                     ->badge()
-                                    ->color('primary'),
+                                    ->color('success'),
 
                                 Infolists\Components\TextEntry::make('transaction_date')
-                                    ->label('Tanggal')
+                                    ->label('Tanggal Penerimaan')
                                     ->date('d M Y'),
 
                                 Infolists\Components\TextEntry::make('status')
@@ -747,7 +694,7 @@ class JournalResource extends Resource
                                     ->label('Perusahaan'),
 
                                 Infolists\Components\TextEntry::make('total_amount')
-                                    ->label('Total')
+                                    ->label('Total Penerimaan')
                                     ->money('IDR'),
 
                                 Infolists\Components\TextEntry::make('createdBy.name')
@@ -755,7 +702,7 @@ class JournalResource extends Resource
                             ]),
                     ]),
 
-                Infolists\Components\Section::make('Detail Transaksi')
+                Infolists\Components\Section::make('Detail Transaksi Penerimaan')
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('details')
                             ->label('')
@@ -799,363 +746,66 @@ class JournalResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ]),
-
-                Infolists\Components\Section::make('Ringkasan')
-                    ->schema([
-                        Infolists\Components\Grid::make(3)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('total_debit')
-                                    ->label('Total Debit')
-                                    ->money('IDR')
-                                    ->color('success'),
-
-                                Infolists\Components\TextEntry::make('total_credit')
-                                    ->label('Total Kredit')
-                                    ->money('IDR')
-                                    ->color('danger'),
-
-                                Infolists\Components\TextEntry::make('is_balanced')
-                                    ->label('Balance Status')
-                                    ->formatStateUsing(fn($state) => $state ? 'SEIMBANG' : 'TIDAK SEIMBANG')
-                                    ->color(fn($state) => $state ? 'success' : 'danger'),
-                            ]),
-                    ]),
             ]);
     }
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListJournals::route('/'),
-            'create' => Pages\CreateJournal::route('/create'),
-            'view' => Pages\ViewJournal::route('/{record}'),
-            'edit' => Pages\EditJournal::route('/{record}/edit'),
+            'index' => Pages\ListPenerimaanJournals::route('/'),
+            'create' => Pages\CreatePenerimaanJournal::route('/create'),
+            'view' => Pages\ViewPenerimaanJournal::route('/{record}'),
+            'edit' => Pages\EditPenerimaanJournal::route('/{record}/edit'),
         ];
     }
 
     // Helper methods
-    private static function getNomorBantuOptionsGrouped()
-    {
-        return cache()->remember('nomor_bantu_grouped_options', 1800, function () {
-            return NomorBantu::active()
-                ->with(['rekening.kelompok'])
-                ->get()
-                ->sortBy(function ($item) {
-                    return $item->rekening->kelompok->no_kel .
-                        $item->rekening->no_rek .
-                        str_pad($item->no_bantu, 2, '0', STR_PAD_LEFT);
-                })
-                ->groupBy(function ($item) {
-                    return $item->rekening->kelompok->nama_kel;
-                })
-                ->map(function ($group) {
-                    return $group->mapWithKeys(function ($n) {
-                        $code = $n->rekening->kelompok->no_kel .
-                            $n->rekening->no_rek .
-                            str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-                        return [$n->id => "[$code] {$n->nm_bantu}"];
-                    });
-                });
-        });
-    }
-
-    private static function calculateAccountBalance(int $nomorBantuId): float
-    {
-        // Get opening balance (debit - credit)
-        $openingDebit = OpeningBalance::where('nomor_bantu_id', $nomorBantuId)
-            ->where('is_confirmed', true)
-            ->sum('debit_balance') ?? 0;
-
-        $openingCredit = OpeningBalance::where('nomor_bantu_id', $nomorBantuId)
-            ->where('is_confirmed', true)
-            ->sum('credit_balance') ?? 0;
-
-        $openingBalance = $openingDebit - $openingCredit;
-
-        // Get total debits from posted journals
-        $totalDebits = JournalDetail::where('nomor_bantu_id', $nomorBantuId)
-            ->whereHas('journal', function ($query) {
-                $query->where('status', 'posted');
-            })
-            ->sum('debit') ?? 0;
-
-        // Get total credits from posted journals
-        $totalCredits = JournalDetail::where('nomor_bantu_id', $nomorBantuId)
-            ->whereHas('journal', function ($query) {
-                $query->where('status', 'posted');
-            })
-            ->sum('credit') ?? 0;
-
-        // Calculate current balance
-        return $openingBalance + $totalDebits - $totalCredits;
-    }
-
     private static function getSelectableNomorBantuOptionsGrouped()
     {
-        return cache()->remember('selectable_nomor_bantu_options_with_balance', 1800, function () {
-            return NomorBantu::active()
-                ->with(['rekening.kelompok', 'openingBalances', 'journalDetails'])
-                ->get()
-                ->filter(function ($nomorBantu) {
-                    return static::isValidAccountForJournal($nomorBantu->id);
-                })
-                ->sortBy(function ($item) {
-                    return $item->rekening->kelompok->no_kel .
-                        $item->rekening->no_rek .
-                        str_pad($item->no_bantu, 2, '0', STR_PAD_LEFT);
-                })
-                ->groupBy(function ($item) {
-                    return $item->rekening->kelompok->nama_kel;
-                })
-                ->map(function ($group) {
-                    return $group->mapWithKeys(function ($n) {
-                        $code = $n->rekening->kelompok->no_kel .
-                            $n->rekening->no_rek .
-                            str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
+        return NomorBantu::active()
+            ->with(['rekening.kelompok'])
+            ->get()
+            ->filter(function ($nomorBantu) {
+                $kelompokNo = $nomorBantu->rekening->kelompok->no_kel;
 
-                        // Calculate current balance
-                        $currentBalance = static::calculateAccountBalance($n->id);
-                        $kelompokNo = $n->rekening->kelompok->no_kel;
+                // Filter akun yang relevan untuk PENERIMAAN:
+                // 10 = Aktiva Lancar (Kas, Bank, Piutang)
+                // 80 = Pendapatan
+                // 88 = Pendapatan Diluar Usaha
+                return in_array($kelompokNo, ['10', '80', '88']);
+            })
+            ->sortBy(function ($item) {
+                return $item->rekening->kelompok->no_kel .
+                    $item->rekening->no_rek .
+                    str_pad($item->no_bantu, 2, '0', STR_PAD_LEFT);
+            })
+            ->groupBy(function ($item) {
+                return $item->rekening->kelompok->nama_kel;
+            })
+            ->map(function ($group) {
+                return $group->mapWithKeys(function ($n) {
+                    $code = $n->rekening->kelompok->no_kel .
+                        $n->rekening->no_rek .
+                        str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
 
-                        // Determine indicator and balance text
-                        $indicator = '';
-                        $balanceText = '';
+                    $kelompokNo = $n->rekening->kelompok->no_kel;
+                    $hint = '';
+                    if ($kelompokNo == '10') {
+                        $hint = ' 💰'; // Kas/Bank - biasanya debit
+                    } elseif (in_array($kelompokNo, ['80', '88'])) {
+                        $hint = ' 📈'; // Pendapatan - biasanya kredit
+                    }
 
-                        // Accounts that require opening balance
-                        $requiresOpeningBalance = in_array($kelompokNo, [10, 20, 30, 40, 70]);
-
-                        if ($requiresOpeningBalance) {
-                            if (abs($currentBalance) > 0.01) {
-                                $indicator = '💰'; // Has balance
-                                $balanceText = 'Saldo: Rp ' . number_format(abs($currentBalance), 0, ',', '.');
-                            } else {
-                                $indicator = '⚖️'; // Zero balance but valid account
-                                $balanceText = 'Saldo: Rp 0';
-                            }
-                        } else {
-                            // Operational accounts
-                            if (abs($currentBalance) > 0.01) {
-                                $indicator = '💰'; // Has balance
-                                $balanceText = 'Saldo: Rp ' . number_format(abs($currentBalance), 0, ',', '.');
-                            } else {
-                                $indicator = '🆕'; // Can start from zero
-                                $balanceText = 'Siap Digunakan';
-                            }
-                        }
-
-                        // Format dengan line break untuk tampilan yang lebih rapi
-                        $displayText = '<div style="line-height: 1.4;">
-                            <div style="font-weight: 600; color: #374151;">[' . $code . '] ' . $n->nm_bantu . '</div>
-                            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 2px;">' . $indicator . ' ' . $balanceText . '</div>
-                        </div>';
-
-                        return [$n->id => $displayText];
-                    });
+                    return [$n->id => "[$code] {$n->nm_bantu}$hint"];
                 });
-        });
-    }
-
-    private static function getAllNomorBantuOptionsGrouped()
-    {
-        return cache()->remember('all_nomor_bantu_options_with_indicators', 1800, function () {
-            return NomorBantu::active()
-                ->with(['rekening.kelompok', 'openingBalances', 'journalDetails'])
-                ->get()
-                ->sortBy(function ($item) {
-                    return $item->rekening->kelompok->no_kel .
-                        $item->rekening->no_rek .
-                        str_pad($item->no_bantu, 2, '0', STR_PAD_LEFT);
-                })
-                ->groupBy(function ($item) {
-                    return $item->rekening->kelompok->nama_kel;
-                })
-                ->map(function ($group) {
-                    return $group->mapWithKeys(function ($n) {
-                        $code = $n->rekening->kelompok->no_kel .
-                            $n->rekening->no_rek .
-                            str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-
-                        // Calculate current balance
-                        $currentBalance = static::calculateAccountBalance($n->id);
-                        $kelompokNo = $n->rekening->kelompok->no_kel;
-
-                        // Determine if account requires opening balance
-                        $requiresOpeningBalance = in_array($kelompokNo, [10, 20, 30, 40, 70]);
-
-                        // Get balance info
-                        $hasOpeningBalance = $n->openingBalances()->where('is_confirmed', true)->exists();
-                        $hasTransactions = $n->journalDetails()->whereHas('journal', function ($q) {
-                            $q->where('status', 'posted');
-                        })->exists();
-
-                        // Determine indicator and status
-                        $indicator = '';
-                        $isSelectable = true;
-                        $balanceText = '';
-
-                        if ($requiresOpeningBalance) {
-                            if ($hasOpeningBalance || $hasTransactions) {
-                                if (abs($currentBalance) > 0.01) {
-                                    $indicator = '💰'; // Has balance
-                                    $balanceText = ' (Saldo: Rp ' . number_format(abs($currentBalance), 0, ',', '.') . ')';
-                                } else {
-                                    $indicator = '⚖️'; // Zero balance but valid account
-                                    $balanceText = ' (Saldo: Rp 0)';
-                                }
-                            } else {
-                                $indicator = '❌'; // No opening balance, cannot use
-                                $balanceText = ' (Tidak ada saldo awal)';
-                                $isSelectable = false;
-                            }
-                        } else {
-                            // Accounts that can be used directly (operational accounts)
-                            if (abs($currentBalance) > 0.01) {
-                                $indicator = '�'; // Has balance
-                                $balanceText = ' (Saldo: Rp ' . number_format(abs($currentBalance), 0, ',', '.') . ')';
-                            } else {
-                                $indicator = '🆕'; // Can start from zero
-                                $balanceText = ' (Baru/Kosong)';
-                            }
-                        }
-
-                        $displayText = "{$indicator} [$code] {$n->nm_bantu}{$balanceText}";
-
-                        // If not selectable, add to display text and disable
-                        if (!$isSelectable) {
-                            $displayText = '<span style="color: #999; text-decoration: line-through;">' . $displayText . '</span>';
-                        }
-
-                        return [$n->id => $displayText];
-                    });
-                });
-        });
-    }
-
-    private static function getValidNomorBantuOptionsGrouped()
-    {
-        return cache()->remember('valid_nomor_bantu_options', 1800, function () {
-            return NomorBantu::active()
-                ->with(['rekening.kelompok', 'openingBalances', 'journalDetails'])
-                ->get()
-                ->filter(function ($nomorBantu) {
-                    return static::isValidAccountForJournal($nomorBantu->id);
-                })
-                ->sortBy(function ($item) {
-                    return $item->rekening->kelompok->no_kel .
-                        $item->rekening->no_rek .
-                        str_pad($item->no_bantu, 2, '0', STR_PAD_LEFT);
-                })
-                ->groupBy(function ($item) {
-                    return $item->rekening->kelompok->nama_kel;
-                })
-                ->map(function ($group) {
-                    return $group->mapWithKeys(function ($n) {
-                        $code = $n->rekening->kelompok->no_kel .
-                            $n->rekening->no_rek .
-                            str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-
-                        // Add validation indicator based on account type
-                        $kelompokNo = $n->rekening->kelompok->no_kel;
-                        $indicator = '';
-
-                        // Accounts that require opening balance
-                        $requiresOpeningBalance = in_array($kelompokNo, [10, 20, 30, 40, 70]);
-
-                        if ($requiresOpeningBalance) {
-                            $hasOpeningBalance = $n->openingBalances()->exists();
-                            $hasTransactions = $n->journalDetails()->exists();
-
-                            if ($hasOpeningBalance) {
-                                $indicator = '✅ ';
-                            } elseif ($hasTransactions) {
-                                $indicator = '📝 ';
-                            }
-                        } else {
-                            // Accounts that can be used directly
-                            $indicator = '🔄 ';
-                        }
-
-                        return [$n->id => "{$indicator}[$code] {$n->nm_bantu}"];
-                    });
-                });
-        });
-    }
-
-    private static function isValidAccountForJournal(int $nomorBantuId): bool
-    {
-        if (!$nomorBantuId) {
-            return false;
-        }
-
-        $nomorBantu = NomorBantu::with(['rekening.kelompok'])->find($nomorBantuId);
-        if (!$nomorBantu || !$nomorBantu->rekening || !$nomorBantu->rekening->kelompok) {
-            return false;
-        }
-
-        $kelompokNo = $nomorBantu->rekening->kelompok->no_kel;
-
-        // Tentukan akun yang WAJIB ada saldo awal vs yang bisa langsung digunakan
-        $accountsRequireOpeningBalance = [
-            10, // Aktiva Lancar (Kas, Bank, Piutang, dll)
-            20, // Investasi Jk. Panjang
-            30, // Aktiva Tetap
-            40, // Aktiva Lain-lain
-            70, // Modal dan Cadangan
-        ];
-
-        $accountsCanUseDirectly = [
-            50, // Kewajiban Jk. Pendek (bisa mulai dari 0)
-            60, // Kewajiban Jk. Panjang (bisa mulai dari 0)
-            62, // Kewajiban Lain-lain (bisa mulai dari 0)
-            80, // Pendapatan (dimulai dari transaksi)
-            88, // Pendapatan Diluar Usaha (dimulai dari transaksi)
-            91, // Biaya Sumber Air (dimulai dari transaksi)
-            92, // Biaya pengolahan Air (dimulai dari transaksi)
-            93, // Biaya Transmisi dan Distribusi (dimulai dari transaksi)
-            94, // Biaya Air Limbah (dimulai dari transaksi)
-            96, // Biaya Administrasi dan Umum (dimulai dari transaksi)
-            98, // Biaya Diluar Usaha (dimulai dari transaksi)
-            99, // Kerugian Luar Biasa (dimulai dari transaksi)
-            41, // Aktiva Lain-lain Berwujud (bisa dimulai dari 0)
-            42, // Aktiva Tak Berwujud (bisa dimulai dari 0)
-            45, // aset program (bisa dimulai dari 0)
-        ];
-
-        // Jika akun bisa digunakan langsung tanpa saldo awal
-        if (in_array($kelompokNo, $accountsCanUseDirectly)) {
-            return true; // Akun operasional selalu bisa digunakan
-        }
-
-        // Jika akun yang wajib ada saldo awal, cek opening balance atau transaksi sebelumnya
-        if (in_array($kelompokNo, $accountsRequireOpeningBalance)) {
-            $hasOpeningBalance = OpeningBalance::where('nomor_bantu_id', $nomorBantuId)
-                ->where('is_confirmed', true)
-                ->exists();
-
-            $hasTransactions = JournalDetail::where('nomor_bantu_id', $nomorBantuId)
-                ->whereHas('journal', function ($query) {
-                    $query->where('status', 'posted');
-                })
-                ->exists();
-
-            // Untuk akun yang wajib ada saldo awal, harus ada opening balance atau sudah pernah ada transaksi
-            if (!($hasOpeningBalance || $hasTransactions)) {
-                return false;
-            }
-
-            // Additional check: untuk akun yang sudah ada opening balance atau transaksi,
-            // pastikan saldo tidak kosong (kecuali memang boleh 0 seperti kas)
-            // Note: Untuk kemudahan, kita izinkan saldo 0 juga
-            return true;
-        }
-
-        // Default: akun bisa digunakan (untuk akun yang tidak terdefinisi di atas)
-        return true;
+            });
     }
 
     private static function calculateTotal(Get $get, string $type): float
@@ -1164,51 +814,32 @@ class JournalResource extends Resource
             ->where('account_type', $type)
             ->sum(function ($item) {
                 $amount = $item['amount'] ?? 0;
-
-                // Handle string input (remove formatting)
                 if (is_string($amount)) {
                     $amount = str_replace(['.', ',', ' ', 'Rp'], '', $amount);
                 }
-
-                // Convert to float and ensure it's numeric
                 return is_numeric($amount) ? (float)$amount : 0;
             });
     }
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {
-        // Validate accounts first
-        foreach ($data['simple_entries'] ?? [] as $entry) {
-            $nomorBantuId = $entry['nomor_bantu_id'] ?? null;
-            if ($nomorBantuId && !static::isValidAccountForJournal($nomorBantuId)) {
-                $nomorBantu = NomorBantu::find($nomorBantuId);
-                $accountName = $nomorBantu ? $nomorBantu->nm_bantu : 'Akun tidak ditemukan';
-
-                throw ValidationException::withMessages([
-                    'data.simple_entries' => "Akun '{$accountName}' belum memiliki saldo awal atau belum pernah digunakan dalam transaksi. Silakan setup saldo awal terlebih dahulu atau gunakan akun yang sudah aktif.",
-                ]);
-            }
-        }
-
         $year = now()->format('Y');
         $month = now()->format('m');
         $last = Journal::whereYear('transaction_date', $year)
             ->whereMonth('transaction_date', $month)
+            ->where('transaction_type', Journal::TYPE_PENERIMAAN)
             ->count();
-        $data['reference'] = "JU/$year/$month/" . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
+        $data['reference'] = "KM-$year$month-" . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
 
-        // Process amounts - clean and convert to float
+        // Process amounts
         $debit = 0;
         $credit = 0;
 
         foreach ($data['simple_entries'] ?? [] as &$entry) {
             $amount = $entry['amount'] ?? 0;
-
-            // Clean amount formatting
             if (is_string($amount)) {
                 $amount = str_replace(['.', ',', ' ', 'Rp'], '', $amount);
             }
-
             $entry['amount'] = is_numeric($amount) ? (float)$amount : 0;
 
             if ($entry['account_type'] === 'debit') {
@@ -1227,37 +858,22 @@ class JournalResource extends Resource
         $data['created_by'] = Auth::id();
         $data['status'] = 'draft';
         $data['total_amount'] = $debit;
+        $data['transaction_type'] = Journal::TYPE_PENERIMAAN;
 
         return $data;
     }
 
     public static function mutateFormDataBeforeSave(array $data): array
     {
-        // Validate accounts first
-        foreach ($data['simple_entries'] ?? [] as $entry) {
-            $nomorBantuId = $entry['nomor_bantu_id'] ?? null;
-            if ($nomorBantuId && !static::isValidAccountForJournal($nomorBantuId)) {
-                $nomorBantu = NomorBantu::find($nomorBantuId);
-                $accountName = $nomorBantu ? $nomorBantu->nm_bantu : 'Akun tidak ditemukan';
-
-                throw ValidationException::withMessages([
-                    'data.simple_entries' => "Akun '{$accountName}' belum memiliki saldo awal atau belum pernah digunakan dalam transaksi. Silakan setup saldo awal terlebih dahulu atau gunakan akun yang sudah aktif.",
-                ]);
-            }
-        }
-
-        // Process amounts - clean and convert to float
+        // Process amounts
         $debit = 0;
         $credit = 0;
 
         foreach ($data['simple_entries'] ?? [] as &$entry) {
             $amount = $entry['amount'] ?? 0;
-
-            // Clean amount formatting
             if (is_string($amount)) {
                 $amount = str_replace(['.', ',', ' ', 'Rp'], '', $amount);
             }
-
             $entry['amount'] = is_numeric($amount) ? (float)$amount : 0;
 
             if ($entry['account_type'] === 'debit') {
@@ -1277,65 +893,58 @@ class JournalResource extends Resource
         return $data;
     }
 
+    public static function getWidgets(): array
+    {
+        return [
+            Widgets\PenerimaanStatsWidget::class,
+        ];
+    }
+
     public static function generateJournalReport(array $data): StreamedResponse
     {
-        $query = static::getEloquentQuery()
-            ->with([
-                'details.nomorBantu.rekening.kelompok',
-                'createdBy',
-                'company'
-            ])
-            ->whereBetween('transaction_date', [$data['date_from'], $data['date_to']]);
+        $from = $data['from'];
+        $until = $data['until'];
+        $status = $data['status'];
 
-        if ($data['status_filter'] !== 'all') {
-            $query->where('status', $data['status_filter']);
+        $query = Journal::where('transaction_type', Journal::TYPE_PENERIMAAN)
+            ->with(['details.nomorBantu.rekening.kelompok', 'createdBy', 'company'])
+            ->whereBetween('transaction_date', [$from, $until]);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
         }
 
         $journals = $query->orderBy('transaction_date', 'desc')->get();
 
         $pdf = Pdf::loadView('reports.journal-report', [
             'journals' => $journals,
-            'date_from' => $data['date_from'],
-            'date_to' => $data['date_to'],
-            'status_filter' => $data['status_filter'],
-            'title' => 'Laporan Jurnal Umum',
+            'from' => $from,
+            'until' => $until,
+            'status' => $status,
+            'title' => 'Laporan Jurnal Penerimaan',
+            'type' => 'penerimaan'
         ]);
 
-        $filename = 'laporan-jurnal-umum-' . $data['date_from'] . '-to-' . $data['date_to'] . '.pdf';
+        $filename = 'laporan-jurnal-penerimaan-' . $from . '-to-' . $until . '.pdf';
 
-        return response()->streamDownload(
-            fn() => print($pdf->output()),
-            $filename,
-            ['Content-Type' => 'application/pdf']
-        );
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename);
     }
 
     public static function printJournal(Journal $record): StreamedResponse
     {
-        $record->load([
-            'details.nomorBantu.rekening.kelompok',
-            'createdBy',
-            'company'
-        ]);
+        $record->load(['details.nomorBantu.rekening.kelompok', 'createdBy', 'company']);
 
         $pdf = Pdf::loadView('reports.journal-print', [
             'journal' => $record,
-            'title' => 'Jurnal Umum',
+            'title' => 'Jurnal Penerimaan'
         ]);
 
-        $filename = 'jurnal-umum-' . $record->reference . '.pdf';
+        $filename = 'jurnal-penerimaan-' . $record->reference . '.pdf';
 
-        return response()->streamDownload(
-            fn() => print($pdf->output()),
-            $filename,
-            ['Content-Type' => 'application/pdf']
-        );
-    }
-
-    public static function getWidgets(): array
-    {
-        return [
-            Widgets\JournalStatsWidget::class,
-        ];
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename);
     }
 }

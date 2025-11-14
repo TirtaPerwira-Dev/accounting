@@ -15,11 +15,16 @@ class Journal extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // Constants for transaction types
+    const TYPE_PENERIMAAN = 'penerimaan';
+    const TYPE_PENGELUARAN = 'pengeluaran';
+
     protected $fillable = [
         'company_id',
         'transaction_date',
         'reference',
         'description',
+        'transaction_type',
         'total_amount',
         'status',
         'created_by',
@@ -68,6 +73,16 @@ class Journal extends Model
     public function scopeForCompany($query, $companyId)
     {
         return $query->where('company_id', $companyId);
+    }
+
+    public function scopePenerimaan($query)
+    {
+        return $query->where('transaction_type', self::TYPE_PENERIMAAN);
+    }
+
+    public function scopePengeluaran($query)
+    {
+        return $query->where('transaction_type', self::TYPE_PENGELUARAN);
     }
 
     // Business Logic
@@ -174,7 +189,7 @@ class Journal extends Model
 
         static::creating(function ($journal) {
             if (empty($journal->reference)) {
-                $journal->reference = static::generateReference($journal->company_id);
+                $journal->reference = static::generateReference($journal->company_id, $journal->transaction_type);
             }
 
             if (empty($journal->created_by)) {
@@ -183,13 +198,16 @@ class Journal extends Model
         });
     }
 
-    public static function generateReference($companyId): string
+    public static function generateReference($companyId, $transactionType = self::TYPE_PENERIMAAN): string
     {
-        return DB::transaction(function () use ($companyId) {
-            $prefix = 'JU-' . now()->format('Ym') . '-';
+        return DB::transaction(function () use ($companyId, $transactionType) {
+            // Different prefix for different transaction types
+            $typePrefix = $transactionType === self::TYPE_PENERIMAAN ? 'KM' : 'KK'; // Kas Masuk / Kas Keluar
+            $prefix = $typePrefix . '-' . now()->format('Ym') . '-';
 
             // Get the highest number for this month and company with row locking
             $lastJournal = static::where('company_id', $companyId)
+                ->where('transaction_type', $transactionType)
                 ->where('reference', 'like', $prefix . '%')
                 ->orderBy('reference', 'desc')
                 ->lockForUpdate()
@@ -210,6 +228,7 @@ class Journal extends Model
             do {
                 $reference = $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
                 $exists = static::where('company_id', $companyId)
+                    ->where('transaction_type', $transactionType)
                     ->where('reference', $reference)
                     ->exists();
 

@@ -28,7 +28,11 @@ class AdminUserSeeder extends Seeder
             'direktur_umum'      => ['email' => 'dirum@mail.com',  'name' => 'Direktur Umum'],
             'kepala_bagian'      => ['email' => 'kabag@mail.com',  'name' => 'Kepala Bagian'],
             'kepala_sub_bagian'  => ['email' => 'kasubag@mail.com', 'name' => 'Kepala Sub Bagian'],
+            'kepala_sub_bagian_anggaran_pendapatan'  => ['email' => 'kasubanggaran@mail.com', 'name' => 'Kepala Sub Bagian Anggaran Pendapatan'],
+            'kepala_sub_bagian_verifikasi_pembukuan'  => ['email' => 'kasubverifikasi@mail.com', 'name' => 'Kepala Sub Bagian Verifikasi Pembukuan'],
             'staff'              => ['email' => 'staff@mail.com',  'name' => 'Staff'],
+            'staff_anggaran_pendapatan'              => ['email' => 'staffanggaran@mail.com',  'name' => 'Staff Anggaran Pendapatan'],
+            'staff_verifikasi_pembukuan'              => ['email' => 'staffverifikasi@mail.com',  'name' => 'Staff Verifikasi Pembukuan'],
         ];
 
         foreach ($users as $role => $userData) {

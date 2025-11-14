@@ -20,9 +20,9 @@ class OpeningBalanceResource extends Resource
 
     protected static ?string $navigationLabel = 'Saldo Awal';
 
-    protected static ?string $navigationGroup = '2. Setup & Konfigurasi';
+    protected static ?string $navigationGroup = '2. Setup Saldo Awal';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {

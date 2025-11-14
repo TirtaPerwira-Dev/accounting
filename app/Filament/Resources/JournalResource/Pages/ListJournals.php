@@ -16,4 +16,11 @@ class ListJournals extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            JournalResource\Widgets\JournalStatsWidget::class,
+        ];
+    }
 }
