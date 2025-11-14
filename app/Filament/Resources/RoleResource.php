@@ -98,7 +98,7 @@ class RoleResource extends Resource
                         })->toArray())
                         ->columns([
                             'sm' => 1,
-                            'md' => 2, 
+                            'md' => 2,
                             'lg' => 3,
                             'xl' => 4,
                         ])
@@ -123,12 +123,12 @@ class RoleResource extends Resource
     {
         // Clean permission name for better readability
         $parts = explode('_', $permission);
-        
+
         // Handle different permission formats
         if (count($parts) >= 2) {
             $action = $parts[0];
             $resource = implode('_', array_slice($parts, 1));
-            
+
             // Action labels in Indonesian
             $actionLabels = [
                 'view' => 'Lihat',
@@ -166,10 +166,10 @@ class RoleResource extends Resource
 
             $actionLabel = $actionLabels[$action] ?? ucfirst($action);
             $resourceLabel = $resourceLabels[$resource] ?? ucwords(str_replace('_', ' ', $resource));
-            
+
             return $actionLabel . ' ' . $resourceLabel;
         }
-        
+
         return ucwords(str_replace('_', ' ', $permission));
     }
 
@@ -177,7 +177,7 @@ class RoleResource extends Resource
     {
         // Convert permission name to readable description in Indonesian
         $parts = explode('_', $permission);
-        
+
         if (count($parts) >= 2) {
             $action = $parts[0];
             $resource = implode('_', array_slice($parts, 1));
@@ -189,37 +189,37 @@ class RoleResource extends Resource
                 'create_journal' => 'Dapat membuat jurnal umum baru',
                 'update_journal' => 'Dapat mengedit jurnal umum',
                 'delete_journal' => 'Dapat menghapus jurnal umum',
-                
+
                 'view_penerimaan_journal' => 'Dapat melihat jurnal penerimaan',
                 'view_any_penerimaan_journal' => 'Dapat melihat semua jurnal penerimaan',
                 'create_penerimaan_journal' => 'Dapat membuat jurnal penerimaan',
                 'update_penerimaan_journal' => 'Dapat mengedit jurnal penerimaan',
                 'delete_penerimaan_journal' => 'Dapat menghapus jurnal penerimaan',
-                
+
                 'view_pengeluaran_journal' => 'Dapat melihat jurnal pengeluaran',
                 'view_any_pengeluaran_journal' => 'Dapat melihat semua jurnal pengeluaran',
                 'create_pengeluaran_journal' => 'Dapat membuat jurnal pengeluaran',
                 'update_pengeluaran_journal' => 'Dapat mengedit jurnal pengeluaran',
                 'delete_pengeluaran_journal' => 'Dapat menghapus jurnal pengeluaran',
-                
+
                 'view_kelompok' => 'Dapat melihat kelompok akun',
                 'view_any_kelompok' => 'Dapat melihat semua kelompok akun',
                 'create_kelompok' => 'Dapat membuat kelompok akun baru',
                 'update_kelompok' => 'Dapat mengedit kelompok akun',
                 'delete_kelompok' => 'Dapat menghapus kelompok akun',
-                
+
                 'view_rekening' => 'Dapat melihat rekening',
                 'view_any_rekening' => 'Dapat melihat semua rekening',
                 'create_rekening' => 'Dapat membuat rekening baru',
                 'update_rekening' => 'Dapat mengedit rekening',
                 'delete_rekening' => 'Dapat menghapus rekening',
-                
+
                 'view_user' => 'Dapat melihat data pengguna',
                 'view_any_user' => 'Dapat melihat semua pengguna',
                 'create_user' => 'Dapat membuat pengguna baru',
                 'update_user' => 'Dapat mengedit data pengguna',
                 'delete_user' => 'Dapat menghapus pengguna',
-                
+
                 'view_role' => 'Dapat melihat peran',
                 'view_any_role' => 'Dapat melihat semua peran',
                 'create_role' => 'Dapat membuat peran baru',
@@ -282,9 +282,9 @@ class RoleResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'super_admin' => 'danger',
-                        'admin' => 'warning', 
+                        'admin' => 'warning',
                         'akuntan' => 'info',
                         'kasir' => 'success',
                         'direktur' => 'primary',
@@ -330,7 +330,7 @@ class RoleResource extends Resource
                         'super_admin' => 'Super Admin',
                         'admin' => 'Admin',
                         'akuntan' => 'Akuntan',
-                        'kasir' => 'Kasir', 
+                        'kasir' => 'Kasir',
                         'direktur' => 'Direktur',
                     ]),
             ])
@@ -339,7 +339,7 @@ class RoleResource extends Resource
                     ->label('Edit'),
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
-                    ->visible(fn (Role $record): bool => $record->name !== 'super_admin')
+                    ->visible(fn(Role $record): bool => $record->name !== 'super_admin')
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Peran')
                     ->modalDescription('Apakah Anda yakin ingin menghapus peran ini? Tindakan ini tidak dapat dibatalkan.')
@@ -349,7 +349,7 @@ class RoleResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->action(function ($records) {
-                            $records->reject(fn (Role $role) => $role->name === 'super_admin')->each->delete();
+                            $records->reject(fn(Role $role) => $role->name === 'super_admin')->each->delete();
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Hapus Peran Terpilih')

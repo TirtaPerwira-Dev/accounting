@@ -5,11 +5,13 @@
 Sistem telah diperbarui untuk menggunakan struktur bagan akun sesuai standar SAKEP dengan hierarki:
 
 ### Hierarki Akun:
+
 1. **Kelompok** (NO_KEL) - Kategori utama
 2. **Rekening** (NO_REK) - Sub-kategori dalam kelompok
 3. **Nomor Bantu** (NO_BANTU) - Detail akun spesifik
 
 ### Contoh Struktur:
+
 ```
 10 - Aktiva Lancar
   ├── 1101 - Kas
@@ -25,11 +27,13 @@ Sistem telah diperbarui untuk menggunakan struktur bagan akun sesuai standar SAK
 ## 🔧 Perubahan Database
 
 ### Model yang Diperbarui:
-- `Kelompok.php` - Model untuk kelompok akun utama
-- `Rekening.php` - Model untuk sub-kategori rekening
-- `NomorBantu.php` - Model untuk detail akun spesifik
+
+-   `Kelompok.php` - Model untuk kelompok akun utama
+-   `Rekening.php` - Model untuk sub-kategori rekening
+-   `NomorBantu.php` - Model untuk detail akun spesifik
 
 ### Relasi Database:
+
 ```php
 Kelompok hasMany Rekening
 Rekening hasMany NomorBantu
@@ -40,6 +44,7 @@ Rekening belongsTo Kelompok
 ## 👥 Sistem Role & Permission
 
 ### Hierarki Role:
+
 1. **Super Admin** - Akses penuh semua fitur
 2. **Direktur Utama** - Akses penuh kecuali sistem & audit
 3. **Direktur Umum** - Akses laporan dan aktivitas
@@ -53,67 +58,77 @@ Rekening belongsTo Kelompok
 ### Permission Matrix:
 
 #### 📈 Staff Level:
-- **Staff Anggaran Pendapatan**: 
-  - View chart of accounts
-  - Create/edit jurnal penerimaan (draft only)
-  - View dashboard, profile
 
-- **Staff Verifikasi Pembukuan**:
-  - View chart of accounts
-  - Create/edit jurnal pengeluaran (draft only)
-  - View dashboard, profile
+-   **Staff Anggaran Pendapatan**:
+
+    -   View chart of accounts
+    -   Create/edit jurnal penerimaan (draft only)
+    -   View dashboard, profile
+
+-   **Staff Verifikasi Pembukuan**:
+    -   View chart of accounts
+    -   Create/edit jurnal pengeluaran (draft only)
+    -   View dashboard, profile
 
 #### 👨‍💼 Supervisor Level:
-- **Kasub Anggaran Pendapatan**:
-  - Full CRUD chart of accounts
-  - Approval jurnal penerimaan (dapat posting)
-  - Input saldo awal
-  - Akses laporan keuangan
 
-- **Kasub Verifikasi Pembukuan**:
-  - Full CRUD chart of accounts
-  - Approval jurnal pengeluaran & umum (dapat posting)
-  - Input saldo awal
-  - Akses laporan keuangan
+-   **Kasub Anggaran Pendapatan**:
+
+    -   Full CRUD chart of accounts
+    -   Approval jurnal penerimaan (dapat posting)
+    -   Input saldo awal
+    -   Akses laporan keuangan
+
+-   **Kasub Verifikasi Pembukuan**:
+    -   Full CRUD chart of accounts
+    -   Approval jurnal pengeluaran & umum (dapat posting)
+    -   Input saldo awal
+    -   Akses laporan keuangan
 
 #### 🎯 Management Level:
-- **Kepala Bagian**:
-  - Manajemen user (create/update)
-  - Full CRUD chart of accounts
-  - Approval semua jenis jurnal
-  - Company settings
-  - Role management (terbatas)
-  - Laporan keuangan
+
+-   **Kepala Bagian**:
+    -   Manajemen user (create/update)
+    -   Full CRUD chart of accounts
+    -   Approval semua jenis jurnal
+    -   Company settings
+    -   Role management (terbatas)
+    -   Laporan keuangan
 
 ## 🔄 Alur Kerja Akuntansi
 
 ### 1. Setup Awal:
-- Super Admin/Direktur setup company
-- Setup chart of accounts (Kelompok → Rekening → Nomor Bantu)
-- Input saldo awal
+
+-   Super Admin/Direktur setup company
+-   Setup chart of accounts (Kelompok → Rekening → Nomor Bantu)
+-   Input saldo awal
 
 ### 2. Operasional Harian:
-- **Staff** input jurnal sesuai divisi (status: draft)
-- **Kasub** review dan approve jurnal (status: posted)
-- **Kabag** supervisi keseluruhan proses
+
+-   **Staff** input jurnal sesuai divisi (status: draft)
+-   **Kasub** review dan approve jurnal (status: posted)
+-   **Kabag** supervisi keseluruhan proses
 
 ### 3. Pelaporan:
-- Semua level supervisor+ dapat akses laporan keuangan
-- PDF report dengan filter tanggal dan status
-- Print per transaksi jurnal
+
+-   Semua level supervisor+ dapat akses laporan keuangan
+-   PDF report dengan filter tanggal dan status
+-   Print per transaksi jurnal
 
 ## ⚠️ Business Rules
 
 ### Separation of Duties:
-- Staff pendapatan hanya handle jurnal penerimaan
-- Staff pembukuan hanya handle jurnal pengeluaran & umum
-- Kasub hanya bisa approve jurnal sesuai divisinya
-- Kabag bisa approve semua jenis jurnal
+
+-   Staff pendapatan hanya handle jurnal penerimaan
+-   Staff pembukuan hanya handle jurnal pengeluaran & umum
+-   Kasub hanya bisa approve jurnal sesuai divisinya
+-   Kabag bisa approve semua jenis jurnal
 
 ### Approval Workflow:
-- Staff: Create (draft) → Kasub: Review/Approve → Posted
-- Hanya jurnal status "posted" yang masuk laporan keuangan final
-- Audit trail lengkap untuk semua perubahan
+
+-   Staff: Create (draft) → Kasub: Review/Approve → Posted
+-   Hanya jurnal status "posted" yang masuk laporan keuangan final
+-   Audit trail lengkap untuk semua perubahan
 
 ## 📋 Next Steps
 
