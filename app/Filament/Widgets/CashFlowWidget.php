@@ -64,40 +64,12 @@ class CashFlowWidget extends BaseWidget
             ->whereMonth('journals.transaction_date', now()->subMonth()->month)
             ->sum('journal_details.debit');
 
-        // Collection Rate (Kas Masuk / Penjualan Air)
-        $collectionRate = $penjualanAir > 0 ? ($kasMasuk / $penjualanAir) * 100 : 0;
+        // Hitung saldo kas bersih
+        $kasBersih = $kasMasuk - $kasKeluar;
+        $persentaseKas = $kasMasukLastMonth > 0 ? (($kasMasuk - $kasMasukLastMonth) / $kasMasukLastMonth) * 100 : 0;
 
-        // Growth rate kas masuk
-        $growthRate = $kasMasukLastMonth > 0 ? (($kasMasuk - $kasMasukLastMonth) / $kasMasukLastMonth) * 100 : 0;
+        return [ //
 
-        return [
-            Stat::make('Penjualan Air Bulan Ini', 'Rp ' . number_format($penjualanAir, 0, ',', '.'))
-                ->description('Revenue dari penjualan air')
-                ->descriptionIcon('heroicon-m-beaker')
-                ->color('info')
-                ->chart([950000, 1100000, 1200000, $penjualanAir]),
-
-            Stat::make('Kas Masuk Bulan Ini', 'Rp ' . number_format($kasMasuk, 0, ',', '.'))
-                ->description(($growthRate >= 0 ? '+' : '') . number_format($growthRate, 1) . '% dari bulan lalu')
-                ->descriptionIcon($growthRate >= 0 ? 'heroicon-m-arrow-up' : 'heroicon-m-arrow-down')
-                ->color($growthRate >= 0 ? 'success' : 'danger')
-                ->chart([800000, 950000, 1050000, $kasMasuk]),
-
-            Stat::make('Kas Keluar Bulan Ini', 'Rp ' . number_format($kasKeluar, 0, ',', '.'))
-                ->description('Pembayaran operasional')
-                ->descriptionIcon('heroicon-m-arrow-down-on-square')
-                ->color('warning')
-                ->chart([600000, 750000, 850000, $kasKeluar]),
-
-            Stat::make('Total Piutang Usaha', 'Rp ' . number_format($piutangUsaha, 0, ',', '.'))
-                ->description('Outstanding receivables')
-                ->descriptionIcon('heroicon-m-clipboard-document-list')
-                ->color($piutangUsaha > 1000000 ? 'warning' : 'success'),
-
-            Stat::make('Collection Rate', number_format($collectionRate, 1) . '%')
-                ->description('Efektivitas penagihan')
-                ->descriptionIcon('heroicon-m-chart-bar')
-                ->color($collectionRate >= 80 ? 'success' : ($collectionRate >= 60 ? 'warning' : 'danger'))
         ];
     }
 }

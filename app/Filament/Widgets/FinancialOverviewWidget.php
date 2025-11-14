@@ -90,7 +90,7 @@ class FinancialOverviewWidget extends BaseWidget
                 ->description('Menunggu persetujuan')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($draftJournals > 0 ? 'warning' : 'success')
-                ->url(route('filament.admin.resources.journals.index'))
+                ->url(route('filament.admin.resources.jurnal-umum.index')),
         ];
     }
 }

@@ -94,7 +94,7 @@ class RecentJournalsTable extends BaseWidget
                 Tables\Actions\Action::make('view')
                     ->label('Lihat')
                     ->icon('heroicon-o-eye')
-                    ->url(fn(Journal $record): string => route('filament.admin.resources.journals.view', $record))
+                    ->url(fn(Journal $record): string => route('filament.admin.resources.jurnal-umum.view', $record))
                     ->openUrlInNewTab(),
             ])
             ->defaultSort('created_at', 'desc');

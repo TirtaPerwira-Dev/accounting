@@ -92,7 +92,7 @@ class DraftJournalsTable extends BaseWidget
                 Tables\Actions\Action::make('edit')
                     ->label('Edit')
                     ->icon('heroicon-o-pencil')
-                    ->url(fn(Journal $record): string => route('filament.admin.resources.journals.edit', $record)),
+                    ->url(fn(Journal $record): string => route('filament.admin.resources.jurnal-umum.edit', $record)),
 
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
