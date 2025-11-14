@@ -27,9 +27,13 @@ class CompanyResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Perusahaan';
 
-    protected static ?string $navigationGroup = '1. Setup & Konfigurasi';
+    protected static ?string $navigationGroup = 'Setup & Konfigurasi';
+
+    protected static ?int $navigationGroupSort = 5;
 
     protected static ?int $navigationSort = 1;
+
+    protected static ?string $slug = 'profil-perusahaan';
 
     public static function canCreate(): bool
     {
@@ -336,16 +340,6 @@ class CompanyResource extends Resource
             'view' => Pages\ViewCompany::route('/{record}'),
             'edit' => Pages\EditCompany::route('/{record}/edit'),
         ];
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::where('is_active', true)->count();
-    }
-
-    public static function getNavigationBadgeColor(): string|array|null
-    {
-        return 'success';
     }
 
     public static function mutateFormDataBeforeCreate(array $data): array

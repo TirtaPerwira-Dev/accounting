@@ -20,9 +20,15 @@ class OpeningBalanceResource extends Resource
 
     protected static ?string $navigationLabel = 'Saldo Awal';
 
-    protected static ?string $navigationGroup = '2. Setup Saldo Awal';
+    protected static ?string $navigationGroup = 'Setup Saldo Awal';
+
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 1;
+
+    protected static ?string $pluralModelLabel = 'Saldo Awal';
+
+    protected static ?string $slug = 'saldo-awal';
 
     public static function form(Form $form): Form
     {
@@ -368,53 +374,6 @@ class OpeningBalanceResource extends Resource
                             ]);
                     })
                     ->successNotificationTitle('Semua saldo awal berhasil dikonfirmasi'),
-
-                Tables\Actions\Action::make('load_sample_data')
-                    ->label('📋 Load Data Contoh')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->modalHeading('Load Data Contoh PDAM')
-                    ->modalSubheading('Ini akan menambahkan contoh saldo awal untuk PDAM. Data ini hanya untuk testing dan pembelajaran.')
-                    ->action(function () {
-                        $companyId = \App\Models\Company::first()->id ?? 1;
-                        $sampleData = [
-                            // AKTIVA
-                            ['account' => 'Kas Besar', 'debit' => 50000000, 'type' => 'aktiva'],
-                            ['account' => 'Bank BPD Capem Pasar Kota', 'debit' => 200000000, 'type' => 'aktiva'],
-                            ['account' => 'Deposito di Bank BPD', 'debit' => 500000000, 'type' => 'aktiva'],
-                            ['account' => 'Piutang Rekening Air', 'debit' => 150000000, 'type' => 'aktiva'],
-                            ['account' => 'Persediaan Bahan Operasi Kimia', 'debit' => 25000000, 'type' => 'aktiva'],
-
-                            // PASIVA
-                            ['account' => 'Hutang Usaha', 'credit' => 75000000, 'type' => 'pasiva'],
-                            ['account' => 'Utang Pajak PPN', 'credit' => 15000000, 'type' => 'pasiva'],
-
-                            // EKUITAS
-                            ['account' => 'Kekayaan Pemda Yg Dipisahkan', 'credit' => 835000000, 'type' => 'ekuitas'],
-                        ];
-
-                        foreach ($sampleData as $data) {
-                            // Find account by name
-                            $nomorBantu = \App\Models\NomorBantu::where('nm_bantu', 'like', '%' . $data['account'] . '%')->first();
-
-                            if ($nomorBantu) {
-                                \App\Models\OpeningBalance::create([
-                                    'company_id' => $companyId,
-                                    'nomor_bantu_id' => $nomorBantu->id,
-                                    'kelompok_id' => $nomorBantu->rekening->kelompok_id,
-                                    'rekening_id' => $nomorBantu->rekening_id,
-                                    'as_of_date' => now()->startOfYear(),
-                                    'debit_balance' => $data['debit'] ?? 0,
-                                    'credit_balance' => $data['credit'] ?? 0,
-                                    'description' => 'Saldo awal ' . $data['account'] . ' (contoh)',
-                                    'created_by' => \Illuminate\Support\Facades\Auth::id(),
-                                ]);
-                            }
-                        }
-                    })
-                    ->successNotificationTitle('Data contoh berhasil ditambahkan')
-                    ->visible(fn() => \App\Models\OpeningBalance::count() === 0),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()

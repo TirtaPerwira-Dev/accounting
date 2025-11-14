@@ -83,17 +83,6 @@
                     </div>
                 </div>
             </div>
-        @else
-            <div class="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 p-16 text-center">
-                <div class="max-w-lg mx-auto">
-                    <h3 class="text-xl font-light text-gray-700 dark:text-gray-200 mb-3 tracking-wide">
-                        Laporan Keuangan
-                    </h3>
-                    <p class="text-gray-500 dark:text-gray-300 leading-relaxed font-light">
-                        Pilih parameter laporan di atas dan klik <span class="font-medium text-gray-700 dark:text-white">"Buat Laporan"</span> untuk menampilkan hasil analisis keuangan.
-                    </p>
-                </div>
-            </div>
         @endif
     </div>
 

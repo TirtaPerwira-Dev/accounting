@@ -28,7 +28,9 @@ class RoleResource extends Resource
 
     protected static ?string $navigationLabel = 'Peran & Hak Akses';
 
-    protected static ?string $navigationGroup = '9. Manajemen Pengguna';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
+
+    protected static ?int $navigationGroupSort = 7;
 
     protected static ?int $navigationSort = 2;
 
@@ -335,15 +337,23 @@ class RoleResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->label('Edit'),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->visible(fn(Role $record): bool => $record->name !== 'super_admin')
-                    ->requiresConfirmation()
-                    ->modalHeading('Hapus Peran')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus peran ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->modalSubmitActionLabel('Ya, Hapus'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(fn(Role $record): bool => $record->name !== 'super_admin')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Peran')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus peran ini? Tindakan ini tidak dapat dibatalkan.')
+                        ->modalSubmitActionLabel('Ya, Hapus'),
+                    Tables\Actions\ViewAction::make()
+                        ->label('View'),
+                ])
+                    ->color('primary') // Warna tombol utama
+                    ->icon('heroicon-o-ellipsis-vertical') // Icon dropdown
+                    ->size('sm') // Ukuran kecil
+                    ->button(), // Menjadikan dropdown sebagai tombol (bukan dropdown biasa)
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -25,9 +25,17 @@ class KelompokResource extends Resource
 
     protected static ?string $navigationGroup = 'Master Penomoran';
 
+    protected static ?int $navigationGroupSort = 1;
+
     protected static ?int $navigationSort = 1;
 
     protected static ?string $label = 'Kelompok Akun';
+
+    protected static ?string $navigationLabel = 'Kelompok Akun';
+
+    protected static ?string $pluralModelLabel = 'Kelompok Akun';
+
+    protected static ?string $slug = 'kelompok-akun';
 
     public static function form(Form $form): Form
     {
@@ -124,9 +132,16 @@ class KelompokResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
+                    ->color('primary') // Ini yang membuat warnanya biru (primary)
+                    ->icon('heroicon-o-ellipsis-vertical') // Opsional: ganti icon
+                    ->size('sm')
+                    ->button()
+                    ->color('primary'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -150,5 +165,20 @@ class KelompokResource extends Resource
             'create' => Pages\CreateKelompok::route('/create'),
             'edit' => Pages\EditKelompok::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'success';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Total Nomor Kelompok Terdaftar';
     }
 }

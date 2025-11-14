@@ -24,7 +24,9 @@ class ActivityLogResource extends Resource
 
     protected static ?string $navigationLabel = 'Activity Logs';
 
-    protected static ?string $navigationGroup = '9. Monitoring & Audit';
+    protected static ?string $navigationGroup = 'Monitoring & Audit';
+
+    protected static ?int $navigationGroupSort = 6;
 
     protected static ?int $navigationSort = 2;    // Use permission-based access
     public static function canViewAny(): bool

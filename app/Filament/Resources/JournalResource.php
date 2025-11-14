@@ -28,13 +28,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class JournalResource extends Resource
 {
     protected static ?string $model = Journal::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
+
     protected static ?string $navigationLabel = 'Jurnal Umum';
+
     protected static ?string $modelLabel = 'Jurnal Umum';
+
     protected static ?string $pluralModelLabel = 'Jurnal Umum';
+
     protected static ?string $navigationGroup = 'Transaksi Kas';
+
+    protected static ?int $navigationGroupSort = 3;
+
     protected static ?int $navigationSort = 3;
+
     protected static ?string $recordTitleAttribute = 'reference';
+
+    protected static ?string $slug = 'jurnal-umum';
+
 
     public static function getNavigationBadge(): ?string
     {

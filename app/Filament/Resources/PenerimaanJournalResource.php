@@ -36,9 +36,13 @@ class PenerimaanJournalResource extends Resource
 
     protected static ?string $navigationGroup = 'Transaksi Kas';
 
+    protected static ?int $navigationGroupSort = 3;
+
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'reference';
+
+    protected static ?string $slug = 'jurnal-penerimaan';
 
     public static function getNavigationBadge(): ?string
     {

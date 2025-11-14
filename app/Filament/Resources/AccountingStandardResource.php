@@ -28,9 +28,13 @@ class AccountingStandardResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Standar Akuntansi';
 
-    protected static ?string $navigationGroup = '1. Setup & Konfigurasi';
+    protected static ?string $navigationGroup = 'Setup & Konfigurasi';
+
+    protected static ?int $navigationGroupSort = 5;
 
     protected static ?int $navigationSort = 2;
+
+    protected static ?string $slug = 'standar-akuntansi';
 
     public static function form(Form $form): Form
     {
@@ -267,15 +271,5 @@ class AccountingStandardResource extends Resource
             'view' => Pages\ViewAccountingStandard::route('/{record}'),
             'edit' => Pages\EditAccountingStandard::route('/{record}/edit'),
         ];
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::where('is_active', true)->count();
-    }
-
-    public static function getNavigationBadgeColor(): string|array|null
-    {
-        return 'success';
     }
 }

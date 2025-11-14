@@ -26,9 +26,17 @@ class RekeningResource extends Resource
 
     protected static ?string $navigationGroup = 'Master Penomoran';
 
+    protected static ?int $navigationGroupSort = 1;
+
     protected static ?int $navigationSort = 2;
 
     protected static ?string $label = 'Rekening';
+
+    protected static ?string $navigationLabel = 'Rekening';
+
+    protected static ?string $pluralModelLabel = 'Rekening';
+
+    protected static ?string $slug = 'rekening';
 
     public static function form(Form $form): Form
     {
@@ -140,29 +148,6 @@ class RekeningResource extends Resource
                         default => 'secondary',
                     }),
 
-                TextColumn::make('kel')
-                    ->label('Kategori')
-                    ->sortable()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        '1' => '1 - Aktiva',
-                        '2' => '2 - Kewajiban',
-                        '3' => '3 - Pendapatan',
-                        '4' => '4 - Biaya Operasional',
-                        '5' => '5 - Biaya Administrasi',
-                        '6' => '6 - Biaya Luar Usaha',
-                        default => $state,
-                    })
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        '1' => 'success',
-                        '2' => 'danger',
-                        '3' => 'primary',
-                        '4' => 'warning',
-                        '5' => 'info',
-                        '6' => 'gray',
-                        default => 'secondary',
-                    }),
-
                 TextColumn::make('nomor_bantus_count')
                     ->label('Jumlah Nomor Bantu')
                     ->counts('nomorBantus')
@@ -200,9 +185,16 @@ class RekeningResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
+                    ->color('primary') // Ini yang membuat warnanya biru (primary)
+                    ->icon('heroicon-o-ellipsis-vertical') // Opsional: ganti icon
+                    ->size('sm')
+                    ->button()
+                    ->color('primary'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -226,5 +218,19 @@ class RekeningResource extends Resource
             'create' => Pages\CreateRekening::route('/create'),
             'edit' => Pages\EditRekening::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'success';
+    }
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Total Nomor Rekening Terdaftar';
     }
 }

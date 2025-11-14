@@ -28,7 +28,9 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Pengguna';
 
-    protected static ?string $navigationGroup = '9. Manajemen Pengguna';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
+
+    protected static ?int $navigationGroupSort = 7;
 
     protected static ?int $navigationSort = 1;
 
@@ -123,9 +125,15 @@ class UserResource extends Resource
                     ->multiple(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
+                    ->color('warning') // Ini yang membuat warnanya kuning (warning)
+                    ->icon('heroicon-o-ellipsis-vertical') // Opsional: ganti icon
+                    ->size('sm') // Opsional: ukuran kecil
+                    ->button() // Menjadikan dropdown sebagai tombol (bukan dropdown biasa)
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

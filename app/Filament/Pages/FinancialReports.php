@@ -27,11 +27,16 @@ class FinancialReports extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Laporan Keuangan';
 
-    protected static ?string $navigationGroup = '4. Laporan Keuangan';
+    protected static ?string $navigationGroup = 'Laporan Keuangan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationGroupSort = 4;
+
 
     protected static string $view = 'filament.pages.financial-reports';
+
+    protected static ?string $pluralModelLabel = 'Laporan Keuangan';
+
+    protected static ?string $slug = 'laporan-keuangan';
 
     public ?array $data = [];
     public ?array $reportData = null;

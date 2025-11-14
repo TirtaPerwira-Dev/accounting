@@ -36,9 +36,13 @@ class PengeluaranJournalResource extends Resource
 
     protected static ?string $navigationGroup = 'Transaksi Kas';
 
+    protected static ?int $navigationGroupSort = 3;
+
     protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'reference';
+
+    protected static ?string $slug = 'jurnal-pengeluaran';
 
     public static function getNavigationBadge(): ?string
     {

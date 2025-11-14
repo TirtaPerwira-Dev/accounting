@@ -34,9 +34,17 @@ class NomorBantuResource extends Resource
 
     protected static ?string $navigationGroup = 'Master Penomoran';
 
+    protected static ?int $navigationGroupSort = 1;
+
     protected static ?int $navigationSort = 3;
 
     protected static ?string $label = 'Nomor Bantu';
+
+    protected static ?string $navigationLabel = 'Nomor Bantu';
+
+    protected static ?string $pluralModelLabel = 'Nomor Bantu';
+
+    protected static ?string $slug = 'nomor-bantu';
 
     public static function form(Form $form): Form
     {
@@ -271,6 +279,13 @@ class NomorBantuResource extends Resource
 
                         return $noKel . '.' . $noRek . '.' . $noBantu;
                     })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->join('rekenings', 'nomor_bantus.rekening_id', '=', 'rekenings.id')
+                            ->join('kelompoks', 'rekenings.kelompok_id', '=', 'kelompoks.id')
+                            ->orderByRaw("LPAD(kelompoks.no_kel::text, 2, '0') || '.' || LPAD(rekenings.no_rek::text, 4, '0') || '.' || LPAD(nomor_bantus.no_bantu::text, 2, '0') {$direction}")
+                            ->select('nomor_bantus.*');
+                    })
+                    ->searchable()
                     ->badge()
                     ->color('primary')
                     ->copyable()
@@ -402,9 +417,9 @@ class NomorBantuResource extends Resource
             ])
             ->headerActions([
                 Action::make('export_all_pdf')
-                    ->label('Export No. Bantu')
+                    ->label('Unduh No.Bantu')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->color('warning')
+                    ->color('success')
                     ->form([
                         FormSelect::make('kelompok_id')
                             ->label('Filter Kelompok')
@@ -483,9 +498,16 @@ class NomorBantuResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
+                    ->color('warning') // Ini yang membuat warnanya kuning (warning)
+                    ->icon('heroicon-o-ellipsis-vertical') // Opsional: ganti icon
+                    ->size('sm')
+                    ->button()
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -517,5 +539,20 @@ class NomorBantuResource extends Resource
             'create' => Pages\CreateNomorBantu::route('/create'),
             'edit' => Pages\EditNomorBantu::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'success';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Total Nomor Bantu Terdaftar';
     }
 }

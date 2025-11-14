@@ -12,6 +12,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Navigation\NavigationGroup;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -19,6 +20,14 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+use App\Filament\Widgets\WelcomeWidget;
+use App\Filament\Widgets\FinancialOverviewWidget;
+use App\Filament\Widgets\RevenueExpenseChart;
+use App\Filament\Widgets\CashFlowTrendChart;
+use App\Filament\Widgets\RecentJournalsTable;
+use App\Filament\Widgets\DraftJournalsTable;
+use App\Filament\Widgets\LiquidityRatioChart;
+use App\Filament\Widgets\TransactionTypeChart;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -33,8 +42,33 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->profile()
+            ->sidebarCollapsibleOnDesktop()
+            ->globalSearch(false)
             ->colors([
                 'primary' => Color::Amber,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make('Master Penomoran')
+                    ->label('Master Penomoran')
+                    ->collapsible(),
+                NavigationGroup::make('Setup Saldo Awal')
+                    ->label('Setup Saldo Awal')
+                    ->collapsible(),
+                NavigationGroup::make('Transaksi Kas')
+                    ->label('Transaksi Kas')
+                    ->collapsible(),
+                NavigationGroup::make('Laporan Keuangan')
+                    ->label('Laporan Keuangan')
+                    ->collapsible(),
+                NavigationGroup::make('Setup & Konfigurasi')
+                    ->label('Setup & Konfigurasi')
+                    ->collapsible(),
+                NavigationGroup::make('Monitoring & Audit')
+                    ->label('Monitoring & Audit')
+                    ->collapsible(),
+                NavigationGroup::make('Manajemen Pengguna')
+                    ->label('Manajemen Pengguna')
+                    ->collapsible(true),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -43,8 +77,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                WelcomeWidget::class,
+                FinancialOverviewWidget::class,
+                RevenueExpenseChart::class,
+                CashFlowTrendChart::class,
+                RecentJournalsTable::class,
+                DraftJournalsTable::class,
+                LiquidityRatioChart::class,
+                TransactionTypeChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,
