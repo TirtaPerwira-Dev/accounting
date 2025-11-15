@@ -16,6 +16,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Forms\Components\Section;
 
 class KelompokResource extends Resource
 {
@@ -37,35 +38,63 @@ class KelompokResource extends Resource
 
     protected static ?string $slug = 'kelompok-akun';
 
+    /**
+     * Daftar kategori akuntansi (dapat dipindah ke config atau enum di masa depan)
+     */
+    const KATEGORI_AKUNTANSI = [
+        1 => '1 - Aktiva',
+        2 => '2 - Kewajiban',
+        3 => '3 - Pendapatan',
+        4 => '4 - Biaya Operasional',
+        5 => '5 - Biaya Administrasi',
+        6 => '6 - Biaya Luar Usaha',
+    ];
+
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                TextInput::make('no_kel')
-                    ->label('Nomor Kelompok')
-                    ->required()
-                    ->numeric()
-                    ->maxLength(2)
-                    ->unique(ignoreRecord: true),
+        return $form->schema([
+            Section::make('Informasi Kelompok Akun')
+                ->description('Lengkapi data kelompok akun dengan benar. Nomor kelompok harus unik.')
+                ->icon('heroicon-o-folder')
+                ->schema([
+                    TextInput::make('no_kel')
+                        ->label('Nomor Kelompok')
+                        ->required()
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(99)
+                        ->rules(['digits_between:1,2'])
+                        ->unique(ignoreRecord: true)
+                        ->placeholder('01')
+                        ->prefix('#')
+                        ->helperText('Gunakan 2 digit (contoh: 01, 12). Harus unik di seluruh sistem.')
+                        ->columnSpan(['sm' => 6, 'lg' => 4]),
 
-                TextInput::make('nama_kel')
-                    ->label('Nama Kelompok')
-                    ->required()
-                    ->maxLength(255),
+                    TextInput::make('nama_kel')
+                        ->label('Nama Kelompok')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('Contoh: Kas Kecil, Piutang Usaha')
+                        ->helperText('Nama harus jelas dan mencerminkan isi kelompok.')
+                        ->columnSpan(['sm' => 6, 'lg' => 8]),
 
-                Select::make('kel')
-                    ->label('Kategori')
-                    ->options([
-                        1 => '1 - Aktiva',
-                        2 => '2 - Kewajiban',
-                        3 => '3 - Pendapatan',
-                        4 => '4 - Biaya Operasional',
-                        5 => '5 - Biaya Administrasi',
-                        6 => '6 - Biaya Luar Usaha'
-                    ])
-                    ->required()
-                    ->native(false),
-            ]);
+                    Select::make('kel')
+                        ->label('Kategori Akuntansi')
+                        ->options(self::KATEGORI_AKUNTANSI)
+                        ->required()
+                        ->searchable()
+                        ->native(false)
+                        ->placeholder('Pilih kategori...')
+                        ->helperText('Pilih sesuai klasifikasi akuntansi standar.')
+                        ->columnSpan(['sm' => 6, 'lg' => 12]),
+                ])
+                ->columns([
+                    'sm' => 1,
+                    'lg' => 12,
+                ])
+                ->collapsible()
+                ->collapsed(false),
+        ]);
     }
 
     public static function table(Table $table): Table

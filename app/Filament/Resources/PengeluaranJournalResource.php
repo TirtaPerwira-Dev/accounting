@@ -786,14 +786,6 @@ class PengeluaranJournalResource extends Resource
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {
-        $year = now()->format('Y');
-        $month = now()->format('m');
-        $last = Journal::whereYear('transaction_date', $year)
-            ->whereMonth('transaction_date', $month)
-            ->where('transaction_type', Journal::TYPE_PENGELUARAN)
-            ->count();
-        $data['reference'] = "KK-$year$month-" . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
-
         // Process amounts
         $debit = 0;
         $credit = 0;

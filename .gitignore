@@ -62,3 +62,9 @@ Thumbs.db
 /storage/framework/views/*
 /storage/logs/*
 !/storage/logs/.gitkeep
+
+# Ignore .htaccess files outside public directory
+/.htaccess
+.htaccess
+
+
