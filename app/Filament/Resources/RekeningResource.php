@@ -106,10 +106,16 @@ class RekeningResource extends Resource
                             ->placeholder('Pilih saldo normal...')
                             ->columnSpan(['lg' => 4]),
 
+                        TextInput::make('data')
+                            ->label('Data')
+                            ->maxLength(10)
+                            ->placeholder('Opsional (contoh: AT)')
+                            ->helperText('Kosongkan jika tidak diperlukan. Isi "AT" hanya untuk Aktiva Tetap.')
+                            ->columnSpan(['lg' => 4]),
+
                         Select::make('kel')
                             ->label('Kategori')
                             ->options(self::KATEGORI_AKUNTANSI)
-                            ->required()
                             ->native(false)
                             ->disabled(fn(Forms\Get $get) => filled($get('kelompok_id')))
                             ->dehydrated(
@@ -117,7 +123,7 @@ class RekeningResource extends Resource
                                 filled($get('kelompok_id')) ? Kelompok::find($get('kelompok_id'))?->kel : $state
                             )
                             ->helperText('Otomatis dari kelompok. Bisa diubah jika diperlukan.')
-                            ->columnSpan(['lg' => 12]),
+                            ->columnSpan(['lg' => 4]),
 
                     ]),
                 ])
@@ -166,6 +172,15 @@ class RekeningResource extends Resource
                         'heroicon-o-arrow-down' => 'K',
                     ])
                     ->sortable(),
+
+                TextColumn::make('data')
+                    ->label('Data')
+                    ->sortable()
+                    ->searchable()
+                    ->placeholder('-')
+                    ->formatStateUsing(fn($state) => $state ?: '-')
+                    ->badge()
+                    ->color('secondary'),
 
                 BadgeColumn::make('nomor_bantus_count')
                     ->label('Nomor Bantu')

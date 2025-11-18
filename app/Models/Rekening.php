@@ -19,6 +19,7 @@ class Rekening extends Model
         'no_rek',
         'nama_rek',
         'kode',
+        'data',
         'is_active'
     ];
 

@@ -191,7 +191,7 @@ class CompanyResource extends Resource
                             ),
 
                         Forms\Components\Placeholder::make('sakep_initialized')
-                            ->label('Struktur SAKEP')
+                            ->label('Struktur Akuntansi')
                             ->content(
                                 fn(Company $record): string =>
                                 $record->exists && $record->isSakepInitialized() ? 'Telah diinisialisasi' : 'Belum diinisialisasi'
