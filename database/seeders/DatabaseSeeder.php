@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             KelompokSeeder::class,
             RekeningSeeder::class,
             NomorBantuSeeder::class,
+            KodeProyekSeeder::class,
             // SakepCoaSeeder::class,  // Use new hierarchical seeders instead
             // ChartOfAccountSeeder::class, // Old seeder
             // Uncomment for full test data (takes longer)
