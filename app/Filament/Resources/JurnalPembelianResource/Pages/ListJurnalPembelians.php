@@ -25,7 +25,7 @@ class ListJurnalPembelians extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Buat Jurnal Baru')
+                ->label('Input Jurnal')
                 ->icon('heroicon-o-plus')
                 ->color('primary'),
 
