@@ -234,7 +234,7 @@ class JurnalRekeningAirResource extends Resource
 
                         // Informasi Balance
                         Forms\Components\Placeholder::make('balance_info')
-                            ->label('ℹ️ Informasi Balance')
+                            ->label('Informasi Balance')
                             ->content(function (callable $get) {
                                 $items = $get('rekening_air_items') ?? [];
                                 $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
@@ -251,7 +251,7 @@ class JurnalRekeningAirResource extends Resource
                             ->visible(fn(callable $get) => !empty($get('rekening_air_items'))),
 
                         Forms\Components\Textarea::make('keterangan')
-                            ->label('📝 Keterangan')
+                            ->label('Keterangan')
                             ->placeholder('Contoh: Rekening air bulan November 2024, Pembayaran supplier, dll')
                             ->rows(2)
                             ->columnSpanFull()
@@ -260,12 +260,12 @@ class JurnalRekeningAirResource extends Resource
                     ->collapsible(),
 
                 // === RINGKASAN ===
-                Forms\Components\Section::make('📊 Ringkasan')
+                Forms\Components\Section::make('Ringkasan')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('rp')
-                                    ->label('💰 Total Transaksi')
+                                    ->label('Total Transaksi')
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->placeholder('0')
@@ -274,7 +274,7 @@ class JurnalRekeningAirResource extends Resource
                                     ->helperText('Otomatis dari items di atas'),
 
                                 Forms\Components\Placeholder::make('balance_check')
-                                    ->label('⚖️ Status Balance')
+                                    ->label('Status Balance')
                                     ->content(function (callable $get) {
                                         $items = $get('rekening_air_items') ?? [];
                                         $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
