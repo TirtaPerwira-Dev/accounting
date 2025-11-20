@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 class JurnalPenerimaanKasTableWidget extends BaseWidget
 {
     protected static ?int $sort = 3;
-    
+
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
@@ -96,14 +96,14 @@ class JurnalPenerimaanKasTableWidget extends BaseWidget
                         ->label('PDF')
                         ->icon('heroicon-o-eye')
                         ->color('success')
-                        ->url(fn ($record) => route('jurnal-penerimaan-kas.pdf', $record))
+                        ->url(fn($record) => route('jurnal-penerimaan-kas.pdf', $record))
                         ->openUrlInNewTab(),
-                        
+
                     Tables\Actions\Action::make('edit')
                         ->label('Edit')
                         ->icon('heroicon-o-pencil-square')
                         ->color('warning')
-                        ->url(fn ($record) => JurnalPenerimaanKasResource::getUrl('edit', ['record' => $record])),
+                        ->url(fn($record) => JurnalPenerimaanKasResource::getUrl('edit', ['record' => $record])),
                 ])
                     ->label('Actions')
                     ->color('gray')
@@ -116,7 +116,7 @@ class JurnalPenerimaanKasTableWidget extends BaseWidget
             ->striped()
             ->paginated(false);
     }
-    
+
     public static function canView(): bool
     {
         return true;

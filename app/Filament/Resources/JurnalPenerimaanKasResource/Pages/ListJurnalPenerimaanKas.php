@@ -42,16 +42,16 @@ class ListJurnalPenerimaanKas extends ListRecords
                                 $query->whereHas('kelompok', function ($q) {
                                     $q->where('no_kel', '10');
                                 })
-                                ->where(function ($q) {
-                                    $q->where('no_rek', 'like', '1101%')
-                                      ->orWhere('no_rek', 'like', '1102%');
-                                });
+                                    ->where(function ($q) {
+                                        $q->where('no_rek', 'like', '1101%')
+                                            ->orWhere('no_rek', 'like', '1102%');
+                                    });
                             })
-                            ->with(['rekening.kelompok'])
-                            ->get()
-                            ->mapWithKeys(fn($item) => [
-                                $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
-                            ]);
+                                ->with(['rekening.kelompok'])
+                                ->get()
+                                ->mapWithKeys(fn($item) => [
+                                    $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
+                                ]);
                         })
                         ->searchable()
                         ->placeholder('Semua Kas/Bank'),
@@ -60,22 +60,22 @@ class ListJurnalPenerimaanKas extends ListRecords
                     $query = \App\Models\JurnalPenerimaanKas::with(['kasBank.rekening.kelompok'])
                         ->whereDate('tanggal', '>=', $data['dari_tanggal'])
                         ->whereDate('tanggal', '<=', $data['sampai_tanggal']);
-                        
+
                     if (!empty($data['kas_bank_filter'])) {
                         $query->where('kas_bank_id', $data['kas_bank_filter']);
                     }
-                    
+
                     $records = $query->get();
-                    $title = 'Laporan JPK ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y') . 
-                             ' - ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
-                             
+                    $title = 'Laporan JPK ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y') .
+                        ' - ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
+
                     return response()->streamDownload(function () use ($records, $title) {
                         echo \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas-bulk', [
                             'records' => $records,
                             'title' => $title
                         ])->stream();
-                    }, 'JPK-' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d') . 
-                       '_' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d') . '.pdf');
+                    }, 'JPK-' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d') .
+                        '_' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d') . '.pdf');
                 }),
 
             Actions\Action::make('export_month_pdf')
@@ -86,9 +86,18 @@ class ListJurnalPenerimaanKas extends ListRecords
                     \Filament\Forms\Components\Select::make('bulan')
                         ->label('Pilih Bulan')
                         ->options([
-                            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                            1 => 'Januari',
+                            2 => 'Februari',
+                            3 => 'Maret',
+                            4 => 'April',
+                            5 => 'Mei',
+                            6 => 'Juni',
+                            7 => 'Juli',
+                            8 => 'Agustus',
+                            9 => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember'
                         ])
                         ->default(now()->month)
                         ->required(),
@@ -110,16 +119,16 @@ class ListJurnalPenerimaanKas extends ListRecords
                                 $query->whereHas('kelompok', function ($q) {
                                     $q->where('no_kel', '10');
                                 })
-                                ->where(function ($q) {
-                                    $q->where('no_rek', 'like', '1101%')
-                                      ->orWhere('no_rek', 'like', '1102%');
-                                });
+                                    ->where(function ($q) {
+                                        $q->where('no_rek', 'like', '1101%')
+                                            ->orWhere('no_rek', 'like', '1102%');
+                                    });
                             })
-                            ->with(['rekening.kelompok'])
-                            ->get()
-                            ->mapWithKeys(fn($item) => [
-                                $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
-                            ]);
+                                ->with(['rekening.kelompok'])
+                                ->get()
+                                ->mapWithKeys(fn($item) => [
+                                    $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
+                                ]);
                         })
                         ->searchable()
                         ->placeholder('Semua Kas/Bank'),
@@ -128,19 +137,28 @@ class ListJurnalPenerimaanKas extends ListRecords
                     $query = \App\Models\JurnalPenerimaanKas::with(['kasBank.rekening.kelompok'])
                         ->whereMonth('tanggal', $data['bulan'])
                         ->whereYear('tanggal', $data['tahun']);
-                        
+
                     if (!empty($data['kas_bank_filter'])) {
                         $query->where('kas_bank_id', $data['kas_bank_filter']);
                     }
-                    
+
                     $records = $query->get();
                     $bulanNama = [
-                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                        1 => 'Januari',
+                        2 => 'Februari',
+                        3 => 'Maret',
+                        4 => 'April',
+                        5 => 'Mei',
+                        6 => 'Juni',
+                        7 => 'Juli',
+                        8 => 'Agustus',
+                        9 => 'September',
+                        10 => 'Oktober',
+                        11 => 'November',
+                        12 => 'Desember'
                     ];
                     $title = 'Laporan JPK ' . $bulanNama[$data['bulan']] . ' ' . $data['tahun'];
-                    
+
                     return response()->streamDownload(function () use ($records, $title) {
                         echo \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas-bulk', [
                             'records' => $records,

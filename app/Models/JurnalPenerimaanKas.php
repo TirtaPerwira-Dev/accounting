@@ -96,7 +96,7 @@ class JurnalPenerimaanKas extends Model
     }
 
     /**
-     * Get total kredit from detail_penerimaan  
+     * Get total kredit from detail_penerimaan
      */
     public function getTotalKreditAttribute(): float
     {

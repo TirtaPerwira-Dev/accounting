@@ -220,7 +220,7 @@
                         <small style="color: #666;">{{ $record->kasBank->rekening->nama_rek }}</small>
                     </td>
                     <td class="amount">
-                        @php 
+                        @php
                             $totalPenerimaan = collect($record->detail_penerimaan ?? [])->sum('jumlah');
                         @endphp
                         {{ number_format($totalPenerimaan, 0, ',', '.') }}
@@ -231,7 +231,7 @@
                     </td>
                     <td class="text-center">-</td>
                 </tr>
-                
+
                 <!-- Entry Kredit dari Detail Penerimaan -->
                 @if($record->detail_penerimaan && count($record->detail_penerimaan) > 0)
                     @php $totalKredit = 0; @endphp
@@ -276,7 +276,7 @@
 
     <div class="total-section">
         <table style="width: 50%; margin-left: auto;">
-            @php 
+            @php
                 $totalPenerimaan = collect($record->detail_penerimaan ?? [])->sum('jumlah');
             @endphp
             <tr>

@@ -25,7 +25,7 @@ class JurnalPenerimaanKasWidget extends BaseWidget
             return collect($record->detail_penerimaan ?? [])->sum('jumlah');
         });
 
-        // Total bulan lalu  
+        // Total bulan lalu
         $lastMonth = JurnalPenerimaanKas::whereYear('tanggal', now()->subMonth()->year)
             ->whereMonth('tanggal', now()->subMonth()->month)
             ->get();
@@ -43,7 +43,7 @@ class JurnalPenerimaanKasWidget extends BaseWidget
         });
 
         // Hitung trend
-        $monthlyTrend = $totalLastMonth > 0 
+        $monthlyTrend = $totalLastMonth > 0
             ? (($totalThisMonth - $totalLastMonth) / $totalLastMonth * 100)
             : ($totalThisMonth > 0 ? 100 : 0);
 
@@ -57,7 +57,7 @@ class JurnalPenerimaanKasWidget extends BaseWidget
             // Penerimaan Kas Bulan Ini
             Stat::make('💰 Penerimaan Kas Bulan Ini', 'Rp ' . Number::format($totalThisMonth, 0))
                 ->description(
-                    $monthlyTrend >= 0 
+                    $monthlyTrend >= 0
                         ? sprintf('↗️ Naik %.1f%% dari bulan lalu', abs($monthlyTrend))
                         : sprintf('↘️ Turun %.1f%% dari bulan lalu', abs($monthlyTrend))
                 )
@@ -91,19 +91,19 @@ class JurnalPenerimaanKasWidget extends BaseWidget
     private function getMonthlyChart(): array
     {
         $data = [];
-        
+
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            
+
             $dayTotal = JurnalPenerimaanKas::whereDate('tanggal', $date->toDateString())
                 ->get()
                 ->sum(function ($record) {
                     return collect($record->detail_penerimaan ?? [])->sum('jumlah');
                 });
-            
+
             $data[] = (int) ($dayTotal / 1000000); // Dalam jutaan untuk chart
         }
-        
+
         return $data;
     }
 
