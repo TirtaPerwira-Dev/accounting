@@ -26,7 +26,7 @@ class ListJurnalPembelians extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('Input Jurnal')
-                ->icon('heroicon-o-plus')
+                ->icon('heroicon-o-plus-circle')
                 ->color('primary'),
 
             Actions\Action::make('exportPdf')
