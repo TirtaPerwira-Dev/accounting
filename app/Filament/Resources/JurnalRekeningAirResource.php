@@ -80,14 +80,16 @@ class JurnalRekeningAirResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->autofocus()
-                                    ->helperText('Input kode sesuai dengan ketentuan perusahaan.'),
+                                    ->helperText('Input kode sesuai dengan ketentuan perusahaan.')
+                                    ->columnSpan(1),
 
                                 Forms\Components\DatePicker::make('tanggal')
                                     ->label('Tanggal')
                                     ->required()
                                     ->default(now())
                                     ->native(false)
-                                    ->helperText('Tanggal memilih hari ini secara default.'),
+                                    ->helperText('Tanggal memilih hari ini secara default.')
+                                    ->columnSpan(1),
                             ]),
                     ])
                     ->collapsible(),
@@ -232,24 +234,6 @@ class JurnalRekeningAirResource extends Resource
                                 $set('rp', $total);
                             }),
 
-                        // Informasi Balance
-                        Forms\Components\Placeholder::make('balance_info')
-                            ->label('Informasi Balance')
-                            ->content(function (callable $get) {
-                                $items = $get('rekening_air_items') ?? [];
-                                $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
-                                $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
-
-                                $isBalance = $totalDebit === $totalKredit && $totalDebit > 0;
-                                $status = $isBalance ? '✅ Balance' : '⚠️ Tidak Balance';
-
-                                return "Total Debit: Rp " . number_format($totalDebit, 0, ',', '.') . "<br>" .
-                                    "Total Kredit: Rp " . number_format($totalKredit, 0, ',', '.') . "<br>" .
-                                    "<strong>{$status}</strong>";
-                            })
-                            ->columnSpanFull()
-                            ->visible(fn(callable $get) => !empty($get('rekening_air_items'))),
-
                         Forms\Components\Textarea::make('keterangan')
                             ->label('Keterangan')
                             ->placeholder('Contoh: Rekening air bulan November 2024, Pembayaran supplier, dll')
@@ -260,36 +244,56 @@ class JurnalRekeningAirResource extends Resource
                     ->collapsible(),
 
                 // === RINGKASAN ===
-                Forms\Components\Section::make('Ringkasan')
+                Forms\Components\Section::make('Ringkasan Transaksi')
                     ->schema([
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Grid::make(3)
                             ->schema([
-                                Forms\Components\TextInput::make('rp')
-                                    ->label('Total Transaksi')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->placeholder('0')
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->helperText('Otomatis dari items di atas'),
+                                Forms\Components\Placeholder::make('total_debit')
+                                    ->label('Total Debit')
+                                    ->content(function (callable $get) {
+                                        $items = $get('rekening_air_items') ?? [];
+                                        $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
+                                        return 'Rp ' . number_format($totalDebit, 0, ',', '.');
+                                    }),
 
-                                Forms\Components\Placeholder::make('balance_check')
-                                    ->label('Status Balance')
+                                Forms\Components\Placeholder::make('total_kredit')
+                                    ->label('Total Kredit')
+                                    ->content(function (callable $get) {
+                                        $items = $get('rekening_air_items') ?? [];
+                                        $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
+                                        return 'Rp ' . number_format($totalKredit, 0, ',', '.');
+                                    }),
+
+                                Forms\Components\Placeholder::make('status_balance')
+                                    ->label('⚖️ Status Balance')
                                     ->content(function (callable $get) {
                                         $items = $get('rekening_air_items') ?? [];
                                         $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
                                         $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
 
                                         $isBalance = $totalDebit === $totalKredit && $totalDebit > 0;
-                                        return $isBalance ?
-                                            '<span style="color: green; font-weight: bold;">✅ Jurnal Balance</span>' :
-                                            '<span style="color: red; font-weight: bold;">⚠️ Jurnal Tidak Balance</span>';
+                                        return $isBalance ? '✅ Balance' : '⚠️ Tidak Balance';
                                     }),
                             ]),
+
+                        Forms\Components\Hidden::make('rp'),
                     ]),
+
+                // === NOMOR REFERENSI (Auto-generate) ===
+                Forms\Components\Section::make('Nomor Referensi')
+                    ->schema([
+                        Forms\Components\Placeholder::make('no_reff_preview')
+                            ->label('Nomor Referensi')
+                            ->content('Auto-generate: 2-X/2024')
+                            ->columnSpanFull(),
+                    ])
+                    ->compact()
+                    ->collapsible()
+                    ->collapsed(),
 
                 // === HIDDEN FIELDS ===
                 Forms\Components\Hidden::make('no_reff'),
+
             ]);
     }
 
@@ -314,20 +318,78 @@ class JurnalRekeningAirResource extends Resource
                     ->limit(20),
 
                 Tables\Columns\TextColumn::make('items_summary')
-                    ->label('Items')
-                    ->formatStateUsing(function ($record) {
-                        if (!$record->rekening_air_items) {
-                            return '-';
+                    ->label('Detail Items')
+                    ->getStateUsing(function ($record) {
+                        if (!$record->rekening_air_items || empty($record->rekening_air_items)) {
+                            return 'Tidak ada items';
                         }
-                        $count = count($record->rekening_air_items);
-                        return "{$count} baris transaksi";
+
+                        $items = $record->rekening_air_items;
+                        $count = count($items);
+                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+
+                        return "{$count} items | D: " . number_format($totalDebit, 0, ',', '.') . " | K: " . number_format($totalKredit, 0, ',', '.');
+                    })
+                    ->limit(50)
+                    ->tooltip(function ($record) {
+                        if (!$record->rekening_air_items || empty($record->rekening_air_items)) {
+                            return 'Tidak ada detail transaksi';
+                        }
+
+                        $details = [];
+                        foreach ($record->rekening_air_items as $item) {
+                            $rekening = \App\Models\Rekening::with('kelompok')->find($item['rekening'] ?? null);
+                            $rekeningName = $rekening ? $rekening->kelompok->no_kel . '-' . $rekening->no_rek . ' ' . $rekening->nama_rek : 'Unknown';
+                            $position = ($item['position'] === 'debit' ? 'D' : 'K');
+                            $amount = number_format($item['jumlah'] ?? 0, 0, ',', '.');
+                            $details[] = "• {$rekeningName} ({$position}): Rp {$amount}";
+                        }
+                        return implode("\n", $details);
+                    }),
+
+                Tables\Columns\TextColumn::make('balance_status')
+                    ->label('Balance')
+                    ->getStateUsing(function ($record) {
+                        if (!$record->rekening_air_items || empty($record->rekening_air_items)) {
+                            return '⚪ Empty';
+                        }
+
+                        $items = $record->rekening_air_items;
+                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                        $isBalance = $totalDebit === $totalKredit && $totalDebit > 0;
+
+                        return $isBalance ? '✅ Balance' : '⚠️ Tidak Balance';
                     })
                     ->badge()
-                    ->color('info'),
+                    ->color(function ($record) {
+                        if (!$record->rekening_air_items || empty($record->rekening_air_items)) {
+                            return 'gray';
+                        }
+
+                        $items = $record->rekening_air_items;
+                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                        $isBalance = $totalDebit === $totalKredit && $totalDebit > 0;
+
+                        return $isBalance ? 'success' : 'warning';
+                    }),
 
                 Tables\Columns\TextColumn::make('rp')
                     ->label('Total')
-                    ->money('IDR')
+                    ->getStateUsing(function ($record) {
+                        if (!$record->rekening_air_items || empty($record->rekening_air_items)) {
+                            return 'Rp 0';
+                        }
+
+                        $items = $record->rekening_air_items;
+                        $total = max(
+                            collect($items)->where('position', 'debit')->sum('jumlah'),
+                            collect($items)->where('position', 'kredit')->sum('jumlah')
+                        );
+                        return 'Rp ' . number_format($total, 0, ',', '.');
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('keterangan')
@@ -370,39 +432,45 @@ class JurnalRekeningAirResource extends Resource
                     ->falseLabel('Belum Dikonfirmasi'),
             ])
             ->actions([
-                Tables\Actions\Action::make('confirm')
-                    ->label('Konfirmasi')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->action(function ($record) {
-                        $record->confirm();
-                        Notification::make()
-                            ->title('Berhasil dikonfirmasi')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn($record) => !$record->is_confirmed),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('confirm')
+                        ->label('Konfirmasi')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($record) {
+                            $record->confirm();
+                            Notification::make()
+                                ->title('Berhasil dikonfirmasi')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->visible(fn($record) => !$record->is_confirmed),
 
-                Tables\Actions\Action::make('unconfirm')
-                    ->label('Batal Konfirmasi')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->action(function ($record) {
-                        $record->unconfirm();
-                        Notification::make()
-                            ->title('Konfirmasi dibatalkan')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn($record) => $record->is_confirmed),
+                    Tables\Actions\Action::make('unconfirm')
+                        ->label('Batal Konfirmasi')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->action(function ($record) {
+                            $record->unconfirm();
+                            Notification::make()
+                                ->title('Konfirmasi dibatalkan')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->visible(fn($record) => $record->is_confirmed),
 
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->canBeEdited()),
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => $record->canBeEdited()),
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make()
+                        ->visible(fn($record) => $record->canBeEdited()),
+                    Tables\Actions\DeleteAction::make()
+                        ->visible(fn($record) => $record->canBeEdited()),
+                ])
+                    ->button()
+                    ->label('Action')
+                    ->color('primary'),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
