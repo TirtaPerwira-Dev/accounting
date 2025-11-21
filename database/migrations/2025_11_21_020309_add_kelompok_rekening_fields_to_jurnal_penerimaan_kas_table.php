@@ -15,7 +15,7 @@ return new class extends Migration
             // Add kelompok_id and rekening_id fields for cascade selection
             $table->unsignedBigInteger('kelompok_id')->nullable()->after('id');
             $table->unsignedBigInteger('rekening_id')->nullable()->after('kelompok_id');
-            
+
             // Add foreign key constraints
             $table->foreign('kelompok_id')->references('id')->on('kelompoks')->onDelete('set null');
             $table->foreign('rekening_id')->references('id')->on('rekenings')->onDelete('set null');
@@ -31,7 +31,7 @@ return new class extends Migration
             // Drop foreign keys first
             $table->dropForeign(['kelompok_id']);
             $table->dropForeign(['rekening_id']);
-            
+
             // Drop columns
             $table->dropColumn(['kelompok_id', 'rekening_id']);
         });

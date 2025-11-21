@@ -98,7 +98,7 @@ class JurnalPenerimaanKasResource extends Resource
                                         return Rekening::where('kelompok_id', $kelompokId)
                                             ->where(function ($q) {
                                                 $q->where('no_rek', 'like', '1101%') // Kas
-                                                  ->orWhere('no_rek', 'like', '1102%'); // Bank
+                                                    ->orWhere('no_rek', 'like', '1102%'); // Bank
                                             })
                                             ->get()
                                             ->mapWithKeys(fn($rekening) => [
