@@ -212,10 +212,10 @@ class JurnalPembelianResource extends Resource
                                         ->options(function () {
                                             return NomorBantu::with(['rekening.kelompok'])
                                                 ->get()
-                                                ->filter(function ($item) {
-                                                    $kelompok = $item->rekening->kelompok->no_kel;
-                                                    return in_array($kelompok, ['10', '15', '20', '30', '91', '92', '93', '94', '96', '98']);
-                                                })
+                                                // ->filter(function ($item) {
+                                                //     $kelompok = $item->rekening->kelompok->no_kel;
+                                                //     return in_array($kelompok, ['10', '15', '20', '30', '91', '92', '93', '94', '96', '98']);
+                                                // })
                                                 ->mapWithKeys(function ($n) {
                                                     $code = $n->rekening->kelompok->no_kel .
                                                         $n->rekening->no_rek .
