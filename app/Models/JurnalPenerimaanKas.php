@@ -13,6 +13,8 @@ class JurnalPenerimaanKas extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'kelompok_id',
+        'rekening_id',
         'kas_bank_id',
         'tanggal',
         'nomor_bukti',
@@ -43,6 +45,16 @@ class JurnalPenerimaanKas extends Model
     }
 
     // Relations
+    public function kelompok(): BelongsTo
+    {
+        return $this->belongsTo(Kelompok::class, 'kelompok_id');
+    }
+
+    public function rekening(): BelongsTo
+    {
+        return $this->belongsTo(Rekening::class, 'rekening_id');
+    }
+
     public function kasBank(): BelongsTo
     {
         return $this->belongsTo(NomorBantu::class, 'kas_bank_id');

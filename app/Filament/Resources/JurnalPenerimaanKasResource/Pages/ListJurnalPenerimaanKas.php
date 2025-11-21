@@ -15,12 +15,12 @@ class ListJurnalPenerimaanKas extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('📝 Input Jurnal')
+                ->label('Input Jurnal')
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary'),
 
             Actions\Action::make('export_all_pdf')
-                ->label('📄 Laporan PDF (Periode)')
+                ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
@@ -76,95 +76,6 @@ class ListJurnalPenerimaanKas extends ListRecords
                         ])->stream();
                     }, 'JPK-' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d') .
                         '_' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d') . '.pdf');
-                }),
-
-            Actions\Action::make('export_month_pdf')
-                ->label('📅 Laporan PDF (Bulanan)')
-                ->icon('heroicon-o-calendar')
-                ->color('warning')
-                ->form([
-                    \Filament\Forms\Components\Select::make('bulan')
-                        ->label('Pilih Bulan')
-                        ->options([
-                            1 => 'Januari',
-                            2 => 'Februari',
-                            3 => 'Maret',
-                            4 => 'April',
-                            5 => 'Mei',
-                            6 => 'Juni',
-                            7 => 'Juli',
-                            8 => 'Agustus',
-                            9 => 'September',
-                            10 => 'Oktober',
-                            11 => 'November',
-                            12 => 'Desember'
-                        ])
-                        ->default(now()->month)
-                        ->required(),
-                    \Filament\Forms\Components\Select::make('tahun')
-                        ->label('Pilih Tahun')
-                        ->options(function () {
-                            $years = [];
-                            for ($i = now()->year - 2; $i <= now()->year + 1; $i++) {
-                                $years[$i] = $i;
-                            }
-                            return $years;
-                        })
-                        ->default(now()->year)
-                        ->required(),
-                    \Filament\Forms\Components\Select::make('kas_bank_filter')
-                        ->label('Filter Kas/Bank (Opsional)')
-                        ->options(function () {
-                            return \App\Models\NomorBantu::whereHas('rekening', function ($query) {
-                                $query->whereHas('kelompok', function ($q) {
-                                    $q->where('no_kel', '10');
-                                })
-                                    ->where(function ($q) {
-                                        $q->where('no_rek', 'like', '1101%')
-                                            ->orWhere('no_rek', 'like', '1102%');
-                                    });
-                            })
-                                ->with(['rekening.kelompok'])
-                                ->get()
-                                ->mapWithKeys(fn($item) => [
-                                    $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
-                                ]);
-                        })
-                        ->searchable()
-                        ->placeholder('Semua Kas/Bank'),
-                ])
-                ->action(function (array $data) {
-                    $query = \App\Models\JurnalPenerimaanKas::with(['kasBank.rekening.kelompok'])
-                        ->whereMonth('tanggal', $data['bulan'])
-                        ->whereYear('tanggal', $data['tahun']);
-
-                    if (!empty($data['kas_bank_filter'])) {
-                        $query->where('kas_bank_id', $data['kas_bank_filter']);
-                    }
-
-                    $records = $query->get();
-                    $bulanNama = [
-                        1 => 'Januari',
-                        2 => 'Februari',
-                        3 => 'Maret',
-                        4 => 'April',
-                        5 => 'Mei',
-                        6 => 'Juni',
-                        7 => 'Juli',
-                        8 => 'Agustus',
-                        9 => 'September',
-                        10 => 'Oktober',
-                        11 => 'November',
-                        12 => 'Desember'
-                    ];
-                    $title = 'Laporan JPK ' . $bulanNama[$data['bulan']] . ' ' . $data['tahun'];
-
-                    return response()->streamDownload(function () use ($records, $title) {
-                        echo \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas-bulk', [
-                            'records' => $records,
-                            'title' => $title
-                        ])->stream();
-                    }, 'JPK-' . $bulanNama[$data['bulan']] . '-' . $data['tahun'] . '.pdf');
                 }),
         ];
     }

@@ -66,43 +66,76 @@ class JurnalPenerimaanKasResource extends Resource
                 Forms\Components\Section::make('Kas/Bank Tujuan (DEBIT)')
                     ->description('Pilih rekening kas atau bank tempat uang masuk')
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Forms\Components\Grid::make(4)
                             ->schema([
-                                Forms\Components\Select::make('kas_bank_id')
-                                    ->label('Nomor Bantu Kas/Bank')
+                                // Kelompok
+                                Forms\Components\Select::make('kelompok_id')
+                                    ->label('Kelompok')
                                     ->options(function () {
-                                        // Filter only kas/bank accounts (kelompok 10 with bank/kas related accounts)
-                                        return NomorBantu::whereHas('rekening', function ($query) {
-                                            $query->whereHas('kelompok', function ($q) {
-                                                $q->where('no_kel', '10'); // Aktiva Lancar
+                                        return Kelompok::where('no_kel', '10') // Aktiva Lancar only
+                                            ->pluck('nama_kel', 'id')
+                                            ->mapWithKeys(fn($nama, $id) => [
+                                                $id => Kelompok::find($id)->no_kel . ' - ' . $nama
+                                            ]);
+                                    })
+                                    ->default(function () {
+                                        return Kelompok::where('no_kel', '10')->first()?->id;
+                                    })
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $set) {
+                                        $set('rekening_id', null);
+                                        $set('kas_bank_id', null);
+                                    }),
+
+                                // Rekening
+                                Forms\Components\Select::make('rekening_id')
+                                    ->label('Rekening')
+                                    ->options(function (callable $get) {
+                                        $kelompokId = $get('kelompok_id');
+                                        if (!$kelompokId) return [];
+
+                                        return Rekening::where('kelompok_id', $kelompokId)
+                                            ->where(function ($q) {
+                                                $q->where('no_rek', 'like', '1101%') // Kas
+                                                  ->orWhere('no_rek', 'like', '1102%'); // Bank
                                             })
-                                                ->where(function ($q) {
-                                                    $q->where('no_rek', 'like', '1101%') // Kas
-                                                        ->orWhere('no_rek', 'like', '1102%'); // Bank
-                                                });
-                                        })
-                                            ->with(['rekening.kelompok'])
                                             ->get()
-                                            ->mapWithKeys(fn($item) => [
-                                                $item->id => "{$item->rekening->kelompok->no_kel}-{$item->rekening->no_rek}-{$item->no_bantu} - {$item->nm_bantu}"
+                                            ->mapWithKeys(fn($rekening) => [
+                                                $rekening->id => "{$rekening->no_rek} - {$rekening->nama_rek}"
                                             ]);
                                     })
                                     ->searchable()
                                     ->required()
-                                    ->placeholder('Pilih Kas/Bank'),
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $set) {
+                                        $set('kas_bank_id', null);
+                                    }),
 
+                                // Nomor Bantu
+                                Forms\Components\Select::make('kas_bank_id')
+                                    ->label('Nomor Bantu')
+                                    ->options(function (callable $get) {
+                                        $rekeningId = $get('rekening_id');
+                                        if (!$rekeningId) return [];
+
+                                        return NomorBantu::where('rekening_id', $rekeningId)
+                                            ->get()
+                                            ->mapWithKeys(fn($item) => [
+                                                $item->id => "{$item->no_bantu} - {$item->nm_bantu}"
+                                            ]);
+                                    })
+                                    ->searchable()
+                                    ->required()
+                                    ->placeholder('Pilih Nomor Bantu'),
+
+                                // Tanggal
                                 Forms\Components\DatePicker::make('tanggal')
                                     ->label('Tanggal')
                                     ->required()
                                     ->default(now())
                                     ->native(false)
                                     ->helperText('Tanggal penerimaan kas/bank'),
-
-                                Forms\Components\TextInput::make('nomor_bukti')
-                                    ->label('Nomor Bukti')
-                                    ->required()
-                                    ->maxLength(50)
-                                    ->placeholder('Contoh: BKM-001, KAS-001'),
                             ]),
                     ])
                     ->collapsible(),
@@ -114,8 +147,15 @@ class JurnalPenerimaanKasResource extends Resource
                         Forms\Components\Repeater::make('detail_penerimaan')
                             ->label('Detail Sumber Penerimaan')
                             ->schema([
-                                Forms\Components\Grid::make(5)
+                                Forms\Components\Grid::make(4)
                                     ->schema([
+                                        // Nomor Bukti
+                                        Forms\Components\TextInput::make('nomor_bukti')
+                                            ->label('Nomor Bukti')
+                                            ->required()
+                                            ->maxLength(50)
+                                            ->placeholder('Contoh: BKM-001, KAS-001'),
+
                                         // Kode Proyek
                                         Forms\Components\Select::make('kode_proyek')
                                             ->label('Kode Proyek')
@@ -182,6 +222,8 @@ class JurnalPenerimaanKasResource extends Resource
                                             ->rows(2)
                                             ->columnSpanFull(),
                                     ]),
+
+
                             ])
                             ->defaultItems(1)
                             ->addActionLabel('➕ Tambah Sumber Penerimaan')
@@ -222,18 +264,25 @@ class JurnalPenerimaanKasResource extends Resource
 
                 // === SECTION 4: NOMOR REFERENSI ===
                 Forms\Components\Section::make('Nomor Referensi')
-                    ->description('Kode referensi untuk sistem jurnal penerimaan kas')
+                    ->description('Kode referensi otomatis untuk sistem jurnal penerimaan kas')
                     ->schema([
                         Forms\Components\TextInput::make('reff')
-                            ->label('Reff')
-                            ->default('3')
-                            ->required()
-                            ->maxLength(10)
-                            ->helperText('Default: 3 untuk Jurnal Penerimaan Kas'),
+                            ->label('Reff (Auto-Generated)')
+                            ->default(function () {
+                                $lastRecord = JurnalPenerimaanKas::whereYear('created_at', now()->year)
+                                    ->whereMonth('created_at', now()->month)
+                                    ->count();
+                                $nextNumber = $lastRecord + 1;
+                                return '3-' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT) . '/' . now()->format('m/Y');
+                            })
+                            ->disabled()
+                            ->dehydrated()
+                            ->maxLength(20)
+                            ->helperText('Format: 3-XX/MM/YYYY (Auto-generated)'),
 
-                        Forms\Components\Placeholder::make('no_reff_preview')
-                            ->label('Nomor Referensi Preview')
-                            ->content('Auto-generate: JPK-X/2024')
+                        Forms\Components\Placeholder::make('reff_info')
+                            ->label('ℹ️ Informasi Referensi')
+                            ->content('Nomor referensi dibuat otomatis berdasarkan urutan transaksi bulanan')
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
@@ -250,10 +299,28 @@ class JurnalPenerimaanKasResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('nomor_bukti')
-                    ->label('Nomor Bukti')
+                Tables\Columns\TextColumn::make('reff')
+                    ->label('Referensi')
                     ->searchable()
-                    ->copyable(),
+                    ->copyable()
+                    ->badge()
+                    ->color('primary'),
+
+                Tables\Columns\TextColumn::make('kelompok.nama_kel')
+                    ->label('Kelompok')
+                    ->searchable()
+                    ->limit(20)
+                    ->tooltip(function ($record) {
+                        return $record->kelompok?->no_kel . ' - ' . $record->kelompok?->nama_kel;
+                    }),
+
+                Tables\Columns\TextColumn::make('rekening.nama_rek')
+                    ->label('Rekening')
+                    ->searchable()
+                    ->limit(25)
+                    ->tooltip(function ($record) {
+                        return $record->rekening?->no_rek . ' - ' . $record->rekening?->nama_rek;
+                    }),
 
                 Tables\Columns\TextColumn::make('kasBank.nm_bantu')
                     ->label('Kas/Bank')
