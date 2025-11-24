@@ -147,7 +147,7 @@
             return $item->group_transaksi ?? 'single_' . $item->id;
         });
     @endphp
-    
+
     @foreach($groupedData as $groupKey => $groupItems)
     @php
         $jurnal = $groupItems->first(); // Main record

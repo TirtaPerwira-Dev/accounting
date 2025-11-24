@@ -75,7 +75,7 @@ class EditJurnalPembelian extends EditRecord
         $groupTransaksi = count($pembelianItems) > 1 ? $record->group_transaksi ?? Str::uuid()->toString() : null;
 
         $updatedRecords = [];
-        
+
         foreach ($pembelianItems as $index => $item) {
             // Get nomor bantu info
             $nomorBantu = null;

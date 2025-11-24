@@ -32,7 +32,7 @@ class JurnalPembelian extends Model
         'confirmed_at',
         // Fields untuk item individual
         'bukti_item',
-        'keterangan_item', 
+        'keterangan_item',
         'jumlah_item',
         'kelompok_debit_id',
         'rekening_debit_id',
@@ -90,7 +90,7 @@ class JurnalPembelian extends Model
                 ->orderBy('item_sequence')
                 ->get();
         }
-        
+
         // Jika tidak ada group, return collection dengan record ini saja
         return collect([$this]);
     }
@@ -211,7 +211,7 @@ class JurnalPembelian extends Model
         if (!$this->group_transaksi) {
             return $this->jumlah_item ?? 0; // Single item
         }
-        
+
         return self::where('group_transaksi', $this->group_transaksi)
             ->sum('jumlah_item');
     }
@@ -225,20 +225,20 @@ class JurnalPembelian extends Model
             $items = self::where('group_transaksi', $this->group_transaksi)
                 ->orderBy('item_sequence')
                 ->get();
-                
+
             if ($items->count() === 0) {
                 return 'Tidak ada item';
             }
-            
+
             $firstItem = $items->first()->keterangan_item ?: 'Item pembelian';
-            
+
             if ($items->count() === 1) {
                 return $firstItem;
             }
-            
+
             return $firstItem . " (+ " . ($items->count() - 1) . " item lainnya)";
         }
-        
+
         return $this->keterangan_item ?: 'Item pembelian';
     }
 

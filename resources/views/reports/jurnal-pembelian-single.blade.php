@@ -377,13 +377,13 @@
             </thead>
             <tbody>
                 @php
-                    $groupItems = $jurnal->group_transaksi ? 
+                    $groupItems = $jurnal->group_transaksi ?
                         \App\Models\JurnalPembelian::where('group_transaksi', $jurnal->group_transaksi)
                             ->orderBy('item_sequence')
-                            ->get() : 
+                            ->get() :
                         collect([$jurnal]);
                 @endphp
-                
+
                 @foreach($groupItems as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>

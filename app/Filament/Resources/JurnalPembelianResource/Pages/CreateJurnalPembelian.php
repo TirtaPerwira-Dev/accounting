@@ -31,16 +31,16 @@ class CreateJurnalPembelian extends CreateRecord
         $lastJurnal = JurnalPembelian::where('no_reff', 'LIKE', "1-_/{$year}")
             ->orderBy('created_at', 'desc')
             ->first();
-        
+
         $nextNumber = 1;
         if ($lastJurnal && preg_match('/^1-(\d+)\/\d{4}$/', $lastJurnal->no_reff, $matches)) {
             $nextNumber = intval($matches[1]) + 1;
         }
-        
+
         $noReff = "1-{$nextNumber}/{$year}";
 
         $createdRecords = [];
-        
+
         foreach ($pembelianItems as $index => $item) {
             // Get nomor bantu info untuk populate kelompok dan rekening
             $nomorBantu = null;
