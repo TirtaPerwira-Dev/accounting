@@ -14,6 +14,12 @@ class ListJurnalPembelians extends ListRecords
 {
     protected static string $resource = JurnalPembelianResource::class;
 
+    protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
+    {
+        // Tampilkan semua records (tidak di-group)
+        return parent::getTableQuery();
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [

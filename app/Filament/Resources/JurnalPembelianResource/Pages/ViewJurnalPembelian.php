@@ -13,6 +13,22 @@ class ViewJurnalPembelian extends ViewRecord
 {
     protected static string $resource = JurnalPembelianResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Load relationships for proper display
+        $this->record->load([
+            'kelompokKredit',
+            'rekeningKredit',
+            'nomorBantuKredit',
+            'kelompokDebit',
+            'rekeningDebit',
+            'nomorBantuDebit',
+            'kodeProyek'
+        ]);
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -28,7 +44,7 @@ class ViewJurnalPembelian extends ViewRecord
                 }),
 
             Actions\Action::make('confirm')
-                ->label('✓ Konfirmasi')
+                ->label('Konfirmasi')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->visible(fn($record) => !$record->is_confirmed)
@@ -93,51 +109,34 @@ class ViewJurnalPembelian extends ViewRecord
 
                 Components\Section::make('Detail Pembelian')
                     ->schema([
-                        Components\RepeatableEntry::make('pembelian_items')
-                            ->label('')
-                            ->schema([
-                                Components\TextEntry::make('bukti')
-                                    ->label('No. Bukti'),
+                        Components\TextEntry::make('bukti_item')
+                            ->label('No. Bukti')
+                            ->placeholder('-'),
 
-                                Components\TextEntry::make('keterangan')
-                                    ->label('Keterangan'),
-
-                                Components\TextEntry::make('kode_proyek_id')
-                                    ->label('Kode Proyek')
-                                    ->formatStateUsing(function ($state) {
-                                        if (!$state) return '-';
-                                        $kodeProyek = \App\Models\KodeProyek::find($state);
-                                        return $kodeProyek ? $kodeProyek->name : '-';
-                                    }),
-
-                                Components\TextEntry::make('nomor_bantu_debit_id')
-                                    ->label('Kode SAKEP')
-                                    ->formatStateUsing(function ($state) {
-                                        if (!$state) return '-';
-                                        $nomorBantu = \App\Models\NomorBantu::with(['rekening.kelompok'])->find($state);
-                                        if (!$nomorBantu) return '-';
-
-                                        return $nomorBantu->rekening->kelompok->no_kel .
-                                            $nomorBantu->rekening->no_rek .
-                                            str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT);
-                                    }),
-
-                                Components\TextEntry::make('nomor_bantu_debit_id')
-                                    ->label('Akun Debit')
-                                    ->formatStateUsing(function ($state) {
-                                        if (!$state) return '-';
-                                        $nomorBantu = \App\Models\NomorBantu::find($state);
-                                        return $nomorBantu ? $nomorBantu->nm_bantu : '-';
-                                    }),
-
-                                Components\TextEntry::make('jumlah')
-                                    ->label('Jumlah')
-                                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
-                                    ->alignRight(),
-                            ])
-                            ->columns(6)
+                        Components\TextEntry::make('keterangan_item')
+                            ->label('Keterangan')
                             ->columnSpanFull(),
-                    ]),
+
+                        Components\TextEntry::make('kodeProyek.name')
+                            ->label('Kode Proyek')
+                            ->placeholder('-'),
+
+                        Components\TextEntry::make('kode_sakep_debit')
+                            ->label('Kode SAKEP Debit')
+                            ->badge()
+                            ->color('primary'),
+
+                        Components\TextEntry::make('nama_akun_debit')
+                            ->label('Akun Debit'),
+
+                        Components\TextEntry::make('jumlah_item')
+                            ->label('Jumlah')
+                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                            ->size('lg')
+                            ->weight('bold')
+                            ->color('success'),
+                    ])
+                    ->columns(3),
 
                 Components\Section::make('Total & Status')
                     ->schema([

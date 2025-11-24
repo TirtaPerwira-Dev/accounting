@@ -141,10 +141,18 @@
     </div>
 
     @if($data->count() > 0)
-    @foreach($data as $index => $jurnal)
     @php
-    $no = $loop->iteration;
-    $details = $jurnal->pembelian_items_with_details ?? [];
+        // Group data by no_reff and group_transaksi for proper display
+        $groupedData = $data->groupBy(function ($item) {
+            return $item->group_transaksi ?? 'single_' . $item->id;
+        });
+    @endphp
+    
+    @foreach($groupedData as $groupKey => $groupItems)
+    @php
+        $jurnal = $groupItems->first(); // Main record
+        $totalGroupAmount = $groupItems->sum('jumlah_item');
+        $no = $loop->iteration;
     @endphp
 
     <!-- INFO JURNAL (2 kolom, titik dua rata) -->
@@ -155,7 +163,7 @@
                             $jurnal->no_reff }}</strong></span></div>
                 <div class="info-row"><span class="info-label">TANGGAL :</span><span class="info-value">{{
                         $jurnal->tanggal->format('d M Y') }}</span></div>
-                <div class="info-row"><span class="info-label">BUKTI :</span><span class="info-value">{{ $jurnal->bukti
+                <div class="info-row"><span class="info-label">BUKTI :</span><span class="info-value">{{ $jurnal->bukti_item
                         ?: '-' }}</span></div>
                 @if($jurnal->keterangan)
                 <div class="info-row"><span class="info-label">KETERANGAN :</span><span class="info-value">{{
@@ -170,7 +178,7 @@
             </td>
             <td width="45%" style="vertical-align:top; border:none;">
                 <div class="info-row"><span class="info-label">TOTAL NILAI :</span><span
-                        class="info-value total-value">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</span></div>
+                        class="info-value total-value">Rp {{ number_format($totalGroupAmount, 0, ',', '.') }}</span></div>
                 <div class="info-row"><span class="info-label">STATUS JURNAL :</span><span class="info-value">
                         @if($jurnal->is_confirmed)
                         <span class="status-badge status-confirmed">DIKONFIRMASI</span>
@@ -191,24 +199,26 @@
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="15%">Kode Akun</th>
-                <th width="45%">Nama Akun Debit</th>
+                <th width="12%">Bukti</th>
+                <th width="10%">Kode Akun</th>
+                <th width="38%">Nama Akun Debit</th>
                 <th width="18%">Debit</th>
                 <th width="17%">Kredit</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($details as $i => $item)
+            @forelse($groupItems as $i => $item)
             <tr>
                 <td class="text-center">{{ $i + 1 }}</td>
-                <td>{{ $item['kode_sakep_debit'] ?? '-' }}</td>
-                <td style="padding-left:15px;">{{ $item['nama_akun_debit'] ?? 'Persediaan / Beban' }}</td>
-                <td class="amount text-right">Rp {{ number_format($item['jumlah'] ?? 0, 0, ',', '.') }}</td>
-                <td class="amount text-right">{{ $i == 0 ? 'Rp '.number_format($jurnal->rp, 0, ',', '.') : '' }}</td>
+                <td>{{ $item->bukti_item ?: '-' }}</td>
+                <td>{{ $item->kode_sakep_debit }}</td>
+                <td style="padding-left:15px;">{{ $item->nama_akun_debit }}</td>
+                <td class="amount text-right">Rp {{ number_format($item->jumlah_item, 0, ',', '.') }}</td>
+                <td class="amount text-right">{{ $i == 0 ? 'Rp '.number_format($totalGroupAmount, 0, ',', '.') : '' }}</td>
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="text-center" style="font-style:italic; color:#666;">— Tidak ada detail item —
+                <td colspan="6" class="text-center" style="font-style:italic; color:#666;">— Tidak ada detail item —
                 </td>
             </tr>
             @endforelse
@@ -222,9 +232,12 @@
     @endforeach
 
     <!-- Total Keseluruhan -->
+    @php
+        $totalAmount = $data->sum('jumlah_item');
+    @endphp
     <table style="margin-top:20px;">
         <tr style="background:#e0e0e0; font-weight:bold; font-size:13pt;">
-            <td colspan="3" class="text-right">TOTAL PEMBELIAN PERIODE</td>
+            <td colspan="4" class="text-right">TOTAL PEMBELIAN PERIODE</td>
             <td class="amount text-right">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
             <td class="amount text-right">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
         </tr>

@@ -198,6 +198,7 @@ class JurnalPembelianResource extends Resource
                                         ->label('Keterangan')
                                         ->placeholder('Deskripsi item...')
                                         ->rows(1)
+                                        ->required()
                                         ->columnSpan(1),
 
                                     Forms\Components\Select::make('kode_proyek_id')
@@ -212,10 +213,6 @@ class JurnalPembelianResource extends Resource
                                         ->options(function () {
                                             return NomorBantu::with(['rekening.kelompok'])
                                                 ->get()
-                                                // ->filter(function ($item) {
-                                                //     $kelompok = $item->rekening->kelompok->no_kel;
-                                                //     return in_array($kelompok, ['10', '15', '20', '30', '91', '92', '93', '94', '96', '98']);
-                                                // })
                                                 ->mapWithKeys(function ($n) {
                                                     $code = $n->rekening->kelompok->no_kel .
                                                         $n->rekening->no_rek .
@@ -322,42 +319,40 @@ class JurnalPembelianResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('bukti_item')
+                    ->label('Bukti')
+                    ->searchable()
+                    ->placeholder('-'),
+
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('kodeSakepKredit')
-                    ->label('Kode Hutang')
+                    ->label('Akun Hutang')
                     ->searchable(false)
                     ->sortable(false)
-                    ->badge()
-                    ->color('danger')
-                    ->getStateUsing(fn($record) => $record->kode_sakep_kredit),
-
-                Tables\Columns\TextColumn::make('namaAkunKredit')
-                    ->label('Akun Hutang')
-                    ->limit(25)
-                    ->tooltip(fn($record) => $record->nama_akun_kredit),
+                    ->formatStateUsing(function ($record) {
+                        $kode = $record->kode_sakep_kredit;
+                        $nama = $record->nama_akun_kredit;
+                        return "{$kode} - {$nama}";
+                    })
+                    ->tooltip(fn($record) => $record->nama_akun_kredit)
+                    ->limit(40),
 
                 Tables\Columns\TextColumn::make('pembelianSummary')
                     ->label('Pembelian')
-                    ->getStateUsing(fn($record) => $record->pembelian_summary)
+                    ->getStateUsing(fn($record) => $record->keterangan_item)
                     ->limit(30)
                     ->tooltip(function ($record) {
-                        if (!$record->pembelian_items) return 'Tidak ada item';
-
-                        $summary = '';
-                        foreach ($record->pembelian_items as $index => $item) {
-                            $summary .= ($index + 1) . '. ' . ($item['keterangan'] ?? 'Item') .
-                                ' - Rp ' . number_format($item['jumlah'] ?? 0, 0, ',', '.') . "\n";
-                        }
-                        return trim($summary);
+                        return ($record->keterangan_item ?? 'Item') .
+                            ' - Rp ' . number_format($record->jumlah_item ?? 0, 0, ',', '.');
                     }),
 
-                Tables\Columns\TextColumn::make('rp')
+                Tables\Columns\TextColumn::make('jumlah_item')
                     ->label('Total')
-                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
                     ->alignRight()
                     ->sortable(),
 

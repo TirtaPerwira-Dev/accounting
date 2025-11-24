@@ -376,34 +376,31 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($jurnal->pembelian_items as $index => $item)
                 @php
-                $nomorBantu = \App\Models\NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_debit_id'] ??
-                null);
-                $kodeProyek = \App\Models\KodeProyek::find($item['kode_proyek_id'] ?? null);
-                $kodeSakep = $nomorBantu ?
-                $nomorBantu->rekening->kelompok->no_kel .
-                $nomorBantu->rekening->no_rek .
-                str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
-                $namaAkun = $nomorBantu?->nm_bantu ?? '-';
+                    $groupItems = $jurnal->group_transaksi ? 
+                        \App\Models\JurnalPembelian::where('group_transaksi', $jurnal->group_transaksi)
+                            ->orderBy('item_sequence')
+                            ->get() : 
+                        collect([$jurnal]);
                 @endphp
+                
+                @foreach($groupItems as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="text-center">
-                        <span style="font-family: 'Courier New', monospace; font-weight: bold;">{{ $item['bukti'] ?? '-' }}</span>
+                        <span style="font-family: 'Courier New', monospace; font-weight: bold;">{{ $item->bukti_item ?? '-' }}</span>
                     </td>
                     <td>
-                        {{ $item['keterangan'] ?? 'Item pembelian' }}
-                        @if($kodeProyek)
-                        <br><small style="color: #6c757d;">Proyek: {{ $kodeProyek->name }}</small>
+                        {{ $item->keterangan_item ?? 'Item pembelian' }}
+                        @if($item->kodeProyek)
+                        <br><small style="color: #6c757d;">Proyek: {{ $item->kodeProyek->name }}</small>
                         @endif
                     </td>
-                    </td>
-                    <td>{{ $namaAkun }}</td>
+                    <td>{{ $item->nama_akun_debit }}</td>
                     <td class="text-center">
-                        <span class="kode-sakep">{{ $kodeSakep }}</span>
+                        <span class="kode-sakep">{{ $item->kode_sakep_debit }}</span>
                     </td>
-                    <td class="text-right amount">Rp {{ number_format($item['jumlah'] ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right amount">Rp {{ number_format($item->jumlah_item ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>

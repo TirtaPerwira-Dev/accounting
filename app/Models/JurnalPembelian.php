@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -17,7 +18,7 @@ class JurnalPembelian extends Model
         'bukti',
         'rp',
         'keterangan',
-        'pembelian_items', // JSON data untuk repeater
+        'pembelian_items', // JSON data untuk repeater (backup)
         'kelompok_kredit_id',
         'rekening_kredit_id',
         'nomor_bantu_kredit_id',
@@ -29,12 +30,22 @@ class JurnalPembelian extends Model
         'is_confirmed',
         'confirmed_by',
         'confirmed_at',
+        // Fields untuk item individual
+        'bukti_item',
+        'keterangan_item', 
+        'jumlah_item',
+        'kelompok_debit_id',
+        'rekening_debit_id',
+        'nomor_bantu_debit_id',
+        'group_transaksi',
+        'item_sequence',
     ];
 
     protected $casts = [
         'tanggal' => 'date',
         'rp' => 'decimal:2',
-        'pembelian_items' => 'array', // Cast JSON to array
+        'pembelian_items' => 'array', // Cast JSON to array (backup)
+        'jumlah_item' => 'decimal:2',
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
@@ -44,9 +55,10 @@ class JurnalPembelian extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (empty($model->no_reff)) {
-                $model->no_reff = $model->generateNoReff();
-            }
+            // Sementara comment untuk debug no_reff issue
+            // if (empty($model->no_reff) || is_numeric($model->no_reff)) {
+            //     $model->no_reff = $model->generateNoReff();
+            // }
 
             if (empty($model->company_id)) {
                 $model->company_id = 1; // Default company
@@ -66,7 +78,24 @@ class JurnalPembelian extends Model
         return $this->belongsTo(KodeProyek::class);
     }
 
-    // Relasi Akun Kredit (Hutang/Pembayaran)
+    // === CUSTOM RELATIONSHIPS ===
+
+    /**
+     * Get all items dalam group transaksi yang sama
+     */
+    public function getGroupItemsAttribute()
+    {
+        if ($this->group_transaksi) {
+            return self::where('group_transaksi', $this->group_transaksi)
+                ->orderBy('item_sequence')
+                ->get();
+        }
+        
+        // Jika tidak ada group, return collection dengan record ini saja
+        return collect([$this]);
+    }
+
+    // === RELATIONSHIPS ===
     public function kelompokKredit(): BelongsTo
     {
         return $this->belongsTo(Kelompok::class, 'kelompok_kredit_id');
@@ -87,6 +116,22 @@ class JurnalPembelian extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
+    // Relasi untuk akun debit item
+    public function kelompokDebit(): BelongsTo
+    {
+        return $this->belongsTo(Kelompok::class, 'kelompok_debit_id');
+    }
+
+    public function rekeningDebit(): BelongsTo
+    {
+        return $this->belongsTo(Rekening::class, 'rekening_debit_id');
+    }
+
+    public function nomorBantuDebit(): BelongsTo
+    {
+        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_debit_id');
+    }
+
     // === METHODS ===
 
     /**
@@ -96,22 +141,19 @@ class JurnalPembelian extends Model
     {
         $year = Carbon::now()->year;
 
-        // Get last number for this year
-        $lastJurnal = self::where('no_reff', 'LIKE', "%-{$year}")
-            ->orderBy('no_reff', 'desc')
+        // Get last number for this year - cari yang berbentuk format lengkap
+        $lastJurnal = self::where('no_reff', 'LIKE', "1-_/{$year}")
+            ->where('no_reff', 'NOT LIKE', '%-%-%') // Avoid malformed formats
+            ->orderBy('created_at', 'desc')
             ->first();
 
-        if ($lastJurnal) {
+        $nextNumber = 1;
+
+        if ($lastJurnal && $lastJurnal->no_reff) {
             // Extract number from format like "1-5/2024"
-            $parts = explode('-', $lastJurnal->no_reff);
-            if (count($parts) >= 2) {
-                $numberPart = explode('/', $parts[1])[0];
-                $nextNumber = intval($numberPart) + 1;
-            } else {
-                $nextNumber = 1;
+            if (preg_match('/^1-(\d+)\/\d{4}$/', $lastJurnal->no_reff, $matches)) {
+                $nextNumber = intval($matches[1]) + 1;
             }
-        } else {
-            $nextNumber = 1;
         }
 
         return "1-{$nextNumber}/{$year}";
@@ -140,18 +182,38 @@ class JurnalPembelian extends Model
     }
 
     /**
-     * Get total pembelian items
+     * Get kode SAKEP untuk debit account (item)
+     */
+    public function getKodeSakepDebitAttribute(): string
+    {
+        if (!$this->kelompokDebit || !$this->rekeningDebit || !$this->nomorBantuDebit) {
+            return '-';
+        }
+
+        return $this->kelompokDebit->no_kel .
+            $this->rekeningDebit->no_rek .
+            str_pad($this->nomorBantuDebit->no_bantu, 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get nama lengkap akun debit (item)
+     */
+    public function getNamaAkunDebitAttribute(): string
+    {
+        return $this->nomorBantuDebit?->nm_bantu ?? '-';
+    }
+
+    /**
+     * Get total pembelian dari semua items dalam group
      */
     public function getTotalPembelianAttribute(): float
     {
-        if (!$this->pembelian_items) return 0;
-
-        $total = 0;
-        foreach ($this->pembelian_items as $item) {
-            $total += $item['jumlah'] ?? 0;
+        if (!$this->group_transaksi) {
+            return $this->jumlah_item ?? 0; // Single item
         }
-
-        return $total;
+        
+        return self::where('group_transaksi', $this->group_transaksi)
+            ->sum('jumlah_item');
     }
 
     /**
@@ -159,43 +221,25 @@ class JurnalPembelian extends Model
      */
     public function getPembelianSummaryAttribute(): string
     {
-        if (!$this->pembelian_items || count($this->pembelian_items) === 0) {
-            return 'Tidak ada item';
+        if ($this->group_transaksi) {
+            $items = self::where('group_transaksi', $this->group_transaksi)
+                ->orderBy('item_sequence')
+                ->get();
+                
+            if ($items->count() === 0) {
+                return 'Tidak ada item';
+            }
+            
+            $firstItem = $items->first()->keterangan_item ?: 'Item pembelian';
+            
+            if ($items->count() === 1) {
+                return $firstItem;
+            }
+            
+            return $firstItem . " (+ " . ($items->count() - 1) . " item lainnya)";
         }
-
-        $count = count($this->pembelian_items);
-        $firstItem = $this->pembelian_items[0]['keterangan'] ?? 'Item pembelian';
-
-        if ($count === 1) {
-            return $firstItem;
-        }
-
-        return $firstItem . " (+ " . ($count - 1) . " item lainnya)";
-    }
-
-    /**
-     * Get pembelian items with enhanced data
-     */
-    public function getPembelianItemsWithDetailsAttribute(): array
-    {
-        if (!$this->pembelian_items) return [];
-
-        $items = [];
-        foreach ($this->pembelian_items as $item) {
-            $nomorBantu = NomorBantu::find($item['nomor_bantu_debit_id'] ?? null);
-
-            $itemWithDetails = $item;
-            $itemWithDetails['kode_sakep_debit'] = $nomorBantu ?
-                $nomorBantu->rekening->kelompok->no_kel .
-                $nomorBantu->rekening->no_rek .
-                str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
-
-            $itemWithDetails['nama_akun_debit'] = $nomorBantu?->nm_bantu ?? '-';
-
-            $items[] = $itemWithDetails;
-        }
-
-        return $items;
+        
+        return $this->keterangan_item ?: 'Item pembelian';
     }
 
     /**
