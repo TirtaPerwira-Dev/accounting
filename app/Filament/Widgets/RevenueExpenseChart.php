@@ -22,9 +22,9 @@ class RevenueExpenseChart extends ChartWidget
     protected function getFilters(): ?array
     {
         return [
-            '3months' => '3 Bulan Terakhir',
-            '6months' => '6 Bulan Terakhir',
-            '12months' => '1 Tahun Terakhir',
+            '3months' => '3 Bulan',
+            '6months' => '6 Bulan',
+            '12months' => '1 Tahun',
         ];
     }
 

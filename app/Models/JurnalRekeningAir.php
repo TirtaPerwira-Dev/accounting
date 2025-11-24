@@ -21,6 +21,7 @@ class JurnalRekeningAir extends Model
         'rp',
         'is_confirmed',
         'confirmed_at',
+        'company_id',
     ];
 
     protected $casts = [
@@ -38,6 +39,9 @@ class JurnalRekeningAir extends Model
         static::creating(function ($model) {
             if (empty($model->no_reff)) {
                 $model->no_reff = $model->generateNoReff();
+            }
+            if (empty($model->company_id)) {
+                $model->company_id = 1; // Default company
             }
         });
     }
@@ -59,6 +63,14 @@ class JurnalRekeningAir extends Model
     }
 
     // Relations - Hanya yang diperlukan untuk struktur baru
+
+    /**
+     * Company relationship
+     */
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     // Scopes
     public function scopeThisYear($query)

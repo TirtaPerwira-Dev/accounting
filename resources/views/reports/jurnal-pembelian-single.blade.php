@@ -1,66 +1,152 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jurnal Pembelian Barang - {{ $jurnal->no_reff }}</title>
     <style>
+        /* BASE STYLES */
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            margin: 20px;
-            color: #333;
-            line-height: 1.4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 30px;
+            color: #212529;
+            line-height: 1.5;
         }
 
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* HEADER (KOP SURAT) */
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
         }
 
-        .company-name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
+        .kop-text {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .kop-perumda {
+            font-size: 16px;
+            font-weight: 700;
+            color: #007bff;
+            margin: 2px 0;
+        }
+
+        .kop-divider {
+            border: none;
+            height: 3px;
+            background-color: #333;
+            margin-top: 5px;
+            margin-bottom: 10px;
         }
 
         .document-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 10px 0;
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
         }
 
-        .jurnal-info {
-            background-color: #f8f9fa;
+        /* INFO BOX (Disederhanakan menggunakan TABLE) */
+        .jurnal-info-wrapper {
             padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            margin-bottom: 25px;
+            border: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+            border-radius: 4px;
         }
 
-        .info-row {
-            display: flex;
-            margin-bottom: 8px;
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
         }
 
+        .info-table td {
+            padding: 0;
+            vertical-align: top;
+            border: none;
+        }
+
+        /* KUNCI: Border pemisah kolom dan padding untuk kerapian */
+        .info-table td:first-child {
+            border-right: 1px solid #dee2e6;
+            padding-right: 20px;
+        }
+
+        .info-table td:last-child {
+            padding-left: 20px;
+        }
+
+        /* Set lebar kolom label */
         .info-label {
-            font-weight: bold;
-            width: 150px;
-            display: inline-block;
+            font-weight: 600;
+            color: #495057;
+            font-size: 10px;
+            width: 140px;
+            padding-right: 10px;
         }
 
         .info-value {
-            flex: 1;
+            font-weight: 500;
+            font-size: 11px;
         }
 
+        .total-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #dc3545;
+        }
+
+        /* STATUS & KETERANGAN */
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .status-confirmed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .keterangan-box {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px dashed #ced4da;
+            border-radius: 4px;
+            background-color: white;
+            font-style: italic;
+            color: #495057;
+            font-size: 11px;
+        }
+
+        /* SECTION TITLE & TABLES */
         .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
-            padding: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            margin: 25px 0 10px 0;
+            padding: 5px 10px;
             background-color: #e9ecef;
+            color: #007bff;
             border-left: 4px solid #007bff;
         }
 
@@ -70,302 +156,349 @@
             margin: 15px 0;
         }
 
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
+        th,
+        td {
+            border: 1px solid #dee2e6;
+            padding: 8px 10px;
             text-align: left;
             vertical-align: top;
+            font-size: 11px;
         }
 
         th {
-            background-color: #f8f9fa;
-            font-weight: bold;
+            background-color: #007bff;
+            color: white;
+            font-weight: 600;
             text-align: center;
         }
 
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
 
         .amount {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: #d32f2f;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 700;
+            color: #dc3545;
+            font-size: 12px;
         }
 
         .kode-sakep {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: #1976d2;
-            background-color: #e3f2fd;
-            padding: 2px 6px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 700;
+            color: #007bff;
+            background-color: #e6f0ff;
+            padding: 1px 4px;
             border-radius: 3px;
-            font-size: 11px;
+            font-size: 10px;
+            display: inline-block;
         }
 
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .status-confirmed {
-            background-color: #c8e6c9;
-            color: #2e7d32;
-        }
-
-        .status-pending {
-            background-color: #fff3e0;
-            color: #ef6c00;
-        }
-
-        .jurnal-entry {
-            background-color: #f9f9f9;
-            padding: 15px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .debit-kredit-table {
-            margin: 20px 0;
-        }
-
+        /* JURNAL ENTRY TABLE SPECIFIC */
         .debit-row {
-            background-color: #e8f5e8;
+            background-color: #ffffff;
         }
 
-        .kredit-row {
-            background-color: #ffe8e8;
+        .kredit-row td:nth-child(2) {
+            padding-left: 30px;
         }
 
         .total-row {
-            background-color: #f0f0f0;
-            font-weight: bold;
+            background-color: #007bff !important;
+            color: white;
+            font-weight: 700;
+            font-size: 12px;
         }
 
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
+        .total-row td {
+            border-color: white;
+        }
+
+        .total-row .amount {
+            color: white;
+        }
+
+        /* FOOTER & SIGNATURE */
+        .footer-signature {
+            margin-top: 50px;
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        .signature-box {
+            width: 300px;
+            margin-left: auto;
+            text-align: center;
+            /* KUNCI: Rata tengah untuk semua elemen tanda tangan */
+        }
+
+        .signature-label {
+            font-size: 11px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .signature-name {
+            font-weight: 700;
+            font-size: 12px;
+            margin-top: 70px;
+            text-decoration: underline;
+        }
+
+        .signature-nippam {
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        /* FOOTER HALAMAN */
+        .page-footer {
+            position: fixed;
+            bottom: 10px;
+            left: 30px;
+            right: 30px;
             border-top: 1px solid #ddd;
+            padding-top: 5px;
+            font-size: 9px;
+            color: #6c757d;
             display: flex;
             justify-content: space-between;
         }
 
-        .signature-box {
-            text-align: center;
-            width: 200px;
+        /* Penambahan untuk Nomor Halaman */
+        .page-number::before {
+            content: counter(page);
         }
 
-        .signature-line {
-            border-top: 1px solid #333;
-            margin-top: 60px;
-            padding-top: 5px;
-            font-size: 11px;
-        }
-
-        .print-info {
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            margin-top: 20px;
-        }
-
+        /* WATERMARK */
         .watermark {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60px;
-            color: rgba(255, 0, 0, 0.1);
-            font-weight: bold;
+            font-size: 80px;
+            color: rgba(255, 0, 0, 0.08);
+            font-weight: 700;
             z-index: -1;
+            pointer-events: none;
+            text-transform: uppercase;
         }
     </style>
 </head>
+
 <body>
-    @if(!$jurnal->is_confirmed)
-        <div class="watermark">BELUM DIKONFIRMASI</div>
-    @endif
+    <div class="container">
+        @if(!$jurnal->is_confirmed)
+        <div class="watermark">BELUM VALIDASI</div>
+        @endif
 
-    <!-- Header -->
-    <div class="header">
-        <div class="company-name">SISTEM AKUNTANSI AIR MINUM - SAKEP</div>
+        <div class="header">
+            <p class="kop-text">Pemerintah Kabupaten Purbalingga</p>
+            <p class="kop-perumda">Perusahaan Umum Daerah Air Minum Tirta Perwira</p>
+            <p class="kop-text">Kabupaten Purbalingga</p>
+            <hr class="kop-divider">
+        </div>
+
         <div class="document-title">JURNAL PEMBELIAN BARANG</div>
-        <div style="font-size: 12px; color: #666;">No. Referensi: <strong>{{ $jurnal->no_reff }}</strong></div>
-    </div>
 
-    <!-- Informasi Jurnal -->
-    <div class="jurnal-info">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div>
-                <div class="info-row">
-                    <span class="info-label">No. Referensi:</span>
-                    <span class="info-value"><strong>{{ $jurnal->no_reff }}</strong></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Tanggal:</span>
-                    <span class="info-value">{{ $jurnal->tanggal->format('d M Y') }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">No. Bukti:</span>
-                    <span class="info-value">{{ $jurnal->bukti ?: '-' }}</span>
-                </div>
-                @if($jurnal->kodeProyek)
-                <div class="info-row">
-                    <span class="info-label">Kode Proyek:</span>
-                    <span class="info-value">{{ $jurnal->kodeProyek->name }}</span>
-                </div>
-                @endif
-            </div>
-            <div>
-                <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value">
-                        @if($jurnal->is_confirmed)
-                            <span class="status-badge status-confirmed">✓ Dikonfirmasi</span>
-                        @else
-                            <span class="status-badge status-pending">⏱ Belum Dikonfirmasi</span>
+        <div class="jurnal-info-wrapper">
+            <table class="info-table">
+                <tr>
+                    <td width="50%">
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">NO. REFERENSI :</span>
+                            <span class="info-value"><strong>{{ $jurnal->no_reff }}</strong></span>
+                        </div>
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">TANGGAL :</span>
+                            <span class="info-value">{{ $jurnal->tanggal->format('d M Y') }}</span>
+                        </div>
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">AKUN :</span>
+                            <span class="info-value">
+                                <span class="info-value">{{ $jurnal->kode_sakep_kredit }}</span> - {{
+                                $jurnal->nama_akun_kredit }}
+                            </span>
+                        </div>
+                        @if($jurnal->kodeProyek)
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">KODE PROYEK:</span>
+                            <span class="info-value">{{ $jurnal->kodeProyek->name }}</span>
+                        </div>
                         @endif
-                    </span>
-                </div>
-                @if($jurnal->is_confirmed)
-                <div class="info-row">
-                    <span class="info-label">Dikonfirmasi:</span>
-                    <span class="info-value">{{ $jurnal->confirmed_at->format('d M Y H:i') }}</span>
-                </div>
-                @endif
-                <div class="info-row">
-                    <span class="info-label">Total Nilai:</span>
-                    <span class="info-value amount" style="font-size: 14px;">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</span>
-                </div>
-            </div>
+                    </td>
+                    <td width="50%">
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">TOTAL NILAI TRANSAKSI:</span>
+                            <span class="info-value total-value">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</span>
+                        </div>
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">STATUS JURNAL:</span>
+                            <span class="info-value">
+                                @if($jurnal->is_confirmed)
+                                <span class="status-badge status-confirmed">DIKONFIRMASI</span>
+                                @else
+                                <span class="status-badge status-pending">PENDING</span>
+                                @endif
+                            </span>
+                        </div>
+                        @if($jurnal->is_confirmed)
+                        <div style="margin-bottom: 5px; display: flex;">
+                            <span class="info-label">WAKTU KONFIRMASI:</span>
+                            <span class="info-value">{{ $jurnal->confirmed_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                        @endif
+                    </td>
+                </tr>
+            </table>
         </div>
 
         @if($jurnal->keterangan)
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-            <span class="info-label">Keterangan:</span><br>
-            <div style="margin-top: 5px; font-style: italic; background-color: #fff; padding: 8px; border-radius: 3px;">
-                {{ $jurnal->keterangan }}
-            </div>
+        <div class="keterangan-box">
+            <span style="font-weight: 600; font-style: normal;">Keterangan Transaksi:</span> {{ $jurnal->keterangan }}
         </div>
         @endif
-    </div>
 
-    <!-- Akun Hutang/Kredit -->
-    <div class="section-title">AKUN HUTANG/KREDIT</div>
-    <table>
-        <tr>
-            <td width="20%" style="font-weight: bold;">Kode SAKEP:</td>
-            <td width="30%"><span class="kode-sakep">{{ $jurnal->kode_sakep_kredit }}</span></td>
-            <td width="20%" style="font-weight: bold;">Nama Akun:</td>
-            <td width="30%">{{ $jurnal->nama_akun_kredit }}</td>
-        </tr>
-    </table>
-
-    <!-- Detail Pembelian -->
-    <div class="section-title">DETAIL PEMBELIAN</div>
-    @if($jurnal->pembelian_items && count($jurnal->pembelian_items) > 0)
+        <div class="section-title">PERINCIAN TRANSAKSI DEBIT</div>
+        @if($jurnal->pembelian_items && count($jurnal->pembelian_items) > 0)
         <table>
             <thead>
                 <tr>
                     <th width="5%">No</th>
-                    <th width="25%">Keterangan</th>
-                    <th width="15%">Kode SAKEP</th>
-                    <th width="30%">Akun Debit</th>
-                    <th width="25%">Jumlah</th>
+                    <th width="15%">No. Bukti</th>
+                    <th width="25%">Keterangan Item</th>
+                    <th width="20%">Akun Debit</th>
+                    <th width="20%">Kode Akun</th>
+                    <th width="15%">Jumlah (Debit)</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($jurnal->pembelian_items_with_details as $index => $item)
+                @foreach($jurnal->pembelian_items as $index => $item)
+                @php
+                $nomorBantu = \App\Models\NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_debit_id'] ??
+                null);
+                $kodeProyek = \App\Models\KodeProyek::find($item['kode_proyek_id'] ?? null);
+                $kodeSakep = $nomorBantu ?
+                $nomorBantu->rekening->kelompok->no_kel .
+                $nomorBantu->rekening->no_rek .
+                str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
+                $namaAkun = $nomorBantu?->nm_bantu ?? '-';
+                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $item['keterangan'] ?? 'Item pembelian' }}</td>
                     <td class="text-center">
-                        <span class="kode-sakep">{{ $item['kode_sakep_debit'] ?? '-' }}</span>
+                        <span style="font-family: 'Courier New', monospace; font-weight: bold;">{{ $item['bukti'] ?? '-' }}</span>
                     </td>
-                    <td>{{ $item['nama_akun_debit'] ?? '-' }}</td>
+                    <td>
+                        {{ $item['keterangan'] ?? 'Item pembelian' }}
+                        @if($kodeProyek)
+                        <br><small style="color: #6c757d;">Proyek: {{ $kodeProyek->name }}</small>
+                        @endif
+                    </td>
+                    </td>
+                    <td>{{ $namaAkun }}</td>
+                    <td class="text-center">
+                        <span class="kode-sakep">{{ $kodeSakep }}</span>
+                    </td>
                     <td class="text-right amount">Rp {{ number_format($item['jumlah'] ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="4" class="text-right"><strong>TOTAL:</strong></td>
+                    <td colspan="4" class="text-right"><strong>TOTAL DEBIT (HARUS SAMA DENGAN KREDIT):</strong></td>
                     <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
                 </tr>
             </tfoot>
         </table>
-    @else
-        <div style="text-align: center; padding: 20px; color: #666; font-style: italic;">
-            Tidak ada detail pembelian
+        @else
+        <div
+            style="text-align: center; padding: 10px; color: #6c757d; font-style: italic; border: 1px dashed #ced4da; border-radius: 4px;">
+            Tidak ada perincian transaksi Debit (Item Pembelian) yang tercatat.
         </div>
-    @endif
+        @endif
 
-    <!-- Jurnal Entry Format -->
-    <div class="section-title">FORMAT JURNAL AKUNTANSI</div>
-    <table class="debit-kredit-table">
-        <thead>
-            <tr>
-                <th width="10%">Tanggal</th>
-                <th width="40%">Keterangan</th>
-                <th width="25%">Debit</th>
-                <th width="25%">Kredit</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Debit Entries (Pembelian Items) -->
-            @if($jurnal->pembelian_items)
-                @foreach($jurnal->pembelian_items_with_details as $item)
+        <div class="section-title">RINGKASAN JURNAL AKUNTANSI (DEBIT/KREDIT)</div>
+        <table class="debit-kredit-table">
+            <thead>
+                <tr>
+                    <th width="15%">Tanggal</th>
+                    <th width="35%">Akun & Keterangan</th>
+                    <th width="25%">Debit (Rp)</th>
+                    <th width="25%">Kredit (Rp)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if($jurnal->pembelian_items)
+                @foreach($jurnal->pembelian_items as $item)
+                @php
+                $nomorBantu = \App\Models\NomorBantu::find($item['nomor_bantu_debit_id'] ?? null);
+                $kodeSakep = $nomorBantu ?
+                $nomorBantu->rekening->kelompok->no_kel .
+                $nomorBantu->rekening->no_rek .
+                str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
+                $namaAkun = $nomorBantu?->nm_bantu ?? '-';
+                @endphp
                 <tr class="debit-row">
                     <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
                     <td>
-                        <strong>{{ $item['nama_akun_debit'] ?? '-' }}</strong><br>
-                        <small>{{ $item['keterangan'] ?? 'Item pembelian' }}</small>
+                        <span class="kode-sakep">{{ $kodeSakep }}</span> - <strong>{{ $namaAkun }}</strong><br>
+                        <small style="color: #6c757d;">{{ $item['keterangan'] ?? 'Item pembelian' }}</small>
                     </td>
                     <td class="text-right amount">{{ number_format($item['jumlah'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right">-</td>
                 </tr>
                 @endforeach
-            @endif
+                @endif
 
-            <!-- Kredit Entry (Hutang) -->
-            <tr class="kredit-row">
-                <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
-                <td>
-                    <strong>{{ $jurnal->nama_akun_kredit }}</strong><br>
-                    <small>{{ $jurnal->bukti ? 'No. Bukti: ' . $jurnal->bukti : 'Hutang pembelian' }}</small>
-                </td>
-                <td class="text-right">-</td>
-                <td class="text-right amount">{{ number_format($jurnal->rp, 0, ',', '.') }}</td>
-            </tr>
+                <tr class="kredit-row">
+                    <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
+                    <td>
+                        <span class="kode-sakep">{{ $jurnal->kode_sakep_kredit }}</span> - <strong>{{
+                            $jurnal->nama_akun_kredit }}</strong><br>
+                        <small style="color: #6c757d;">{{ $jurnal->bukti ? 'No. Bukti: ' . $jurnal->bukti : 'Hutang
+                            pembelian' }}</small>
+                    </td>
+                    <td class="text-right">-</td>
+                    <td class="text-right amount">{{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                </tr>
 
-            <!-- Total -->
-            <tr class="total-row">
-                <td colspan="2" class="text-right"><strong>TOTAL:</strong></td>
-                <td class="text-right amount">{{ number_format($jurnal->rp, 0, ',', '.') }}</td>
-                <td class="text-right amount">{{ number_format($jurnal->rp, 0, ',', '.') }}</td>
-            </tr>
-        </tbody>
-    </table>
+                <tr class="total-row">
+                    <td colspan="2" class="text-right"><strong>TOTAL AKUN BERIMBANG:</strong></td>
+                    <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                    <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <!-- Footer -->
-    <div class="footer">
-        <div class="signature-box">
-            <div>Dibuat oleh:</div>
-            <div class="signature-line">Bagian Keuangan</div>
+        <div class="footer-signature">
+            <div class="signature-box">
+                <div style="text-align: center; margin-bottom: 5px;">Purbalingga, {{ date('d M Y') }}</div>
+                <div class="signature-label" style="font-weight: bold;">
+                    Perusahaan Umum Daerah Air Minum<br>
+                    Tirta Perwira
+                </div>
+                <div class="signature-label">Kepala Bagian Keuangan</div>
+
+                <div class="signature-name">Yuni Setyowati, S.E</div>
+                <div class="signature-nippam">Nippam : .....................</div>
+            </div>
         </div>
 
-        @if($jurnal->is_confirmed)
-        <div class="signature-box">
-            <div>Disetujui oleh:</div>
-            <div class="signature-line">Kepala Bagian</div>
-        </div>
-        @endif
     </div>
 
-    <div class="print-info">
-        Dicetak pada: {{ $generatedAt }} | Sistem Akuntansi Air Minum berbasis SAKEP
+    <div class="page-footer">
+        <div>Sistem Akuntansi Tirta Perwira</div>
+        <div>Tanggal Cetak : {{ date('d/m/Y H:i:s') }}</div>
+
+        <div style="text-align: right;">
+            <div class="page-number" style="font-weight: 700;">
+            {{-- <div style="visibility: hidden; height: 1.5em;">Kosong</div> --}}
+        </div>
     </div>
 </body>
+
 </html>

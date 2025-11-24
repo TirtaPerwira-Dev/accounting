@@ -12,6 +12,9 @@ class JurnalPenerimaanKasStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 2;
 
+    // Hide from dashboard but keep for resource pages
+    protected static bool $isDiscovered = false;
+
     protected function getStats(): array
     {
         // Get current month and year

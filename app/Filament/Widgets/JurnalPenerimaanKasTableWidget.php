@@ -15,6 +15,9 @@ class JurnalPenerimaanKasTableWidget extends BaseWidget
 
     protected int | string | array $columnSpan = 'full';
 
+    // Hide from dashboard but keep for resource pages
+    protected static bool $isDiscovered = false;
+
     public function table(Table $table): Table
     {
         return $table

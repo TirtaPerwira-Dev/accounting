@@ -14,6 +14,9 @@ class JurnalPenerimaanKasWidget extends BaseWidget
 
     protected static ?int $sort = 5;
 
+    // Hide from dashboard but keep for resource pages
+    protected static bool $isDiscovered = false;
+
     protected function getStats(): array
     {
         // Total bulan ini

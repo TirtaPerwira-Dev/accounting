@@ -231,7 +231,7 @@ class JurnalPembelianResource extends Resource
                                         ->required()
                                         ->prefix('Rp')
                                         ->placeholder('0')
-                                        ->live()
+                                        ->live(debounce: 500)
                                         ->numeric()
                                         ->extraAttributes([
                                             'inputmode' => 'numeric',
@@ -329,6 +329,8 @@ class JurnalPembelianResource extends Resource
 
                 Tables\Columns\TextColumn::make('kodeSakepKredit')
                     ->label('Kode Hutang')
+                    ->searchable(false)
+                    ->sortable(false)
                     ->badge()
                     ->color('danger')
                     ->getStateUsing(fn($record) => $record->kode_sakep_kredit),
@@ -405,6 +407,39 @@ class JurnalPembelianResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
 
+                    Tables\Actions\EditAction::make()
+                        ->visible(fn($record) => !$record->is_confirmed),
+
+                    Tables\Actions\Action::make('confirm')
+                        ->label('Konfirmasi')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn($record) => !$record->is_confirmed)
+                        ->requiresConfirmation()
+                        ->modalHeading('Konfirmasi Jurnal')
+                        ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
+                        ->action(fn($record) => $record->confirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Jurnal berhasil dikonfirmasi')
+                        ),
+
+                    Tables\Actions\Action::make('unconfirm')
+                        ->label('Batal Konfirmasi')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('warning')
+                        ->visible(fn($record) => $record->is_confirmed)
+                        ->requiresConfirmation()
+                        ->modalHeading('Batalkan Konfirmasi')
+                        ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
+                        ->action(fn($record) => $record->unconfirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Konfirmasi berhasil dibatalkan')
+                        ),
+
                     Tables\Actions\Action::make('exportPdf')
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
@@ -425,39 +460,6 @@ class JurnalPembelianResource extends Resource
                                 'jurnal-pembelian-' . $safeFilename . '.pdf'
                             );
                         }),
-
-                    Tables\Actions\EditAction::make()
-                        ->visible(fn($record) => !$record->is_confirmed),
-
-                    Tables\Actions\Action::make('confirm')
-                        ->label('✓ Konfirmasi')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed)
-                        ->requiresConfirmation()
-                        ->modalHeading('Konfirmasi Jurnal')
-                        ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(fn($record) => $record->confirm())
-                        ->successNotification(
-                            Notification::make()
-                                ->success()
-                                ->title('Jurnal berhasil dikonfirmasi')
-                        ),
-
-                    Tables\Actions\Action::make('unconfirm')
-                        ->label('↶ Batal Konfirmasi')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed)
-                        ->requiresConfirmation()
-                        ->modalHeading('Batalkan Konfirmasi')
-                        ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(fn($record) => $record->unconfirm())
-                        ->successNotification(
-                            Notification::make()
-                                ->success()
-                                ->title('Konfirmasi berhasil dibatalkan')
-                        ),
 
                     Tables\Actions\DeleteAction::make()
                         ->visible(fn($record) => !$record->is_confirmed),

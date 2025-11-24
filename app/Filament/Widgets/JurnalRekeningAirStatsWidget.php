@@ -11,6 +11,9 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
 {
     protected static ?string $pollingInterval = '30s';
 
+    // Hide from dashboard but keep for resource pages
+    protected static bool $isDiscovered = false;
+
     protected function getStats(): array
     {
         $companyId = Auth::user()?->company_id ?? 1;
