@@ -144,6 +144,8 @@ class JurnalPembelianResource extends Resource
                                 ->label('Tanggal Transaksi')
                                 ->default(now())
                                 ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->format('Y-m-d')
                                 ->required()
                                 ->columnSpanFull(),
                         ]),
@@ -192,7 +194,13 @@ class JurnalPembelianResource extends Resource
                                     Forms\Components\TextInput::make('bukti')
                                         ->label('Bukti')
                                         ->placeholder('INV-001, PO-123...')
-                                        ->maxLength(255),
+                                        ->maxLength(255)
+                                        ->live()
+                                        ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                            $set('bukti', strtoupper($state ?? ''));
+                                        })
+                                        ->dehydrateStateUsing(fn($state) => strtoupper($state ?? ''))
+                                        ->extraAttributes(['style' => 'text-transform: uppercase;']),
 
                                     Forms\Components\Textarea::make('keterangan')
                                         ->label('Keterangan')
@@ -302,7 +310,7 @@ class JurnalPembelianResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
                             ->label('Nomor Referensi')
-                            ->content('Auto-generate: 1-X/2024')
+                            ->content('Nomor Reff Jurnal Pembelian Barang adalah = 1')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -326,7 +334,7 @@ class JurnalPembelianResource extends Resource
 
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
-                    ->date('d M Y')
+                    ->date('d/m/Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('kodeSakepKredit')
@@ -370,7 +378,7 @@ class JurnalPembelianResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime('d M Y H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
