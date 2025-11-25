@@ -1,0 +1,56 @@
+/* Custom styles for currency input in journal form */
+.fi-input[data-currency="true"] {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+}
+
+.fi-input[data-currency="true"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Style for the amount input prefix */
+.fi-input-wrapper .fi-input-affix {
+    font-weight: 600;
+    color: #059669;
+}
+
+/* Balance status styling */
+.balance-status-balanced {
+    color: #059669;
+    font-weight: 600;
+}
+
+.balance-status-unbalanced {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* Better spacing for journal entries */
+.journal-repeater .fi-fo-repeater-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background-color: #fafafa;
+}
+
+.journal-repeater .fi-fo-repeater-item:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+/* Template buttons styling */
+.template-buttons .fi-btn {
+    margin: 0.25rem;
+    border-radius: 6px;
+}
+
+/* Amount input specific styling */
+input[name*="amount"] {
+    text-align: right !important;
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.025em;
+}
