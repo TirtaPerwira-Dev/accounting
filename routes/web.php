@@ -23,3 +23,6 @@ Route::get('/jurnal-penerimaan-kas/{record}/pdf', function (JurnalPenerimaanKas 
     return Pdf::loadView('pdf.jurnal-penerimaan-kas', compact('record'))
         ->download("JPK-{$record->nomor_bukti}.pdf");
 })->name('jurnal-penerimaan-kas.pdf');
+
+// Test Import Routes
+include 'test-import.php';
