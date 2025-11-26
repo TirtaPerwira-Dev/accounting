@@ -8,6 +8,8 @@ use App\Models\JurnalPembelian;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
 use App\Models\Company;
+use App\Imports\JurnalPembelianImport;
+use App\Exports\JurnalPembelianTemplateExport;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +18,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use Maatwebsite\Excel\Facades\Excel;
 
 class JurnalPembelianResource extends Resource
 {
@@ -335,6 +338,77 @@ class JurnalPembelianResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                Tables\Actions\Action::make('import')
+                    ->label('Import Excel')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('success')
+                    ->form([
+                        Forms\Components\FileUpload::make('file')
+                            ->label('File Excel')
+                            ->acceptedFileTypes(['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                            ->directory('imports')
+                            ->storeFileNamesIn('original_filename')
+                            ->required()
+                            ->helperText('Upload file Excel dengan format template yang sudah disediakan')
+                    ])
+                    ->action(function (array $data) {
+                        try {
+                            // Get the uploaded file path
+                            $filePath = storage_path('app/public/' . $data['file']);
+                            
+                            // Check if file exists
+                            if (!file_exists($filePath)) {
+                                throw new \Exception("File tidak ditemukan: {$filePath}");
+                            }
+                            
+                            $import = new JurnalPembelianImport();
+                            Excel::import($import, $filePath);
+                            
+                            // Clean up - delete the uploaded file
+                            if (file_exists($filePath)) {
+                                unlink($filePath);
+                            }
+                            
+                            // Show success or error messages
+                            if ($import->getErrors()) {
+                                $errorMessage = "Import selesai dengan beberapa error:\n" . implode("\n", array_slice($import->getErrors(), 0, 5));
+                                if (count($import->getErrors()) > 5) {
+                                    $errorMessage .= "\n... dan " . (count($import->getErrors()) - 5) . " error lainnya";
+                                }
+                                
+                                Notification::make()
+                                    ->title('Import Selesai dengan Error')
+                                    ->body($errorMessage)
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Import Berhasil')
+                                    ->body("Berhasil mengimport {$import->getImportedCount()} data jurnal pembelian")
+                                    ->success()
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Import Gagal')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                
+                Tables\Actions\Action::make('download_template')
+                    ->label('Download Template')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->action(function () {
+                        return Excel::download(
+                            new JurnalPembelianTemplateExport(), 
+                            'template-jurnal-pembelian.xlsx'
+                        );
+                    })
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('no_reff')
                     ->label('No. Ref')
