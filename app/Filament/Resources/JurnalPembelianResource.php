@@ -185,103 +185,127 @@ class JurnalPembelianResource extends Resource
                     ]),
 
                 // === SECTION INPUT PEMBELIAN ===
-                Forms\Components\Section::make('Input Pembelian')
-                    ->description('Tambahkan item-item pembelian')
+                Forms\Components\Section::make('Input Item Pembelian')
+                    ->description('Tambahkan item pembelian satu per satu')
                     ->schema([
-                        Forms\Components\Repeater::make('pembelian_items')
-                            ->schema([
-                                Forms\Components\Grid::make(5)->schema([
-                                    Forms\Components\TextInput::make('bukti')
-                                        ->label('Bukti')
-                                        ->placeholder('INV-001, PO-123...')
-                                        ->maxLength(255)
-                                        ->live()
-                                        ->afterStateUpdated(function (Forms\Set $set, $state) {
-                                            $set('bukti', strtoupper($state ?? ''));
-                                        })
-                                        ->dehydrateStateUsing(fn($state) => strtoupper($state ?? ''))
-                                        ->extraAttributes(['style' => 'text-transform: uppercase;']),
+                        Forms\Components\Grid::make(5)->schema([
+                            Forms\Components\TextInput::make('temp_bukti')
+                                ->label('Bukti')
+                                ->placeholder('INV-001, PO-123...')
+                                ->maxLength(255)
+                                ->live()
+                                ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                    $set('temp_bukti', strtoupper($state ?? ''));
+                                })
+                                ->extraAttributes(['style' => 'text-transform: uppercase;'])
+                                ->dehydrated(false),
 
-                                    Forms\Components\Textarea::make('keterangan')
-                                        ->label('Keterangan')
-                                        ->placeholder('Deskripsi item...')
-                                        ->rows(1)
-                                        ->required()
-                                        ->columnSpan(1),
+                            Forms\Components\Textarea::make('temp_keterangan')
+                                ->label('Keterangan')
+                                ->placeholder('Deskripsi item...')
+                                ->rows(1)
+                                ->required()
+                                ->dehydrated(false),
 
-                                    Forms\Components\Select::make('kode_proyek_id')
-                                        ->label('Kode Proyek')
-                                        ->placeholder('Pilih...')
-                                        ->options(KodeProyek::pluck('name', 'id'))
-                                        ->searchable(),
+                            Forms\Components\Select::make('temp_kode_proyek_id')
+                                ->label('Kode Proyek')
+                                ->placeholder('Pilih...')
+                                ->options(KodeProyek::pluck('name', 'id'))
+                                ->searchable()
+                                ->dehydrated(false),
 
-                                    Forms\Components\Select::make('nomor_bantu_debit_id')
-                                        ->label('Kode Rekening')
-                                        ->placeholder('Pilih akun pembelian...')
-                                        ->options(function () {
-                                            return NomorBantu::with(['rekening.kelompok'])
-                                                ->get()
-                                                ->mapWithKeys(function ($n) {
-                                                    $code = $n->rekening->kelompok->no_kel .
-                                                        $n->rekening->no_rek .
-                                                        str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-                                                    return [$n->id => "[$code] {$n->nm_bantu}"];
-                                                });
-                                        })
-                                        ->searchable()
-                                        ->required(),
+                            Forms\Components\Select::make('temp_nomor_bantu_debit_id')
+                                ->label('Kode Rekening')
+                                ->placeholder('Pilih akun pembelian...')
+                                ->options(function () {
+                                    return NomorBantu::with(['rekening.kelompok'])
+                                        ->get()
+                                        ->mapWithKeys(function ($n) {
+                                            $code = $n->rekening->kelompok->no_kel .
+                                                $n->rekening->no_rek .
+                                                str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
+                                            return [$n->id => "[$code] {$n->nm_bantu}"];
+                                        });
+                                })
+                                ->searchable()
+                                ->required()
+                                ->dehydrated(false),
 
-                                    Forms\Components\TextInput::make('jumlah')
-                                        ->label('Jumlah (Rp)')
-                                        ->required()
-                                        ->prefix('Rp')
-                                        ->placeholder('0')
-                                        ->live(debounce: 500)
-                                        ->numeric()
-                                        ->extraAttributes([
-                                            'inputmode' => 'numeric',
-                                            'style' => 'text-align: right;',
-                                            'oninput' => 'this.value = this.value.replace(/[^0-9]/g, \'\').replace(/\B(?=(\d{3})+(?!\d))/g, \'.\');',
-                                        ])
-                                        ->dehydrateStateUsing(function ($state) {
-                                            return $state ? (float) preg_replace('/[^0-9]/', '', $state) : 0;
-                                        })
-                                        ->formatStateUsing(function ($state) {
-                                            return $state ? number_format((float)$state, 0, '', '.') : '';
-                                        }),
-                                ]),
-                            ])
-                            ->collapsible()
-                            ->itemLabel(
-                                fn(array $state): ?string =>
-                                $state['keterangan'] ?
-                                    substr($state['keterangan'], 0, 30) . (strlen($state['keterangan']) > 30 ? '...' : '') :
-                                    'Item Pembelian'
-                            )
-                            ->addActionLabel('+ Tambah Item Pembelian')
-                            ->defaultItems(1)
-                            ->minItems(1)
-                            ->columnSpanFull(),
+                            Forms\Components\TextInput::make('temp_jumlah')
+                                ->label('Jumlah (Rp)')
+                                ->required()
+                                ->prefix('Rp')
+                                ->placeholder('0')
+                                ->numeric()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, \'\').replace(/\B(?=(\d{3})+(?!\d))/g, \'.\');',
+                                ])
+                                ->dehydrated(false),
+
+
+                        ]),
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('add_item')
+                                ->label('+ Tambah Item')
+                                ->icon('heroicon-o-plus-circle')
+                                ->color('success')
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $tempData = [
+                                        'bukti' => $get('temp_bukti'),
+                                        'keterangan' => $get('temp_keterangan'),
+                                        'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'nomor_bantu_debit_id' => $get('temp_nomor_bantu_debit_id'),
+                                        'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
+                                    ];
+
+                                    // Validate required fields
+                                    if (empty($tempData['keterangan']) || empty($tempData['nomor_bantu_debit_id']) || empty($tempData['jumlah'])) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Data tidak lengkap!')
+                                            ->body('Keterangan, Kode Rekening, dan Jumlah harus diisi.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $currentItems = $get('pembelian_items') ?? [];
+                                    $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
+                                    $set('pembelian_items', $currentItems);
+
+                                    // Clear form
+                                    $set('temp_bukti', '');
+                                    $set('temp_keterangan', '');
+                                    $set('temp_kode_proyek_id', null);
+                                    $set('temp_nomor_bantu_debit_id', null);
+                                    $set('temp_jumlah', '');
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Item berhasil ditambahkan!')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation(false),
+                        ]),
                     ]),
 
-                // === SECTION JUMLAH ===
-                Forms\Components\Section::make('Jumlah')
+                // === SECTION PREVIEW ITEMS ===
+                Forms\Components\Section::make('Daftar Item Pembelian')
+                    ->description('Preview item yang telah ditambahkan')
+                    ->schema([
+                        Forms\Components\ViewField::make('pembelian_items')
+                            ->view('filament.forms.components.items-table'),
+                    ])
+                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')))
+                    ->collapsible(),
+                Forms\Components\Section::make('Total')
                     ->schema([
                         Forms\Components\Placeholder::make('total_pembelian')
                             ->label('Total Pembelian')
                             ->content(function (Forms\Get $get) {
                                 $items = $get('pembelian_items') ?? [];
-                                $total = 0;
-
-                                foreach ($items as $item) {
-                                    if (isset($item['jumlah'])) {
-                                        $jumlah = is_string($item['jumlah']) ?
-                                            (float) preg_replace('/[^0-9]/', '', $item['jumlah']) :
-                                            (float) $item['jumlah'];
-                                        $total += $jumlah;
-                                    }
-                                }
-
+                                $total = array_sum(array_column($items, 'jumlah'));
                                 return 'Rp ' . number_format($total, 0, ',', '.');
                             })
                             ->live(),
@@ -289,21 +313,11 @@ class JurnalPembelianResource extends Resource
                         Forms\Components\Hidden::make('rp')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $items = $get('pembelian_items') ?? [];
-                                $total = 0;
-
-                                foreach ($items as $item) {
-                                    if (isset($item['jumlah'])) {
-                                        $jumlah = is_string($item['jumlah']) ?
-                                            (float) preg_replace('/[^0-9]/', '', $item['jumlah']) :
-                                            (float) $item['jumlah'];
-                                        $total += $jumlah;
-                                    }
-                                }
-
-                                return $total;
+                                return array_sum(array_column($items, 'jumlah'));
                             }),
                     ])
-                    ->compact(),
+                    ->compact()
+                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items'))),
 
                 // === NOMOR REFERENSI (Auto-generate) ===
                 Forms\Components\Section::make('Nomor Referensi')
