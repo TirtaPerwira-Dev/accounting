@@ -96,8 +96,9 @@
                         <div class="flex justify-center space-x-2">
                             <button
                                 type="button"
-                                onclick="editItem({{ $index }}, {{ json_encode($item) }})"
+                                onclick="checkAndEditItem({{ $index }}, {{ json_encode($item) }})"
                                 class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-700 dark:text-indigo-200 dark:hover:bg-indigo-600"
+                                id="edit-btn-{{ $index }}"
                             >
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -105,8 +106,9 @@
                             </button>
                             <button
                                 type="button"
-                                onclick="deleteItem({{ $index }})"
+                                onclick="checkAndDeleteItem({{ $index }})"
                                 class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:text-red-200 dark:hover:bg-red-600"
+                                id="delete-btn-{{ $index }}"
                             >
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -133,6 +135,24 @@
 @endif
 
 <script>
+function checkAndEditItem(index, item) {
+    const itemsCompleted = @this.get('items_completed') || false;
+    if (itemsCompleted) {
+        alert('Items sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" untuk mengubah item.');
+        return;
+    }
+    editItem(index, item);
+}
+
+function checkAndDeleteItem(index) {
+    const itemsCompleted = @this.get('items_completed') || false;
+    if (itemsCompleted) {
+        alert('Items sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" untuk mengubah item.');
+        return;
+    }
+    deleteItem(index);
+}
+
 function deleteItem(index) {
     if (confirm('Apakah Anda yakin ingin menghapus item ini?')) {
         try {
@@ -144,6 +164,9 @@ function deleteItem(index) {
 
             // Update the form data
             @this.set('pembelian_items', currentItems);
+
+            // Reset konfirmasi selesai karena ada perubahan
+            @this.set('items_completed', false);
 
             // Show notification using Filament notification
             window.dispatchEvent(new CustomEvent('notify', {
@@ -169,6 +192,9 @@ function editItem(index, item) {
 
         // Remove the item from the list (will be re-added when user clicks "Tambah Item")
         deleteItem(index);
+
+        // Reset konfirmasi karena ada perubahan
+        @this.set('items_completed', false);
 
         // Scroll to form
         setTimeout(() => {
