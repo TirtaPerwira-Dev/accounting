@@ -13,14 +13,72 @@ class CreateJurnalPembelian extends CreateRecord
 {
     protected static string $resource = JurnalPembelianResource::class;
 
+    /**
+     * Validasi form sebelum submit
+     */
+    protected function beforeFill(): void
+    {
+        // Set default state
+        $this->data['items_completed'] = false;
+    }
+
+    /**
+     * Hook untuk memvalidasi form data sebelum submission
+     */
+    protected function beforeCreate(): void
+    {
+        $formData = $this->form->getState();
+        $items = $formData['pembelian_items'] ?? [];
+        $itemsCompleted = $formData['items_completed'] ?? false;
+
+        // Validasi ada items
+        if (empty($items)) {
+            $this->halt();
+            \Filament\Notifications\Notification::make()
+                ->title('Tidak ada item pembelian!')
+                ->body('Tambahkan minimal 1 item pembelian terlebih dahulu.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Validasi konfirmasi selesai
+        if (!$itemsCompleted) {
+            $this->halt();
+            \Filament\Notifications\Notification::make()
+                ->title('Item belum dikonfirmasi!')
+                ->body('Klik tombol "Konfirmasi Selesai Menambah Item" terlebih dahulu sebelum menyimpan.')
+                ->danger()
+                ->send();
+            return;
+        }
+    }
+
+    /**
+     * Custom success notification
+     */
+    protected function getCreatedNotification(): ?\Filament\Notifications\Notification
+    {
+        return \Filament\Notifications\Notification::make()
+            ->success()
+            ->title('Jurnal Pembelian Berhasil Dibuat!')
+            ->body('Data jurnal pembelian telah disimpan dengan nomor referensi yang baru.');
+    }
+
     protected function handleRecordCreation(array $data): JurnalPembelian
     {
-        // Extract pembelian items
+        // Extract dan hapus field yang tidak perlu disimpan
         $pembelianItems = $data['pembelian_items'] ?? [];
-        unset($data['pembelian_items']);
+        $itemsCompleted = $data['items_completed'] ?? false;
+        unset($data['pembelian_items'], $data['items_completed']);
 
         if (empty($pembelianItems)) {
             throw new \Exception('Minimal harus ada 1 item pembelian');
+        }
+
+        // Double check validasi konfirmasi (sebagai backup)
+        if (!$itemsCompleted) {
+            throw new \Exception('Items belum dikonfirmasi selesai. Klik tombol konfirmasi terlebih dahulu.');
         }
 
         // Generate group transaksi ID jika lebih dari 1 item
