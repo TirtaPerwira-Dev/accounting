@@ -259,9 +259,10 @@ class JurnalPembelianResource extends Resource
                         ]),
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('add_item')
-                                ->label('+ Tambah Item')
+                                ->label('Tambah Item')
                                 ->icon('heroicon-o-plus-circle')
-                                ->color('success')
+                                ->color('warning')
+                                ->size('lg')
                                 ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $tempData = [
@@ -302,7 +303,7 @@ class JurnalPembelianResource extends Resource
                                         ->send();
                                 })
                                 ->requiresConfirmation(false),
-                        ]),
+                        ])->alignment('center')->columnSpanFull(),
                         
                         // Info saat form disabled
                         Forms\Components\Placeholder::make('form_disabled_info')
@@ -322,9 +323,9 @@ class JurnalPembelianResource extends Resource
                         // Action untuk konfirmasi selesai menambah item
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('confirm_items_complete')
-                                ->label('✓ Konfirmasi Selesai Menambah Item')
+                                ->label('Selesai')
                                 ->icon('heroicon-o-check-circle')
-                                ->color('success')
+                                ->color('warning')
                                 ->size('lg')
                                 ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('pembelian_items')))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
@@ -353,10 +354,10 @@ class JurnalPembelianResource extends Resource
                                 ->modalSubmitActionLabel('Ya, Selesai'),
                                 
                             Forms\Components\Actions\Action::make('reset_items_confirmation')
-                                ->label('↶ Reset Konfirmasi')
+                                ->label('Reset Konfirmasi')
                                 ->icon('heroicon-o-arrow-path')
                                 ->color('warning') 
-                                ->size('sm')
+                                ->size('md')
                                 ->visible(fn(Forms\Get $get) => $get('items_completed'))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $set('items_completed', false);
@@ -367,7 +368,7 @@ class JurnalPembelianResource extends Resource
                                         ->info()
                                         ->send();
                                 })
-                        ])->columnSpanFull(),
+                        ])->alignment('center')->columnSpanFull(),
                         
                         // Status konfirmasi
                         Forms\Components\Placeholder::make('items_status')
@@ -378,7 +379,7 @@ class JurnalPembelianResource extends Resource
                                 } else {
                                     $count = count($get('pembelian_items') ?? []);
                                     if ($count > 0) {
-                                        return "⚠️ **{$count} item ditambahkan** - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                        return "⚠️ {$count} item ditambahkan - Klik 'Konfirmasi Selesai' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
