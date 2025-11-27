@@ -193,7 +193,8 @@
                                     <div class="fi-ta-actions flex shrink-0 items-center gap-3">
                                         <button
                                             type="button"
-                                            onclick="checkAndEditItem({{ $index }}, {{ json_encode($item) }})"
+                                            wire:click="editItem({{ $index }}, {{ json_encode($item) }})"
+                                            onclick="if(@this.get('items_completed')) { alert('Items sudah dikonfirmasi selesai. Klik Reset Konfirmasi untuk mengubah item.'); return false; }"
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-gray fi-btn-color-gray fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-primary-500 ring-1 ring-gray-950/10 dark:ring-white/20"
                                             title="Edit item"
                                         >
@@ -204,7 +205,8 @@
                                         </button>
                                         <button
                                             type="button"
-                                            onclick="checkAndDeleteItem({{ $index }})"
+                                            wire:click="removeItem({{ $index }})"
+                                            onclick="if(@this.get('items_completed')) { alert('Items sudah dikonfirmasi selesai. Klik Reset Konfirmasi untuk mengubah item.'); return false; } return confirm('Apakah Anda yakin ingin menghapus item ini?');"
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-danger fi-btn-color-danger fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-danger-600 hover:bg-danger-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-danger-400 dark:hover:bg-danger-500/10 dark:focus-visible:ring-primary-500 ring-1 ring-danger-600/20 dark:ring-danger-400/30"
                                             title="Hapus item"
                                         >
@@ -256,78 +258,44 @@
 @endif
 
 <script>
-function checkAndEditItem(index, item) {
-    const itemsCompleted = @this.get('items_completed') || false;
-    if (itemsCompleted) {
-        alert('Items sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" untuk mengubah item.');
-        return;
-    }
-    editItem(index, item);
-}
-
-function checkAndDeleteItem(index) {
-    const itemsCompleted = @this.get('items_completed') || false;
-    if (itemsCompleted) {
-        alert('Items sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" untuk mengubah item.');
-        return;
-    }
-    deleteItem(index);
-}
-
-function deleteItem(index) {
-    if (confirm('Apakah Anda yakin ingin menghapus item ini?')) {
-        try {
-            // Use Livewire to get and update the state
-            const currentItems = @this.get('pembelian_items') || [];
-
-            // Remove item at index
-            currentItems.splice(index, 1);
-
-            // Update the form data
-            @this.set('pembelian_items', currentItems);
-
-            // Reset konfirmasi selesai karena ada perubahan
-            @this.set('items_completed', false);
-
-            // Show notification using Filament notification
-            window.dispatchEvent(new CustomEvent('notify', {
-                detail: {
-                    type: 'success',
-                    message: 'Item berhasil dihapus!'
-                }
-            }));
-        } catch (error) {
-            console.error('Error deleting item:', error);
+// Utility function untuk scroll ke form setelah edit
+function scrollToEditForm() {
+    setTimeout(() => {
+        // Multiple selectors untuk menemukan form input
+        const selectors = [
+            'input[wire\\:model="temp_bukti"]',
+            'input[name="temp_bukti"]',
+            '[data-field-wrapper="temp_bukti"]',
+            '.temp-bukti-field',
+            '#temp_bukti'
+        ];
+        
+        let formElement = null;
+        for (const selector of selectors) {
+            formElement = document.querySelector(selector);
+            if (formElement) break;
         }
-    }
-}
-
-function editItem(index, item) {
-    try {
-        // Populate the form with item data
-        @this.set('temp_bukti', item.bukti || '');
-        @this.set('temp_keterangan', item.keterangan || '');
-        @this.set('temp_kode_proyek_id', item.kode_proyek_id || null);
-        @this.set('temp_nomor_bantu_debit_id', item.nomor_bantu_debit_id || null);
-        @this.set('temp_jumlah', item.jumlah ? item.jumlah.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '');
-
-        // Remove the item from the list (will be re-added when user clicks "Tambah Item")
-        deleteItem(index);
-
-        // Reset konfirmasi karena ada perubahan
-        @this.set('items_completed', false);
-
-        // Scroll to form
-        setTimeout(() => {
-            const formElement = document.querySelector('[data-field-wrapper="temp_bukti"]') ||
-                               document.querySelector('input[name="temp_bukti"]') ||
-                               document.querySelector('.temp-form');
-            if (formElement) {
-                formElement.scrollIntoView({ behavior: 'smooth' });
+        
+        if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focus pada input jika memungkinkan
+            if (formElement.tagName === 'INPUT') {
+                formElement.focus();
             }
-        }, 100);
-    } catch (error) {
-        console.error('Error editing item:', error);
-    }
+        }
+    }, 300); // Delay lebih lama untuk memastikan form sudah terupdate
 }
+
+// Event listener untuk menangani setelah edit item
+document.addEventListener('DOMContentLoaded', function() {
+    // Listen untuk event Livewire setelah action selesai
+    window.addEventListener('livewire:navigated', function() {
+        console.log('Items table initialized');
+    });
+    
+    // Listen untuk custom event dari backend
+    window.addEventListener('scroll-to-form', function() {
+        scrollToEditForm();
+    });
+});
 </script>
