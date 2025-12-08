@@ -55,6 +55,79 @@ class CreateJurnalPembelian extends CreateRecord
     }
 
     /**
+     * Method untuk menghapus item dari JavaScript
+     */
+    public function removeItem($index)
+    {
+        try {
+            $items = $this->data['pembelian_items'] ?? [];
+            
+            if (isset($items[$index])) {
+                array_splice($items, $index, 1);
+                $this->data['pembelian_items'] = $items;
+                
+                // Reset konfirmasi
+                $this->data['items_completed'] = false;
+                
+                \Filament\Notifications\Notification::make()
+                    ->title('Item berhasil dihapus!')
+                    ->success()
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal menghapus item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * Method untuk edit item dari JavaScript
+     */
+    public function editItem($index, $item)
+    {
+        try {
+            // Populate form fields
+            $this->data['temp_bukti'] = $item['bukti'] ?? '';
+            $this->data['temp_keterangan'] = $item['keterangan'] ?? '';
+            $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? null;
+            $this->data['temp_nomor_bantu_debit_id'] = $item['nomor_bantu_debit_id'] ?? null;
+            
+            // Format jumlah
+            $jumlah = $item['jumlah'] ?? 0;
+            $this->data['temp_jumlah'] = $jumlah ? number_format($jumlah, 0, ',', '.') : '';
+            
+            // Remove item from list
+            $items = $this->data['pembelian_items'] ?? [];
+            if (isset($items[$index])) {
+                array_splice($items, $index, 1);
+                $this->data['pembelian_items'] = $items;
+            }
+            
+            // Reset konfirmasi
+            $this->data['items_completed'] = false;
+            
+            \Filament\Notifications\Notification::make()
+                ->title('Item dimuat untuk diedit')
+                ->body('Data item telah dimuat ke form. Silakan ubah dan klik "Tambah Item" untuk menyimpan perubahan.')
+                ->info()
+                ->send();
+                
+            // Dispatch event untuk scroll ke form
+            $this->dispatch('scroll-to-form');
+                
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal edit item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
      * Custom success notification
      */
     protected function getCreatedNotification(): ?\Filament\Notifications\Notification

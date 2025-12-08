@@ -39,11 +39,6 @@ class JurnalPembelianPolicy
      */
     public function update(User $user, JurnalPembelian $jurnalPembelian): bool
     {
-        // Tidak dapat edit jika sudah dikonfirmasi
-        if ($jurnalPembelian->is_confirmed) {
-            return false;
-        }
-
         return $user->can('update_jurnal::pembelian');
     }
 
@@ -52,11 +47,6 @@ class JurnalPembelianPolicy
      */
     public function delete(User $user, JurnalPembelian $jurnalPembelian): bool
     {
-        // Tidak dapat hapus jika sudah dikonfirmasi
-        if ($jurnalPembelian->is_confirmed) {
-            return false;
-        }
-
         return $user->can('delete_jurnal::pembelian');
     }
 

@@ -72,6 +72,14 @@ class JurnalRekeningAir extends Model
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * Details relationship (untuk metode add item)
+     */
+    public function details(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(JurnalRekeningAirDetail::class);
+    }
+
     // Scopes
     public function scopeThisYear($query)
     {
