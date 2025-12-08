@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JurnalPenerimaanKas extends Model
 {
@@ -68,6 +69,11 @@ class JurnalPenerimaanKas extends Model
     public function nomorRekening(): BelongsTo
     {
         return $this->belongsTo(Rekening::class, 'nomor_rekening_id');
+    }
+
+    public function details(): HasMany
+    {
+        return $this->hasMany(JurnalPenerimaanKasDetail::class, 'jurnal_penerimaan_kas_id');
     }
 
     // Scopes
