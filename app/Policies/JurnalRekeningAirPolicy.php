@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\JurnalPenerimaanKas;
+use App\Models\JurnalRekeningAir;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class JurnalPenerimaanKasPolicy
+class JurnalRekeningAirPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class JurnalPenerimaanKasPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_jurnal::penerimaan::kas');
+        return $user->can('view_any_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function view(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('view_jurnal::penerimaan::kas');
+        return $user->can('view_jurnal::rekening::air');
     }
 
     /**
@@ -31,23 +31,23 @@ class JurnalPenerimaanKasPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_jurnal::penerimaan::kas');
+        return $user->can('create_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function update(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('update_jurnal::penerimaan::kas');
+        return $user->can('update_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function delete(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('delete_jurnal::penerimaan::kas');
+        return $user->can('delete_jurnal::rekening::air');
     }
 
     /**
@@ -55,15 +55,15 @@ class JurnalPenerimaanKasPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_jurnal::penerimaan::kas');
+        return $user->can('delete_any_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function forceDelete(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('force_delete_jurnal::penerimaan::kas');
+        return $user->can('force_delete_jurnal::rekening::air');
     }
 
     /**
@@ -71,15 +71,15 @@ class JurnalPenerimaanKasPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_jurnal::penerimaan::kas');
+        return $user->can('force_delete_any_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function restore(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('restore_jurnal::penerimaan::kas');
+        return $user->can('restore_jurnal::rekening::air');
     }
 
     /**
@@ -87,15 +87,15 @@ class JurnalPenerimaanKasPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_jurnal::penerimaan::kas');
+        return $user->can('restore_any_jurnal::rekening::air');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    public function replicate(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
     {
-        return $user->can('replicate_jurnal::penerimaan::kas');
+        return $user->can('replicate_jurnal::rekening::air');
     }
 
     /**
@@ -103,6 +103,6 @@ class JurnalPenerimaanKasPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_jurnal::penerimaan::kas');
+        return $user->can('reorder_jurnal::rekening::air');
     }
 }

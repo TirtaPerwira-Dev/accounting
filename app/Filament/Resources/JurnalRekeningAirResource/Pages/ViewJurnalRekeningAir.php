@@ -15,13 +15,19 @@ class ViewJurnalRekeningAir extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn() => $this->record->canBeEdited()),
+            Actions\Action::make('back_to_list')
+                ->label('Kembali ke List')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
         ];
     }
 
     public function infolist(Infolist $infolist): Infolist
     {
+        // Get parent jurnal from detail record
+        $parentJurnal = $this->record->jurnalRekeningAir;
+        
         return $infolist
             ->schema([
 
@@ -30,34 +36,37 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
-                            Infolists\Components\TextEntry::make('no_reff')
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.no_reff')
                                 ->label('No. Referensi')
                                 ->copyable()
                                 ->icon('heroicon-m-hashtag'),
 
-                            Infolists\Components\TextEntry::make('bukti')
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.bukti')
                                 ->label('No. Bukti')
                                 ->weight('bold')
                                 ->icon('heroicon-m-document-magnifying-glass'),
 
-                            Infolists\Components\TextEntry::make('tanggal')
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.tanggal')
                                 ->label('Tanggal')
                                 ->date('d F Y')
                                 ->icon('heroicon-m-calendar-days'),
                         ]),
 
-                        Infolists\Components\TextEntry::make('keterangan')
+                        Infolists\Components\TextEntry::make('jurnalRekeningAir.keterangan')
                             ->label('Keterangan')
                             ->columnSpanFull()
                             ->placeholder('-'),
                     ]),
 
-                // ===================== DETAIL TRANSAKSI (YANG DIPERBAIKI TOTAL) =====================
+                // ===================== DETAIL TRANSAKSI =====================
                 Infolists\Components\Section::make('Detail Transaksi')
                     ->icon('heroicon-o-table-cells')
-                    ->description('Total baris: ' . collect($this->record->rekening_air_items)->count())
+                    ->description(function () use ($parentJurnal) {
+                        $parentJurnal->loadMissing('details');
+                        return 'Total baris: ' . $parentJurnal->details->count();
+                    })
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('rekening_air_items')
+                        Infolists\Components\RepeatableEntry::make('jurnalRekeningAir.details')
                             ->label(false)
                             ->grid(1)
                             ->schema([
@@ -66,32 +75,29 @@ class ViewJurnalRekeningAir extends ViewRecord
                                         Infolists\Components\Grid::make(6)->schema([
 
                                             // KODE PROYEK
-                                            Infolists\Components\TextEntry::make('kode_proyek')
+                                            Infolists\Components\TextEntry::make('kodeProyek.name')
                                                 ->label('Proyek')
                                                 ->default('-')
-                                                ->formatStateUsing(fn($state) => $state ?
-                                                    optional(\App\Models\KodeProyek::find($state))->kode . ' - ' .
-                                                    optional(\App\Models\KodeProyek::find($state))->name : '-')
+                                                ->formatStateUsing(fn($record) => $record->kodeProyek ? 
+                                                    $record->kodeProyek->kode . ' - ' . $record->kodeProyek->name : '-')
                                                 ->columnSpan(2),
 
                                             // REKENING
-                                            Infolists\Components\TextEntry::make('rekening')
+                                            Infolists\Components\TextEntry::make('rekening.nama_rek')
                                                 ->label('Rekening')
-                                                ->formatStateUsing(fn($state) => $state ?
-                                                    optional(\App\Models\Rekening::with('kelompok')->find($state))
-                                                    ->kelompok->no_kel . '-' .
-                                                    optional(\App\Models\Rekening::find($state))->no_rek . ' - ' .
-                                                    optional(\App\Models\Rekening::find($state))->nama_rek : '-')
+                                                ->formatStateUsing(fn($record) => $record->rekening ?
+                                                    $record->rekening->kelompok->no_kel . '-' .
+                                                    $record->rekening->no_rek . ' - ' .
+                                                    $record->rekening->nama_rek : '-')
                                                 ->columnSpan(3),
 
                                             // NOMOR BANTU
-                                            Infolists\Components\TextEntry::make('nomor_bantu')
+                                            Infolists\Components\TextEntry::make('nomorBantu.nm_bantu')
                                                 ->label('Nomor Bantu')
                                                 ->default('-')
-                                                ->formatStateUsing(fn($state) => $state ?
-                                                    optional(\App\Models\NomorBantu::find($state))
-                                                    ->no_bantu . ' - ' .
-                                                    optional(\App\Models\NomorBantu::find($state))->nm_bantu : '-')
+                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
+                                                    $record->nomorBantu->no_bantu . ' - ' .
+                                                    $record->nomorBantu->nm_bantu : '-')
                                                 ->columnSpan(2),
 
                                             // POSISI D/K (BADGE)
@@ -103,7 +109,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                 ->formatStateUsing(fn($state) => $state === 'debit' ? 'DEBIT' : 'KREDIT')
                                                 ->columnSpan(1),
 
-                                            // JUMLAH — INI YANG DIPERBAIKI 100%!
+                                            // JUMLAH
                                             Infolists\Components\TextEntry::make('jumlah')
                                                 ->label('')
                                                 ->money('IDR')
@@ -111,19 +117,18 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                 ->weight('bold')
                                                 ->alignEnd()
                                                 ->columnSpan(2)
-                                                // INI BARIS YANG BENAR-BENAR JALAN (PAKAI $state dari position + get())
-                                                ->color(fn($state, $record) => data_get($record, 'position') === 'debit' ? 'danger' : 'success'),
+                                                ->color(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                                         ]),
                                     ])
                                     ->collapsible()
                                     ->collapsed(false)
-                                    ->description(fn($state) => $state['position'] === 'debit'
+                                    ->description(fn($record) => $record->position === 'debit'
                                         ? 'Transaksi Debit — Mengurangi saldo rekening'
                                         : 'Transaksi Kredit — Menambah saldo rekening')
-                                    ->icon(fn($state) => $state['position'] === 'debit'
+                                    ->icon(fn($record) => $record->position === 'debit'
                                         ? 'heroicon-o-arrow-up-right'
                                         : 'heroicon-o-arrow-down-right')
-                                    ->iconColor(fn($state) => $state['position'] === 'debit' ? 'danger' : 'success'),
+                                    ->iconColor(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                             ])
                             ->columnSpanFull(),
                     ]),
@@ -135,10 +140,9 @@ class ViewJurnalRekeningAir extends ViewRecord
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make('total_debit')
                                 ->label('Total Debit')
-                                ->state(function ($record) {
-                                    return collect($record->rekening_air_items)
-                                        ->where('position', 'debit')
-                                        ->sum('jumlah');
+                                ->state(function () use ($parentJurnal) {
+                                    $parentJurnal->loadMissing('details');
+                                    return $parentJurnal->details->where('position', 'debit')->sum('jumlah');
                                 })
                                 ->money('IDR')
                                 ->color('danger')
@@ -147,10 +151,9 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('total_kredit')
                                 ->label('Total Kredit')
-                                ->state(function ($record) {
-                                    return collect($record->rekening_air_items)
-                                        ->where('position', 'kredit')
-                                        ->sum('jumlah');
+                                ->state(function () use ($parentJurnal) {
+                                    $parentJurnal->loadMissing('details');
+                                    return $parentJurnal->details->where('position', 'kredit')->sum('jumlah');
                                 })
                                 ->money('IDR')
                                 ->color('success')
@@ -159,10 +162,10 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('balance_status')
                                 ->label('Status Jurnal')
-                                ->state(function ($record) {
-                                    $items = $record->rekening_air_items ?? [];
-                                    $debit = collect($items)->where('position', 'debit')->sum('jumlah');
-                                    $kredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                                ->state(function () use ($parentJurnal) {
+                                    $parentJurnal->loadMissing('details');
+                                    $debit = $parentJurnal->details->where('position', 'debit')->sum('jumlah');
+                                    $kredit = $parentJurnal->details->where('position', 'kredit')->sum('jumlah');
                                     return $debit === $kredit && $debit > 0 ? 'JURNAL BALANCE' : 'TIDAK BALANCE';
                                 })
                                 ->badge()
@@ -176,7 +179,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ->icon('heroicon-o-shield-check')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
-                            Infolists\Components\IconEntry::make('is_confirmed')
+                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_confirmed')
                                 ->label('Status Konfirmasi')
                                 ->boolean()
                                 ->trueIcon('heroicon-o-check-badge')
@@ -184,12 +187,12 @@ class ViewJurnalRekeningAir extends ViewRecord
                                 ->trueColor('success')
                                 ->falseColor('warning'),
 
-                            Infolists\Components\TextEntry::make('confirmed_at')
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.confirmed_at')
                                 ->label('Dikonfirmasi Pada')
                                 ->dateTime('d F Y H:i')
                                 ->placeholder('Belum dikonfirmasi'),
 
-                            Infolists\Components\TextEntry::make('created_at')
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.created_at')
                                 ->label('Dibuat Pada')
                                 ->dateTime('d F Y H:i'),
                         ]),
