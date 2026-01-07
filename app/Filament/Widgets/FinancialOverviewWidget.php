@@ -18,13 +18,13 @@ class FinancialOverviewWidget extends BaseWidget
     {
         // Cache key based on current month
         $cacheKey = 'financial_overview_' . now()->format('Y_m');
-        
+
         return Cache::remember($cacheKey, now()->addMinutes(5), function () {
             // Optimize: Single query for pendapatan and pengeluaran
             $financialSummary = JournalDetail::select(
-                    DB::raw('SUM(CASE WHEN k.no_kel LIKE "8%" THEN jd.credit ELSE 0 END) as total_pendapatan'),
-                    DB::raw('SUM(CASE WHEN k.no_kel LIKE "9%" THEN jd.debit ELSE 0 END) as total_pengeluaran')
-                )
+                DB::raw('SUM(CASE WHEN k.no_kel LIKE "8%" THEN jd.credit ELSE 0 END) as total_pendapatan'),
+                DB::raw('SUM(CASE WHEN k.no_kel LIKE "9%" THEN jd.debit ELSE 0 END) as total_pengeluaran')
+            )
                 ->from('journal_details as jd')
                 ->join('journals as j', 'jd.journal_id', '=', 'j.id')
                 ->join('nomor_bantus as nb', 'jd.nomor_bantu_id', '=', 'nb.id')
@@ -40,9 +40,9 @@ class FinancialOverviewWidget extends BaseWidget
 
             // Optimize: Single query for kas and piutang
             $balances = JournalDetail::select(
-                    DB::raw('SUM(CASE WHEN r.no_rek = "1101" THEN jd.debit - jd.credit ELSE 0 END) as saldo_kas'),
-                    DB::raw('SUM(CASE WHEN r.no_rek = "1301" THEN jd.debit - jd.credit ELSE 0 END) as piutang_usaha')
-                )
+                DB::raw('SUM(CASE WHEN r.no_rek = "1101" THEN jd.debit - jd.credit ELSE 0 END) as saldo_kas'),
+                DB::raw('SUM(CASE WHEN r.no_rek = "1301" THEN jd.debit - jd.credit ELSE 0 END) as piutang_usaha')
+            )
                 ->from('journal_details as jd')
                 ->join('journals as j', 'jd.journal_id', '=', 'j.id')
                 ->join('nomor_bantus as nb', 'jd.nomor_bantu_id', '=', 'nb.id')

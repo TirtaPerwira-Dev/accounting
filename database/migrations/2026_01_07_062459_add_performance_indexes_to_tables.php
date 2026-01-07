@@ -35,7 +35,7 @@ return new class extends Migration
             $table->index('no_kel', 'idx_kelompoks_no_kel');
         });
 
-        // Indexes for nomor_bantus table  
+        // Indexes for nomor_bantus table
         Schema::table('nomor_bantus', function (Blueprint $table) {
             $table->index(['rekening_id', 'no_bantu'], 'idx_nb_rekening_no');
         });

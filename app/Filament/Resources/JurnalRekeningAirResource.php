@@ -445,27 +445,27 @@ class JurnalRekeningAirResource extends Resource
                         try {
                             // Get the uploaded file path
                             $filePath = storage_path('app/public/' . $data['file']);
-                            
+
                             // Check if file exists
                             if (!file_exists($filePath)) {
                                 throw new \Exception("File tidak ditemukan: {$filePath}");
                             }
-                            
+
                             $import = new JurnalRekeningAirImport();
                             Excel::import($import, $filePath);
-                            
+
                             // Clean up - delete the uploaded file
                             if (file_exists($filePath)) {
                                 unlink($filePath);
                             }
-                            
+
                             // Show success or error messages
                             if ($import->getErrors()) {
                                 $errorMessage = "Import selesai dengan beberapa error:\n" . implode("\n", array_slice($import->getErrors(), 0, 5));
                                 if (count($import->getErrors()) > 5) {
                                     $errorMessage .= "\n... dan " . (count($import->getErrors()) - 5) . " error lainnya";
                                 }
-                                
+
                                 Notification::make()
                                     ->title('Import Selesai dengan Error')
                                     ->body($errorMessage)
@@ -486,14 +486,14 @@ class JurnalRekeningAirResource extends Resource
                                 ->send();
                         }
                     }),
-                
+
                 Tables\Actions\Action::make('download_template')
                     ->label('Download Template')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
                     ->action(function () {
                         return Excel::download(
-                            new JurnalRekeningAirTemplateExport(), 
+                            new JurnalRekeningAirTemplateExport(),
                             'template-jurnal-rekening-air.xlsx'
                         );
                     })
@@ -518,21 +518,21 @@ class JurnalRekeningAirResource extends Resource
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Rekening')
                     ->searchable()
-                    ->formatStateUsing(fn($record) => $record->rekening ? 
-                        $record->rekening->kelompok->no_kel . '-' . 
-                        $record->rekening->no_rek . ' ' . 
+                    ->formatStateUsing(fn($record) => $record->rekening ?
+                        $record->rekening->kelompok->no_kel . '-' .
+                        $record->rekening->no_rek . ' ' .
                         $record->rekening->nama_rek : '-')
                     ->limit(40)
-                    ->tooltip(fn($record) => $record->rekening ? 
-                        $record->rekening->kelompok->no_kel . '-' . 
-                        $record->rekening->no_rek . ' ' . 
+                    ->tooltip(fn($record) => $record->rekening ?
+                        $record->rekening->kelompok->no_kel . '-' .
+                        $record->rekening->no_rek . ' ' .
                         $record->rekening->nama_rek : '-'),
 
                 Tables\Columns\TextColumn::make('nomorBantu.nm_bantu')
                     ->label('Nomor Bantu')
                     ->searchable()
-                    ->formatStateUsing(fn($record) => $record->nomorBantu ? 
-                        $record->nomorBantu->no_bantu . ' - ' . 
+                    ->formatStateUsing(fn($record) => $record->nomorBantu ?
+                        $record->nomorBantu->no_bantu . ' - ' .
                         $record->nomorBantu->nm_bantu : '-')
                     ->limit(30)
                     ->toggleable(),
@@ -588,13 +588,21 @@ class JurnalRekeningAirResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['dari_tanggal'], fn($q) => 
-                                $q->whereHas('jurnalRekeningAir', fn($query) => 
+                            ->when(
+                                $data['dari_tanggal'],
+                                fn($q) =>
+                                $q->whereHas(
+                                    'jurnalRekeningAir',
+                                    fn($query) =>
                                     $query->whereDate('tanggal', '>=', $data['dari_tanggal'])
                                 )
                             )
-                            ->when($data['sampai_tanggal'], fn($q) => 
-                                $q->whereHas('jurnalRekeningAir', fn($query) => 
+                            ->when(
+                                $data['sampai_tanggal'],
+                                fn($q) =>
+                                $q->whereHas(
+                                    'jurnalRekeningAir',
+                                    fn($query) =>
                                     $query->whereDate('tanggal', '<=', $data['sampai_tanggal'])
                                 )
                             );
@@ -688,17 +696,18 @@ class JurnalRekeningAirResource extends Resource
                     Tables\Actions\DeleteBulkAction::make()
                         ->before(function ($records) {
                             // Check if any of the records are confirmed
-                            $confirmedCount = $records->filter(fn($record) => 
+                            $confirmedCount = $records->filter(
+                                fn($record) =>
                                 $record->jurnalRekeningAir->is_confirmed
                             )->count();
-                            
+
                             if ($confirmedCount > 0) {
                                 Notification::make()
                                     ->title('Tidak dapat menghapus')
                                     ->body("Terdapat {$confirmedCount} item dari jurnal yang sudah dikonfirmasi")
                                     ->danger()
                                     ->send();
-                                    
+
                                 return false;
                             }
                         }),

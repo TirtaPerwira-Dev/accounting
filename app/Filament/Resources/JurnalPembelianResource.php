@@ -317,7 +317,7 @@ class JurnalPembelianResource extends Resource
                                 })
                                 ->requiresConfirmation(false),
                         ])->alignment('center')->columnSpanFull(),
-                        
+
                         // Info saat form disabled
                         Forms\Components\Placeholder::make('form_disabled_info')
                             ->label('')
@@ -332,7 +332,7 @@ class JurnalPembelianResource extends Resource
                     ->schema([
                         Forms\Components\ViewField::make('pembelian_items')
                             ->view('filament.forms.components.items-table'),
-                        
+
                         // Action untuk konfirmasi selesai menambah item
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('confirm_items_complete')
@@ -343,7 +343,7 @@ class JurnalPembelianResource extends Resource
                                 ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('pembelian_items')))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $items = $get('pembelian_items') ?? [];
-                                    
+
                                     if (empty($items)) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Tidak ada item!')
@@ -352,9 +352,9 @@ class JurnalPembelianResource extends Resource
                                             ->send();
                                         return;
                                     }
-                                    
+
                                     $set('items_completed', true);
-                                    
+
                                     \Filament\Notifications\Notification::make()
                                         ->title('Item dikonfirmasi!')
                                         ->body('Silakan klik tombol "Buat" untuk menyimpan jurnal pembelian.')
@@ -365,16 +365,16 @@ class JurnalPembelianResource extends Resource
                                 ->modalHeading('Konfirmasi Item Selesai')
                                 ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item pembelian? Setelah dikonfirmasi, Anda dapat menyimpan jurnal ini.')
                                 ->modalSubmitActionLabel('Ya, Selesai'),
-                                
+
                             Forms\Components\Actions\Action::make('reset_items_confirmation')
                                 ->label('Reset Konfirmasi')
                                 ->icon('heroicon-o-arrow-path')
-                                ->color('warning') 
+                                ->color('warning')
                                 ->size('md')
                                 ->visible(fn(Forms\Get $get) => $get('items_completed'))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $set('items_completed', false);
-                                    
+
                                     \Filament\Notifications\Notification::make()
                                         ->title('Konfirmasi direset')
                                         ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
@@ -382,7 +382,7 @@ class JurnalPembelianResource extends Resource
                                         ->send();
                                 })
                         ])->alignment('center')->columnSpanFull(),
-                        
+
                         // Status konfirmasi
                         Forms\Components\Placeholder::make('items_status')
                             ->label('')
@@ -399,7 +399,7 @@ class JurnalPembelianResource extends Resource
                             })
                             ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')))
                             ->columnSpanFull(),
-                            
+
                         // Hidden field untuk status konfirmasi
                         Forms\Components\Hidden::make('items_completed')
                             ->default(false)
@@ -460,8 +460,8 @@ class JurnalPembelianResource extends Resource
 
                                 $allValid = $tanggal && $rekeningKredit && $nomorBantuKredit && !empty($items) && $itemsCompleted;
 
-                                $status = $allValid ? 
-                                    '🎉 **SIAP UNTUK DISIMPAN** - Semua validasi terpenuhi!' : 
+                                $status = $allValid ?
+                                    '🎉 **SIAP UNTUK DISIMPAN** - Semua validasi terpenuhi!' :
                                     '⚠️ **BELUM SIAP** - Lengkapi langkah berikut:';
 
                                 return $status . "\n\n" . implode("\n", $checks);
@@ -494,27 +494,27 @@ class JurnalPembelianResource extends Resource
                         try {
                             // Get the uploaded file path
                             $filePath = storage_path('app/public/' . $data['file']);
-                            
+
                             // Check if file exists
                             if (!file_exists($filePath)) {
                                 throw new \Exception("File tidak ditemukan: {$filePath}");
                             }
-                            
+
                             $import = new JurnalPembelianImport();
                             Excel::import($import, $filePath);
-                            
+
                             // Clean up - delete the uploaded file
                             if (file_exists($filePath)) {
                                 unlink($filePath);
                             }
-                            
+
                             // Show success or error messages
                             if ($import->getErrors()) {
                                 $errorMessage = "Import selesai dengan beberapa error:\n" . implode("\n", array_slice($import->getErrors(), 0, 5));
                                 if (count($import->getErrors()) > 5) {
                                     $errorMessage .= "\n... dan " . (count($import->getErrors()) - 5) . " error lainnya";
                                 }
-                                
+
                                 Notification::make()
                                     ->title('Import Selesai dengan Error')
                                     ->body($errorMessage)
@@ -535,14 +535,14 @@ class JurnalPembelianResource extends Resource
                                 ->send();
                         }
                     }),
-                
+
                 Tables\Actions\Action::make('download_template')
                     ->label('Download Template')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
                     ->action(function () {
                         return Excel::download(
-                            new JurnalPembelianTemplateExport(), 
+                            new JurnalPembelianTemplateExport(),
                             'template-jurnal-pembelian.xlsx'
                         );
                     })
