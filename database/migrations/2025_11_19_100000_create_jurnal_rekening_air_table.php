@@ -55,7 +55,10 @@ return new class extends Migration
             // Indexes
             $table->index('tanggal');
             $table->index('company_id');
-            $table->index(['kelompok_kredit_id', 'rekening_kredit_id', 'nomor_bantu_kredit_id']);
+            $table->index(
+                ['kelompok_kredit_id', 'rekening_kredit_id', 'nomor_bantu_kredit_id'],
+                'jra_k_r_nb_idx'
+            );
         });
     }
 

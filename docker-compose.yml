@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: accounting_app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./000-default.conf:/etc/apache2/sites-available/000-default.conf
+    working_dir: /var/www
+    networks:
+      - app-network
+
+  db:
+    image: postgres:16
+    container_name: accounting_postgres
+    environment:
+      POSTGRES_DB: accounting_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "9191:9191"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge

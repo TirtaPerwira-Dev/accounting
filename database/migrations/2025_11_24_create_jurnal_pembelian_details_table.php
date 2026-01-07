@@ -40,7 +40,10 @@ return new class extends Migration
 
             // Indexes
             $table->index('jurnal_pembelian_id');
-            $table->index(['kelompok_debit_id', 'rekening_debit_id', 'nomor_bantu_debit_id']);
+            $table->index(
+                ['kelompok_debit_id', 'rekening_debit_id', 'nomor_bantu_debit_id'],
+                'jpd_k_r_nb_idx'
+            );
         });
 
         // Modifikasi tabel header - hapus kolom JSON
