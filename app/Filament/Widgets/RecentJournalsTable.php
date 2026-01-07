@@ -14,7 +14,7 @@ class RecentJournalsTable extends BaseWidget
 {
     protected static ?string $heading = 'Jurnal Terbaru (10 Terakhir)';
     protected static ?int $sort = 5;
-    protected static ?string $pollingInterval = '30s';
+    protected static ?string $pollingInterval = '60s'; // Reduced polling frequency
     protected int | string | array $columnSpan = [
         'md' => 1,
         'xl' => 1,
@@ -25,7 +25,8 @@ class RecentJournalsTable extends BaseWidget
         return $table
             ->query(
                 Journal::query()
-                    ->with(['createdBy', 'postedBy'])
+                    ->select(['id', 'transaction_date', 'reference', 'transaction_type', 'description', 'total_amount', 'status', 'created_by', 'posted_by', 'created_at'])
+                    ->with(['createdBy:id,name', 'postedBy:id,name']) // Select only needed columns
                     ->latest('created_at')
                     ->limit(10)
             )

@@ -7,90 +7,90 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Journal;
 use App\Models\JournalDetail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class FinancialOverviewWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
-    protected static ?string $pollingInterval = '30s';
+    protected static ?string $pollingInterval = '60s'; // Increased to reduce load
 
     protected function getStats(): array
     {
+        // Cache key based on current month
+        $cacheKey = 'financial_overview_' . now()->format('Y_m');
+        
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
+            // Optimize: Single query for pendapatan and pengeluaran
+            $financialSummary = JournalDetail::select(
+                    DB::raw('SUM(CASE WHEN k.no_kel LIKE "8%" THEN jd.credit ELSE 0 END) as total_pendapatan'),
+                    DB::raw('SUM(CASE WHEN k.no_kel LIKE "9%" THEN jd.debit ELSE 0 END) as total_pengeluaran')
+                )
+                ->from('journal_details as jd')
+                ->join('journals as j', 'jd.journal_id', '=', 'j.id')
+                ->join('nomor_bantus as nb', 'jd.nomor_bantu_id', '=', 'nb.id')
+                ->join('rekenings as r', 'nb.rekening_id', '=', 'r.id')
+                ->join('kelompoks as k', 'r.kelompok_id', '=', 'k.id')
+                ->where('j.status', 'posted')
+                ->whereYear('j.transaction_date', now()->year)
+                ->whereMonth('j.transaction_date', now()->month)
+                ->first();
 
-        // Total Pendapatan (Credit di akun pendapatan 8xxx)
-        $totalPendapatan = JournalDetail::join('journals', 'journal_details.journal_id', '=', 'journals.id')
-            ->join('nomor_bantus', 'journal_details.nomor_bantu_id', '=', 'nomor_bantus.id')
-            ->join('rekenings', 'nomor_bantus.rekening_id', '=', 'rekenings.id')
-            ->join('kelompoks', 'rekenings.kelompok_id', '=', 'kelompoks.id')
-            ->where('kelompoks.no_kel', 'LIKE', '8%') // Pendapatan
-            ->where('journals.status', 'posted')
-            ->whereYear('journals.transaction_date', now()->year)
-            ->whereMonth('journals.transaction_date', now()->month)
-            ->sum('journal_details.credit');
+            $totalPendapatan = $financialSummary->total_pendapatan ?? 0;
+            $totalPengeluaran = $financialSummary->total_pengeluaran ?? 0;
 
-        // Total Pengeluaran (Debit di akun beban 9xxx)
-        $totalPengeluaran = JournalDetail::join('journals', 'journal_details.journal_id', '=', 'journals.id')
-            ->join('nomor_bantus', 'journal_details.nomor_bantu_id', '=', 'nomor_bantus.id')
-            ->join('rekenings', 'nomor_bantus.rekening_id', '=', 'rekenings.id')
-            ->join('kelompoks', 'rekenings.kelompok_id', '=', 'kelompoks.id')
-            ->where('kelompoks.no_kel', 'LIKE', '9%') // Beban/Biaya
-            ->where('journals.status', 'posted')
-            ->whereYear('journals.transaction_date', now()->year)
-            ->whereMonth('journals.transaction_date', now()->month)
-            ->sum('journal_details.debit');
+            // Optimize: Single query for kas and piutang
+            $balances = JournalDetail::select(
+                    DB::raw('SUM(CASE WHEN r.no_rek = "1101" THEN jd.debit - jd.credit ELSE 0 END) as saldo_kas'),
+                    DB::raw('SUM(CASE WHEN r.no_rek = "1301" THEN jd.debit - jd.credit ELSE 0 END) as piutang_usaha')
+                )
+                ->from('journal_details as jd')
+                ->join('journals as j', 'jd.journal_id', '=', 'j.id')
+                ->join('nomor_bantus as nb', 'jd.nomor_bantu_id', '=', 'nb.id')
+                ->join('rekenings as r', 'nb.rekening_id', '=', 'r.id')
+                ->where('j.status', 'posted')
+                ->first();
 
-        // Saldo Kas total (Debit - Credit di akun kas 1101xxx)
-        $saldoKas = JournalDetail::join('journals', 'journal_details.journal_id', '=', 'journals.id')
-            ->join('nomor_bantus', 'journal_details.nomor_bantu_id', '=', 'nomor_bantus.id')
-            ->join('rekenings', 'nomor_bantus.rekening_id', '=', 'rekenings.id')
-            ->where('rekenings.no_rek', '1101') // Kas
-            ->where('journals.status', 'posted')
-            ->sum(DB::raw('journal_details.debit - journal_details.credit'));
+            $saldoKas = $balances->saldo_kas ?? 0;
+            $piutangUsaha = $balances->piutang_usaha ?? 0;
 
-        // Piutang Usaha total (akun 1301xxx)
-        $piutangUsaha = JournalDetail::join('journals', 'journal_details.journal_id', '=', 'journals.id')
-            ->join('nomor_bantus', 'journal_details.nomor_bantu_id', '=', 'nomor_bantus.id')
-            ->join('rekenings', 'nomor_bantus.rekening_id', '=', 'rekenings.id')
-            ->where('rekenings.no_rek', '1301') // Piutang Rekening Air
-            ->where('journals.status', 'posted')
-            ->sum(DB::raw('journal_details.debit - journal_details.credit'));
+            // Net Income bulan ini
+            $netIncome = $totalPendapatan - $totalPengeluaran;
 
-        // Net Income bulan ini
-        $netIncome = $totalPendapatan - $totalPengeluaran;
+            // Jurnal Draft yang menunggu approval (no cache for real-time data)
+            $draftJournals = Journal::where('status', 'draft')->count();
 
-        // Jurnal Draft yang menunggu approval
-        $draftJournals = Journal::where('status', 'draft')->count();
+            return [
+                Stat::make('Pendapatan Bulan Ini', 'Rp ' . number_format($totalPendapatan, 0, ',', '.'))
+                    ->description('Revenue bulan ' . now()->format('M Y'))
+                    ->descriptionIcon('heroicon-m-arrow-trending-up')
+                    ->color('success'),
 
-        return [
-            Stat::make('Pendapatan Bulan Ini', 'Rp ' . number_format($totalPendapatan, 0, ',', '.'))
-                ->description('Revenue bulan ' . now()->format('M Y'))
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->color('success'),
+                Stat::make('Pengeluaran Bulan Ini', 'Rp ' . number_format($totalPengeluaran, 0, ',', '.'))
+                    ->description('Biaya operasional & lainnya')
+                    ->descriptionIcon('heroicon-m-arrow-trending-down')
+                    ->color('danger'),
 
-            Stat::make('Pengeluaran Bulan Ini', 'Rp ' . number_format($totalPengeluaran, 0, ',', '.'))
-                ->description('Biaya operasional & lainnya')
-                ->descriptionIcon('heroicon-m-arrow-trending-down')
-                ->color('danger'),
+                Stat::make('Laba Bersih', 'Rp ' . number_format($netIncome, 0, ',', '.'))
+                    ->description($netIncome >= 0 ? 'Profit bulan ini' : 'Loss bulan ini')
+                    ->descriptionIcon($netIncome >= 0 ? 'heroicon-m-arrow-up' : 'heroicon-m-arrow-down')
+                    ->color($netIncome >= 0 ? 'success' : 'danger'),
 
-            Stat::make('Laba Bersih', 'Rp ' . number_format($netIncome, 0, ',', '.'))
-                ->description($netIncome >= 0 ? 'Profit bulan ini' : 'Loss bulan ini')
-                ->descriptionIcon($netIncome >= 0 ? 'heroicon-m-arrow-up' : 'heroicon-m-arrow-down')
-                ->color($netIncome >= 0 ? 'success' : 'danger'),
+                Stat::make('Saldo Kas & Bank', 'Rp ' . number_format($saldoKas, 0, ',', '.'))
+                    ->description('Posisi likuiditas saat ini')
+                    ->descriptionIcon('heroicon-m-banknotes')
+                    ->color($saldoKas >= 0 ? 'success' : 'danger'),
 
-            Stat::make('Saldo Kas & Bank', 'Rp ' . number_format($saldoKas, 0, ',', '.'))
-                ->description('Posisi likuiditas saat ini')
-                ->descriptionIcon('heroicon-m-banknotes')
-                ->color($saldoKas >= 0 ? 'success' : 'danger'),
+                Stat::make('Total Piutang', 'Rp ' . number_format($piutangUsaha, 0, ',', '.'))
+                    ->description('Outstanding receivables')
+                    ->descriptionIcon('heroicon-m-clipboard-document-list')
+                    ->color($piutangUsaha > 5000000 ? 'warning' : 'success'),
 
-            Stat::make('Total Piutang', 'Rp ' . number_format($piutangUsaha, 0, ',', '.'))
-                ->description('Outstanding receivables')
-                ->descriptionIcon('heroicon-m-clipboard-document-list')
-                ->color($piutangUsaha > 5000000 ? 'warning' : 'success'),
-
-            Stat::make('Jurnal Draft', $draftJournals)
-                ->description('Menunggu persetujuan')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color($draftJournals > 0 ? 'warning' : 'success')
-                ->url(route('filament.admin.resources.jurnal-umum.index')),
-        ];
+                Stat::make('Jurnal Draft', $draftJournals)
+                    ->description('Menunggu persetujuan')
+                    ->descriptionIcon('heroicon-m-clock')
+                    ->color($draftJournals > 0 ? 'warning' : 'success')
+                    ->url(route('filament.admin.resources.jurnal-umum.index')),
+            ];
+        });
     }
 }

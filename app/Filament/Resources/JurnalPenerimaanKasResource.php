@@ -675,7 +675,9 @@ class JurnalPenerimaanKasResource extends Resource
                         ->label('Hapus Terpilih'),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100]);
     }
 
     public static function getRelations(): array

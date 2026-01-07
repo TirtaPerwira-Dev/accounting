@@ -38,6 +38,19 @@ class JurnalPembelianResource extends Resource
 
     protected static ?string $slug = 'jurnal-pembelian-barang';
 
+    // Eager load relationships for better performance
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'rekeningKredit.kelompok',
+                'nomorBantuKredit',
+                'details.rekeningDebit.kelompok',
+                'details.nomorBantuDebit',
+                'kodeProyek'
+            ]);
+    }
+
     // Authorization helpers (Allow all authenticated users to access jurnal pembelian)
     public static function canViewAny(): bool
     {
@@ -719,6 +732,7 @@ class JurnalPembelianResource extends Resource
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
             ->paginated([10, 25, 50, 100])
             ->recordUrl(
                 fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([$record->id])
