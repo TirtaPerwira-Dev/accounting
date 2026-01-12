@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\SetMemoryLimit::class,
         ]);
-        
+
         // Register middleware alias for role-based redirect
         $middleware->alias([
             'redirect.role' => \App\Http\Middleware\RedirectBasedOnRole::class,
