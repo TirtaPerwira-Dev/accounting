@@ -36,6 +36,7 @@ class AccountingPanelProvider extends PanelProvider
             ->id('accounting')
             ->path('accounting')
             ->authGuard('web')
+            ->login()
             ->userMenuItems([
                 'admin' => MenuItem::make()
                     ->label('Admin Panel')
