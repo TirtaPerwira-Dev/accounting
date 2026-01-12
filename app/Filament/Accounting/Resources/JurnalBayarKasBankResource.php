@@ -41,10 +41,22 @@ class JurnalBayarKasBankResource extends Resource
         return parent::getEloquentQuery()->with(['kelompok', 'rekening', 'nomorBantu', 'kodeProyek']);
     }
 
-    public static function canViewAny(): bool { return Auth::check(); }
-    public static function canCreate(): bool { return Auth::check(); }
-    public static function canEdit($record): bool { return Auth::check() && !$record->is_confirmed; }
-    public static function canDelete($record): bool { return Auth::check() && !$record->is_confirmed; }
+    public static function canViewAny(): bool
+    {
+        return Auth::check();
+    }
+    public static function canCreate(): bool
+    {
+        return Auth::check();
+    }
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && !$record->is_confirmed;
+    }
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && !$record->is_confirmed;
+    }
 
     public static function form(Form $form): Form
     {
@@ -202,7 +214,7 @@ class JurnalBayarKasBankResource extends Resource
                             ->defaultItems(1)
                             ->addActionLabel('Tambah Item')
                             ->addAction(
-                                fn ($action) => $action
+                                fn($action) => $action
                                     ->icon('heroicon-o-plus-circle')
                                     ->color('warning')
                             )
@@ -221,8 +233,8 @@ class JurnalBayarKasBankResource extends Resource
                                             $total += (float)($detail['jumlah'] ?? 0);
                                         }
                                         return new \Illuminate\Support\HtmlString(
-                                            '<span style="font-size: 1.2em; font-weight: bold; color: #059669;">Rp ' . 
-                                            number_format($total, 0, ',', '.') . '</span>'
+                                            '<span style="font-size: 1.2em; font-weight: bold; color: #059669;">Rp ' .
+                                                number_format($total, 0, ',', '.') . '</span>'
                                         );
                                     })
                                     ->live(),
@@ -235,7 +247,8 @@ class JurnalBayarKasBankResource extends Resource
                 Forms\Components\Hidden::make('company_id')->default(1),
                 Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
                 Forms\Components\Hidden::make('kelompok_id')
-                    ->dehydrateStateUsing(fn(Forms\Get $get) => 
+                    ->dehydrateStateUsing(
+                        fn(Forms\Get $get) =>
                         $get('rekening_id') ? Rekening::find($get('rekening_id'))?->kelompok_id : null
                     ),
             ]);
@@ -333,29 +346,30 @@ class JurnalBayarKasBankResource extends Resource
                 Tables\Filters\SelectFilter::make('is_confirmed')
                     ->label('Status')
                     ->options([1 => 'Dikonfirmasi', 0 => 'Pending']),
-                
+
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('from')->label('Dari'),
                         Forms\Components\DatePicker::make('until')->label('Sampai'),
                     ])
-                    ->query(fn($query, $data) => $query
-                        ->when($data['from'], fn($q, $d) => $q->whereDate('tanggal', '>=', $d))
-                        ->when($data['until'], fn($q, $d) => $q->whereDate('tanggal', '<=', $d))
+                    ->query(
+                        fn($query, $data) => $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('tanggal', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('tanggal', '<=', $d))
                     ),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
-                    
+
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->is_confirmed)
                         ->requiresConfirmation()
-                        ->action(function($record) {
+                        ->action(function ($record) {
                             $record->update([
                                 'is_confirmed' => true,
                                 'confirmed_by' => Auth::id(),

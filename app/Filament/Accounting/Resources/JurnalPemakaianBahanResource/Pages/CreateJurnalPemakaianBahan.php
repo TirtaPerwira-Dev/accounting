@@ -75,4 +75,3 @@ class CreateJurnalPemakaianBahan extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 }
-

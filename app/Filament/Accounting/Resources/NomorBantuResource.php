@@ -300,7 +300,7 @@ class NomorBantuResource extends Resource
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         // Remove dots and spaces from search input
                         $search = str_replace(['.', ' ', '-'], '', $search);
-                        
+
                         return $query->whereHas('rekening.kelompok', function (Builder $query) use ($search) {
                             // Search by concatenated account number without dots
                             $query->whereRaw(

@@ -19,7 +19,7 @@ return new class extends Migration
                     ->after('kode')
                     ->comment('KEL (1-6) - sama dengan kelompok');
             }
-            
+
             // Add data field if not exists (should already exist from previous migrations)
             if (!Schema::hasColumn('rekenings', 'data')) {
                 $table->string('data', 10)
@@ -27,7 +27,7 @@ return new class extends Migration
                     ->after('kel')
                     ->comment('DATA field from SAKEP');
             }
-            
+
             // Add index for kel field
             $table->index(['kelompok_id', 'kel'], 'rekenings_kelompok_kel_index');
         });
@@ -40,7 +40,7 @@ return new class extends Migration
     {
         Schema::table('rekenings', function (Blueprint $table) {
             $table->dropIndex('rekenings_kelompok_kel_index');
-            
+
             if (Schema::hasColumn('rekenings', 'kel')) {
                 $table->dropColumn('kel');
             }

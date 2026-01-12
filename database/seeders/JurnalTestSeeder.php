@@ -33,16 +33,16 @@ class JurnalTestSeeder extends Seeder
         try {
             // Get multiple rekening for details
             $allRekening = Rekening::with('nomorBantus')->limit(7)->get();
-            
+
             $noVoucher = 'BKB-' . date('Ymd') . '-' . rand(100, 999);
             $groupTransaksi = \Illuminate\Support\Str::uuid()->toString();
             $keteranganTemplates = ['Bayar Lembur', 'Perbaikan Kebocoran', 'Pembelian Bahan', 'Biaya Operasional', 'Gaji Karyawan'];
-            
+
             $totalCreated = 0;
             foreach ($allRekening as $index => $rek) {
                 $jumlah = rand(500000, 2000000);
                 $template = $keteranganTemplates[$index % 5];
-                
+
                 JurnalBayarKasBank::create([
                     'no_voucher' => $noVoucher,
                     'tanggal_check' => Carbon::now(),
@@ -67,7 +67,7 @@ class JurnalTestSeeder extends Seeder
                 ]);
                 $totalCreated++;
             }
-            
+
             echo "   ✅ Jurnal Bayar Kas/Bank created - {$totalCreated} records\n";
             echo "   📋 No Voucher: {$noVoucher}\n";
             echo "   🔗 Group Transaksi: {$groupTransaksi}\n";
@@ -80,16 +80,16 @@ class JurnalTestSeeder extends Seeder
         echo "2️⃣  Testing JPBIK (6 records dengan group_transaksi)...\n";
         try {
             $allRekening2 = Rekening::with(['kelompok', 'nomorBantus'])->skip(10)->limit(6)->get();
-            
+
             $bukti = 'JPBIK-' . rand(100, 999);
             $groupTransaksi = \Illuminate\Support\Str::uuid()->toString();
             $keteranganList = ['Pemakaian Kaporit', 'Pemakaian PAC', 'Pemakaian Tawas', 'BBM Solar', 'Listrik PLN', 'Bahan Pembantu'];
-            
+
             $totalCreated = 0;
             foreach ($allRekening2 as $index => $rek) {
                 $debit = ($index % 2 == 0) ? rand(300000, 800000) : 0;
                 $kredit = ($index % 2 == 1) ? rand(300000, 800000) : 0;
-                
+
                 JurnalPemakaianBahan::create([
                     'tanggal' => Carbon::now(),
                     'bukti' => $bukti,
@@ -117,7 +117,7 @@ class JurnalTestSeeder extends Seeder
                 ]);
                 $totalCreated++;
             }
-            
+
             echo "   ✅ JPBIK created - {$totalCreated} records\n";
             echo "   📋 No Bukti: {$bukti}\n";
             echo "   🔗 Group Transaksi: {$groupTransaksi}\n";
@@ -131,7 +131,7 @@ class JurnalTestSeeder extends Seeder
         echo "3️⃣  Testing Jurnal Memorial (8 records dengan group_transaksi)...\n";
         try {
             $allRekening3 = Rekening::with(['kelompok', 'nomorBantus'])->skip(20)->limit(8)->get();
-            
+
             $bukti = 'MEM-' . rand(100, 999);
             $groupTransaksi = \Illuminate\Support\Str::uuid()->toString();
             $keteranganMem = [
@@ -144,13 +144,13 @@ class JurnalTestSeeder extends Seeder
                 'Koreksi Pembukuan',
                 'Reklasifikasi Akun'
             ];
-            
+
             $totalCreated = 0;
             foreach ($allRekening3 as $index => $rek) {
                 $debit = ($index < 4) ? rand(400000, 900000) : 0;
                 $kredit = ($index >= 4) ? rand(400000, 900000) : 0;
                 $kode = $debit > 0 ? 'D' : 'K';
-                
+
                 JurnalMemorial::create([
                     'tanggal' => Carbon::now(),
                     'bukti' => $bukti,
@@ -171,7 +171,7 @@ class JurnalTestSeeder extends Seeder
                 ]);
                 $totalCreated++;
             }
-            
+
             echo "   ✅ Jurnal Memorial created - {$totalCreated} records\n";
             echo "   📋 No Bukti: {$bukti}\n";
             echo "   🔗 Group Transaksi: {$groupTransaksi}\n";

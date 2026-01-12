@@ -16,7 +16,7 @@ class JurnalBayarKasBankStatsWidget extends BaseWidget
     {
         $companyId = Auth::user()?->company_id ?? 1;
         $baseQuery = JurnalBayarKasBank::where('company_id', $companyId);
-        
+
         $thisMonth = $baseQuery->whereYear('tanggal', date('Y'))->whereMonth('tanggal', date('m'));
         $totalThisMonth = $thisMonth->sum('rp');
         $countThisMonth = $thisMonth->count();

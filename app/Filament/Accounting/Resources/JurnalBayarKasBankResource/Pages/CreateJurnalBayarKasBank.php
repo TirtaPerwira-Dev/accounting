@@ -72,4 +72,3 @@ class CreateJurnalBayarKasBank extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 }
-

@@ -25,7 +25,7 @@ return new class extends Migration
             $table->char('ref', 1)->default('6')->comment('Ref absolut = 6');
             $table->unsignedBigInteger('kode_proyek_id')->nullable();
             $table->string('data', 10)->nullable();
-            
+
             $table->string('group_transaksi')->nullable();
             $table->integer('item_sequence')->default(0);
             $table->unsignedBigInteger('company_id')->default(1);

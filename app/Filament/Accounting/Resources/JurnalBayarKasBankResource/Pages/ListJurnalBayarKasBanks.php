@@ -67,7 +67,7 @@ class ListJurnalBayarKasBanks extends ListRecords
                     $status = $data['status'];
 
                     $pdf = Pdf::loadView('reports.jurnal-bayar-kas-bank', compact('journals', 'company', 'startDate', 'endDate', 'status'));
-                    
+
                     return response()->streamDownload(function () use ($pdf) {
                         echo $pdf->output();
                     }, 'laporan-jurnal-bayar-kas-bank-' . date('Ymd') . '.pdf');

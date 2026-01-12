@@ -19,17 +19,17 @@ return new class extends Migration
             $table->string('beban_bagian')->nullable()->comment('Beban bagian');
             $table->string('dibayar')->nullable();
             $table->string('no_check')->nullable();
-            
+
             $table->unsignedBigInteger('kelompok_debit_id');
             $table->unsignedBigInteger('rekening_debit_id');
             $table->unsignedBigInteger('nomor_bantu_debit_id')->nullable();
             $table->string('data_debit', 10)->nullable();
-            
+
             $table->unsignedBigInteger('kelompok_kredit_id');
             $table->unsignedBigInteger('rekening_kredit_id');
             $table->unsignedBigInteger('nomor_bantu_kredit_id')->nullable();
             $table->string('data_kredit', 10)->nullable();
-            
+
             $table->decimal('rp', 15, 2);
             $table->text('keterangan')->nullable();
             $table->text('keterangan_1')->nullable();
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->text('keterangan_4')->nullable();
             $table->char('ref', 1)->default('4')->comment('Ref absolut = 4');
             $table->unsignedBigInteger('kode_proyek_id')->nullable();
-            
+
             $table->string('group_transaksi')->nullable();
             $table->integer('item_sequence')->default(0);
             $table->unsignedBigInteger('company_id')->default(1);

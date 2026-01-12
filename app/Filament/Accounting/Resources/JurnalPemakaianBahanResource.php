@@ -37,15 +37,32 @@ class JurnalPemakaianBahanResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()->with([
-            'kelompokDebit', 'rekeningDebit', 'nomorBantuDebit',
-            'kelompokKredit', 'rekeningKredit', 'nomorBantuKredit', 'kodeProyek'
+            'kelompokDebit',
+            'rekeningDebit',
+            'nomorBantuDebit',
+            'kelompokKredit',
+            'rekeningKredit',
+            'nomorBantuKredit',
+            'kodeProyek'
         ]);
     }
 
-    public static function canViewAny(): bool { return Auth::check(); }
-    public static function canCreate(): bool { return Auth::check(); }
-    public static function canEdit($record): bool { return Auth::check() && !$record->is_confirmed; }
-    public static function canDelete($record): bool { return Auth::check() && !$record->is_confirmed; }
+    public static function canViewAny(): bool
+    {
+        return Auth::check();
+    }
+    public static function canCreate(): bool
+    {
+        return Auth::check();
+    }
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && !$record->is_confirmed;
+    }
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && !$record->is_confirmed;
+    }
 
     public static function form(Form $form): Form
     {
@@ -139,7 +156,7 @@ class JurnalPemakaianBahanResource extends Resource
                             ->defaultItems(1)
                             ->addActionLabel('Tambah Item')
                             ->addAction(
-                                fn ($action) => $action
+                                fn($action) => $action
                                     ->icon('heroicon-o-plus-circle')
                                     ->color('warning')
                             )
@@ -296,36 +313,37 @@ class JurnalPemakaianBahanResource extends Resource
                 Tables\Filters\SelectFilter::make('is_confirmed')
                     ->label('Status')
                     ->options([1 => 'Dikonfirmasi', 0 => 'Pending']),
-                
+
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('from')->label('Dari'),
                         Forms\Components\DatePicker::make('until')->label('Sampai'),
                     ])
-                    ->query(fn($query, $data) => $query
-                        ->when($data['from'], fn($q, $d) => $q->whereDate('tanggal', '>=', $d))
-                        ->when($data['until'], fn($q, $d) => $q->whereDate('tanggal', '<=', $d))
+                    ->query(
+                        fn($query, $data) => $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('tanggal', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('tanggal', '<=', $d))
                     ),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
-                    
+
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->is_confirmed)
-                    ->requiresConfirmation()
-                    ->action(function($record) {
-                        $record->update([
-                            'is_confirmed' => true,
-                            'confirmed_by' => Auth::id(),
-                            'confirmed_at' => now(),
-                        ]);
-                        Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
-                    }),
+                        ->requiresConfirmation()
+                        ->action(function ($record) {
+                            $record->update([
+                                'is_confirmed' => true,
+                                'confirmed_by' => Auth::id(),
+                                'confirmed_at' => now(),
+                            ]);
+                            Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
+                        }),
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
                 ])

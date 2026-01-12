@@ -67,7 +67,7 @@ class ListJurnalMemorials extends ListRecords
                     $status = $data['status'];
 
                     $pdf = Pdf::loadView('reports.jurnal-memorial', compact('journals', 'company', 'startDate', 'endDate', 'status'));
-                    
+
                     return response()->streamDownload(function () use ($pdf) {
                         echo $pdf->output();
                     }, 'laporan-jurnal-memorial-' . date('Ymd') . '.pdf');
