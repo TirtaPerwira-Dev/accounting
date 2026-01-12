@@ -9,31 +9,31 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: Arial, sans-serif;
             font-size: 11pt;
             padding: 20px;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #333;
             padding-bottom: 15px;
         }
-        
+
         .header h1 {
             font-size: 18pt;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .header p {
             font-size: 10pt;
             color: #666;
         }
-        
+
         .section-title {
             font-size: 14pt;
             font-weight: bold;
@@ -43,65 +43,65 @@
             background-color: #f0f0f0;
             border-left: 4px solid #333;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        
+
         table th,
         table td {
             padding: 8px;
             text-align: left;
             border: 1px solid #ddd;
         }
-        
+
         table th {
             background-color: #f0f0f0;
             font-weight: bold;
         }
-        
+
         .text-right {
             text-align: right;
         }
-        
+
         .text-center {
             text-align: center;
         }
-        
+
         .font-bold {
             font-weight: bold;
         }
-        
+
         .total-row {
             background-color: #f9fafb;
             font-weight: bold;
         }
-        
+
         .grand-total {
             background-color: #e5e7eb;
             font-weight: bold;
             font-size: 12pt;
         }
-        
+
         .grid-2 {
             display: table;
             width: 100%;
             margin-bottom: 20px;
         }
-        
+
         .grid-item {
             display: table-cell;
             width: 48%;
             padding: 10px;
             vertical-align: top;
         }
-        
+
         .grid-item:first-child {
             padding-right: 20px;
         }
-        
+
         .footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -110,11 +110,11 @@
             color: #666;
             text-align: center;
         }
-        
+
         .positive {
             color: #059669;
         }
-        
+
         .negative {
             color: #dc2626;
         }
@@ -153,7 +153,7 @@
                     </tbody>
                 </table>
             </div>
-            
+
             <div class="grid-item">
                 <div class="section-title">PASIVA</div>
                 <table>

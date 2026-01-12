@@ -54,7 +54,7 @@ class SaldoAwalJurnal extends Model
      */
     public function getNamaJenisJurnalAttribute()
     {
-        return match($this->jenis_jurnal) {
+        return match ($this->jenis_jurnal) {
             'rekening_air' => 'Jurnal Rekening Air',
             'pemakaian_bahan' => 'Jurnal Pemakaian Bahan (JPBIK)',
             'memorial' => 'Jurnal Memorial',

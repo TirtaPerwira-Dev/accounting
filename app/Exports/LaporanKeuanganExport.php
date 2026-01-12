@@ -194,7 +194,7 @@ class LaporanKeuanganExport implements FromCollection, WithHeadings, WithStyles,
                 '',
                 'Saldo Akhir: ' . number_format($rekening['saldo_akhir'] ?? 0, 0, ',', '.'),
             ]);
-            
+
             // Header Tabel
             $data->push([
                 'Tanggal',
@@ -203,7 +203,7 @@ class LaporanKeuanganExport implements FromCollection, WithHeadings, WithStyles,
                 'Kredit',
                 'Saldo',
             ]);
-            
+
             // Transaksi
             foreach ($rekening['transaksi'] ?? [] as $tr) {
                 $data->push([
@@ -214,7 +214,7 @@ class LaporanKeuanganExport implements FromCollection, WithHeadings, WithStyles,
                     number_format($tr['saldo'], 0, ',', '.'),
                 ]);
             }
-            
+
             // Total
             $data->push([
                 '',
@@ -223,7 +223,7 @@ class LaporanKeuanganExport implements FromCollection, WithHeadings, WithStyles,
                 number_format($rekening['total_kredit'] ?? 0, 0, ',', '.'),
                 number_format($rekening['saldo_akhir'] ?? 0, 0, ',', '.'),
             ]);
-            
+
             // Spacing
             $data->push(['', '', '', '', '']);
         }

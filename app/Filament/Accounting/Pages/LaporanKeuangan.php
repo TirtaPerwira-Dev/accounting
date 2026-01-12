@@ -78,7 +78,7 @@ class LaporanKeuangan extends Page implements HasForms
                             ->label('Filter Kelompok (Opsional)')
                             ->options(Kelompok::pluck('nama_kel', 'id'))
                             ->searchable()
-                            ->visible(fn ($get) => in_array($get('report_type'), ['buku_besar', 'trial_balance'])),
+                            ->visible(fn($get) => in_array($get('report_type'), ['buku_besar', 'trial_balance'])),
                     ])
                     ->columns(2),
             ])
@@ -92,18 +92,18 @@ class LaporanKeuangan extends Page implements HasForms
                 ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
-                ->visible(fn () => $this->reportData !== null)
+                ->visible(fn() => $this->reportData !== null)
                 ->action('exportPdf'),
 
             Action::make('export_excel')
                 ->label('Export Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('info')
-                ->visible(fn () => $this->reportData !== null)
+                ->visible(fn() => $this->reportData !== null)
                 ->action('exportExcel'),
         ];
     }
-    
+
     protected function getFormActions(): array
     {
         return [
@@ -136,7 +136,7 @@ class LaporanKeuangan extends Page implements HasForms
     protected function generateNeraca(array $filters): array
     {
         $periodeEnd = Carbon::parse($filters['periode_end']);
-        
+
         // Ambil semua transaksi sampai periode akhir
         $transaksi = $this->getAllTransactions(null, $periodeEnd);
 
@@ -260,21 +260,21 @@ class LaporanKeuangan extends Page implements HasForms
         $periodeStart = Carbon::parse($filters['periode_start']);
         $periodeEnd = Carbon::parse($filters['periode_end']);
         $kelompokFilter = $filters['kelompok_filter'] ?? null;
-        
+
         // Ambil semua transaksi dalam periode
         $transaksi = $this->getAllTransactions($periodeStart, $periodeEnd);
-        
+
         // Filter by kelompok jika dipilih
         if ($kelompokFilter) {
             $transaksi = array_filter($transaksi, fn($t) => $t['kelompok_id'] == $kelompokFilter);
         }
-        
+
         // Kelompokkan per rekening
         $bukuBesarPerRekening = [];
-        
+
         foreach ($transaksi as $t) {
             $rekeningId = $t['rekening_id'];
-            
+
             if (!isset($bukuBesarPerRekening[$rekeningId])) {
                 $bukuBesarPerRekening[$rekeningId] = [
                     'kode' => $t['kode_rekening'],
@@ -285,35 +285,35 @@ class LaporanKeuangan extends Page implements HasForms
                     'total_kredit' => 0,
                 ];
             }
-            
+
             $bukuBesarPerRekening[$rekeningId]['transaksi'][] = [
                 'tanggal' => $t['tanggal'],
                 'jenis' => $t['jenis'],
                 'debit' => $t['posisi'] === 'D' ? $t['rp'] : 0,
                 'kredit' => $t['posisi'] === 'K' ? $t['rp'] : 0,
             ];
-            
+
             if ($t['posisi'] === 'D') {
                 $bukuBesarPerRekening[$rekeningId]['total_debit'] += $t['rp'];
             } else {
                 $bukuBesarPerRekening[$rekeningId]['total_kredit'] += $t['rp'];
             }
         }
-        
+
         // Sort transaksi by tanggal untuk setiap rekening
         foreach ($bukuBesarPerRekening as &$rek) {
             usort($rek['transaksi'], fn($a, $b) => strtotime($a['tanggal']) <=> strtotime($b['tanggal']));
-            
+
             // Hitung saldo berjalan
             $saldo = $rek['saldo_awal'];
             foreach ($rek['transaksi'] as &$tr) {
                 $saldo += ($tr['debit'] - $tr['kredit']);
                 $tr['saldo'] = $saldo;
             }
-            
+
             $rek['saldo_akhir'] = $saldo;
         }
-        
+
         return [
             'title' => 'BUKU BESAR',
             'periode' => $periodeStart->format('d F Y') . ' s/d ' . $periodeEnd->format('d F Y'),
@@ -505,7 +505,7 @@ class LaporanKeuangan extends Page implements HasForms
 
         try {
             $filename = $this->getFilename('xlsx');
-            
+
             return \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\LaporanKeuanganExport($this->reportType, $this->reportData),
                 $filename
@@ -532,7 +532,7 @@ class LaporanKeuangan extends Page implements HasForms
 
         $reportName = $reportNames[$this->reportType] ?? 'Laporan';
         $date = now()->format('Y-m-d-His');
-        
+
         return "{$reportName}_{$date}.{$extension}";
     }
 }

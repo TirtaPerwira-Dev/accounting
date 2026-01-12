@@ -111,15 +111,15 @@ class SaldoAwalJurnalResource extends Resource
                                 $debit = (float) preg_replace('/[^0-9]/', '', $get('saldo_debit') ?? '0');
                                 $kredit = (float) preg_replace('/[^0-9]/', '', $get('saldo_kredit') ?? '0');
                                 $selisih = $debit - $kredit;
-                                
+
                                 $color = $selisih == 0 ? 'success' : 'warning';
                                 $icon = $selisih == 0 ? '✅' : '⚠️';
-                                
+
                                 return new \Illuminate\Support\HtmlString(
                                     '<div class="text-lg font-bold text-' . $color . '-600">' .
-                                    $icon . ' Rp ' . number_format(abs($selisih), 0, ',', '.') .
-                                    ($selisih < 0 ? ' (Kredit lebih besar)' : ($selisih > 0 ? ' (Debit lebih besar)' : ' (Seimbang)')) .
-                                    '</div>'
+                                        $icon . ' Rp ' . number_format(abs($selisih), 0, ',', '.') .
+                                        ($selisih < 0 ? ' (Kredit lebih besar)' : ($selisih > 0 ? ' (Debit lebih besar)' : ' (Seimbang)')) .
+                                        '</div>'
                                 );
                             })
                             ->columnSpanFull(),
@@ -139,7 +139,7 @@ class SaldoAwalJurnalResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('jenis_jurnal')
                     ->label('Jenis Jurnal')
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'rekening_air' => 'Rekening Air',
                         'pemakaian_bahan' => 'Pemakaian Bahan (JPBIK)',
                         'memorial' => 'Memorial',
@@ -161,24 +161,24 @@ class SaldoAwalJurnalResource extends Resource
 
                 Tables\Columns\TextColumn::make('saldo_debit')
                     ->label('Saldo Debit')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight()
                     ->color('success')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('saldo_kredit')
                     ->label('Saldo Kredit')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight()
                     ->color('danger')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('selisih')
                     ->label('Selisih')
-                    ->getStateUsing(fn ($record) => $record->saldo_debit - $record->saldo_kredit)
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format(abs($state), 0, ',', '.'))
+                    ->getStateUsing(fn($record) => $record->saldo_debit - $record->saldo_kredit)
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format(abs($state), 0, ',', '.'))
                     ->badge()
-                    ->color(fn ($state) => $state == 0 ? 'success' : 'warning')
+                    ->color(fn($state) => $state == 0 ? 'success' : 'warning')
                     ->alignRight(),
 
                 Tables\Columns\TextColumn::make('keterangan')
@@ -200,7 +200,7 @@ class SaldoAwalJurnalResource extends Resource
                             ->orderBy('tahun', 'desc')
                             ->pluck('tahun', 'tahun')
                             ->toArray();
-                        
+
                         return $years;
                     })
                     ->default(now()->year),

@@ -22,7 +22,7 @@ return new class extends Migration
 
             // Index untuk pencarian cepat
             $table->index(['jenis_jurnal', 'tahun']);
-            
+
             // Unique constraint: satu jenis jurnal hanya bisa punya satu saldo awal per tahun
             $table->unique(['jenis_jurnal', 'tahun']);
         });

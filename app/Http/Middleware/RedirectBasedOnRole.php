@@ -17,14 +17,14 @@ class RedirectBasedOnRole
     public function handle(Request $request, Closure $next): Response
     {
         $user = auth()->user();
-        
+
         // Skip if not authenticated
         if (!$user) {
             return $next($request);
         }
 
         $currentPanel = Filament::getCurrentPanel();
-        
+
         // Super admin can access both panels - no restriction
         if ($user->hasRole('super_admin')) {
             return $next($request);
