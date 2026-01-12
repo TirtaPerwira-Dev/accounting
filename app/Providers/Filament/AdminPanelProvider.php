@@ -13,6 +13,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\MenuItem;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -36,14 +37,22 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('/')
             ->login()
+            ->authGuard('web')
             ->registration()
             ->passwordReset()
             ->emailVerification()
             ->profile()
             ->sidebarCollapsibleOnDesktop()
             ->globalSearch(false)
+            ->userMenuItems([
+                'accounting' => MenuItem::make()
+                    ->label('Accounting Panel')
+                    ->url('/accounting')
+                    ->icon('heroicon-o-calculator')
+                    ->visible(fn (): bool => auth()->user()?->hasRole('super_admin') ?? false),
+            ])
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -78,6 +87,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                'redirect.role',
             ])
             ->plugins([
                 FilamentShieldPlugin::make()

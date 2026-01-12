@@ -6,9 +6,10 @@ use App\Http\Controllers\NomorBantuExportController;
 use App\Models\JurnalPenerimaanKas;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Default Laravel welcome removed - Filament admin panel is now at '/'
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 // Export Routes
 Route::get('/report/export/pdf', [ReportExportController::class, 'exportPdf'])->name('report.export.pdf');
