@@ -380,6 +380,9 @@ class JurnalBayarKasBankResource extends Resource
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
                 ])
+                    ->label('Action')
+                    ->button()
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

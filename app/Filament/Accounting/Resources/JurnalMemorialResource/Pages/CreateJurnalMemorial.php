@@ -38,8 +38,8 @@ class CreateJurnalMemorial extends CreateRecord
                 $rekening = Rekening::with('kelompok')->find($item['rekening_id']);
             }
 
-            $debit = (float) ($item['debit'] ?? 0);
-            $kredit = (float) ($item['kredit'] ?? 0);
+            $position = $item['position'] ?? 'debit';
+            $jumlah = (float) ($item['jumlah'] ?? 0);
 
             // Prepare data untuk setiap record
             $recordData = array_merge($data, [
@@ -48,8 +48,8 @@ class CreateJurnalMemorial extends CreateRecord
                 'kelompok_id' => $rekening?->kelompok_id ?? null,
                 'nomor_bantu_id' => $item['nomor_bantu_id'] ?? null,
                 'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
-                'rp' => $debit > 0 ? $debit : $kredit,
-                'kode' => $debit > 0 ? 'D' : 'K',
+                'rp' => $jumlah,
+                'kode' => $position === 'debit' ? 'D' : 'K',
                 'keterangan' => $item['keterangan'] ?? '',
                 'group_transaksi' => $groupTransaksi,
                 'item_sequence' => $index + 1,

@@ -110,7 +110,15 @@ class JurnalPemakaianBahanResource extends Resource
                                         ->searchable()
                                         ->required()
                                         ->live()
-                                        ->afterStateUpdated(fn($set) => $set('nomor_bantu_id', null)),
+                                        ->afterStateUpdated(function (callable $set, $state) {
+                                            $set('nomor_bantu_id', null);
+                                            if ($state) {
+                                                $rekening = \App\Models\Rekening::find($state);
+                                                if ($rekening) {
+                                                    $set('position', $rekening->kode === 'K' ? 'kredit' : 'debit');
+                                                }
+                                            }
+                                        }),
 
                                     // Kode Proyek
                                     Forms\Components\Select::make('kode_proyek_id')
@@ -130,19 +138,23 @@ class JurnalPemakaianBahanResource extends Resource
                                         })
                                         ->searchable(),
 
-                                    // Debit
-                                    Forms\Components\TextInput::make('debit')
-                                        ->label('Debit')
-                                        ->prefix('Rp')
-                                        ->numeric()
-                                        ->default(0)
+                                    // D/K (Debit/Kredit)
+                                    Forms\Components\Select::make('position')
+                                        ->label('D/K')
+                                        ->options([
+                                            'debit' => 'Debit',
+                                            'kredit' => 'Kredit',
+                                        ])
+                                        ->default('debit')
+                                        ->required()
                                         ->live(),
 
-                                    // Kredit
-                                    Forms\Components\TextInput::make('kredit')
-                                        ->label('Kredit')
+                                    // Jumlah
+                                    Forms\Components\TextInput::make('jumlah')
+                                        ->label('Jumlah')
                                         ->prefix('Rp')
                                         ->numeric()
+                                        ->required()
                                         ->default(0)
                                         ->live(),
                                 ]),
@@ -347,6 +359,9 @@ class JurnalPemakaianBahanResource extends Resource
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
                 ])
+                    ->label('Action')
+                    ->button()
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

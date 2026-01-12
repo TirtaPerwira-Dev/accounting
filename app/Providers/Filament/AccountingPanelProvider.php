@@ -42,7 +42,7 @@ class AccountingPanelProvider extends PanelProvider
                     ->label('Admin Panel')
                     ->url('/')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->visible(fn(): bool => auth()->user()?->hasRole('super_admin') ?? false),
+                    ->visible(fn(): bool => auth()->check() && auth()->user()->hasRole('super_admin')),
             ])
             ->colors([
                 'primary' => Color::Blue,

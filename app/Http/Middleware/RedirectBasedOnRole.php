@@ -17,22 +17,23 @@ class RedirectBasedOnRole
     public function handle(Request $request, Closure $next): Response
     {
         $user = auth()->user();
-
-        if ($user && $user->hasRole('super_admin')) {
-            // Super admin can access both panels
-            // If on admin panel, stay there
-            // If on accounting panel, allow access
+        
+        // Skip if not authenticated
+        if (!$user) {
             return $next($request);
         }
 
-        if ($user && !$user->hasRole('super_admin')) {
-            // Non-super admin users should only access accounting panel
-            $currentPanel = Filament::getCurrentPanel();
+        $currentPanel = Filament::getCurrentPanel();
+        
+        // Super admin can access both panels - no restriction
+        if ($user->hasRole('super_admin')) {
+            return $next($request);
+        }
 
-            if ($currentPanel && $currentPanel->getId() === 'admin') {
-                // Redirect to accounting panel
-                return redirect()->to('/accounting');
-            }
+        // Non-super admin: only allow accounting panel
+        if ($currentPanel && $currentPanel->getId() === 'admin') {
+            // Redirect non-super admin from admin panel to accounting panel
+            return redirect()->to('/accounting');
         }
 
         return $next($request);

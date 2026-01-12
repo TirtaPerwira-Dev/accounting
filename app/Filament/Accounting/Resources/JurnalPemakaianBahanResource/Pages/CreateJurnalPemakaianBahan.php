@@ -32,26 +32,39 @@ class CreateJurnalPemakaianBahan extends CreateRecord
         $createdRecords = [];
 
         foreach ($details as $index => $item) {
-            // Get rekening info untuk debit
-            $rekeningDebit = null;
+            // Get rekening info
+            $rekening = null;
             if (!empty($item['rekening_id'])) {
-                $rekeningDebit = Rekening::with('kelompok')->find($item['rekening_id']);
+                $rekening = Rekening::with('kelompok')->find($item['rekening_id']);
             }
 
-            $debit = (float) ($item['debit'] ?? 0);
-            $kredit = (float) ($item['kredit'] ?? 0);
+            $position = $item['position'] ?? 'debit';
+            $jumlah = (float) ($item['jumlah'] ?? 0);
+
+            // Tentukan debit/kredit berdasarkan position
+            if ($position === 'debit') {
+                $debitId = $item['rekening_id'] ?? null;
+                $kreditId = null;
+                $debitNomor = $item['nomor_bantu_id'] ?? null;
+                $kreditNomor = null;
+            } else {
+                $debitId = null;
+                $kreditId = $item['rekening_id'] ?? null;
+                $debitNomor = null;
+                $kreditNomor = $item['nomor_bantu_id'] ?? null;
+            }
 
             // Prepare data untuk setiap record
             $recordData = array_merge($data, [
                 'bukti' => $bukti,
-                'rekening_debit_id' => $item['rekening_id'] ?? null,
-                'kelompok_debit_id' => $rekeningDebit?->kelompok_id ?? null,
-                'nomor_bantu_debit_id' => $item['nomor_bantu_id'] ?? null,
-                'rekening_kredit_id' => $item['rekening_id'] ?? null,
-                'kelompok_kredit_id' => $rekeningDebit?->kelompok_id ?? null,
-                'nomor_bantu_kredit_id' => $item['nomor_bantu_id'] ?? null,
+                'rekening_debit_id' => $debitId,
+                'kelompok_debit_id' => $position === 'debit' ? $rekening?->kelompok_id : null,
+                'nomor_bantu_debit_id' => $debitNomor,
+                'rekening_kredit_id' => $kreditId,
+                'kelompok_kredit_id' => $position === 'kredit' ? $rekening?->kelompok_id : null,
+                'nomor_bantu_kredit_id' => $kreditNomor,
                 'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
-                'rp' => $debit > 0 ? $debit : $kredit,
+                'rp' => $jumlah,
                 'keterangan' => $item['keterangan'] ?? '',
                 'group_transaksi' => $groupTransaksi,
                 'item_sequence' => $index + 1,

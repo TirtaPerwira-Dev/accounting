@@ -51,7 +51,7 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Accounting Panel')
                     ->url('/accounting')
                     ->icon('heroicon-o-calculator')
-                    ->visible(fn(): bool => auth()->user()?->hasRole('super_admin') ?? false),
+                    ->visible(fn(): bool => auth()->check() && auth()->user()->hasRole('super_admin')),
             ])
             ->colors([
                 'primary' => Color::Amber,
