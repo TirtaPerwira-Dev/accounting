@@ -19,6 +19,7 @@ class Rekening extends Model
         'no_rek',
         'nama_rek',
         'kode',
+        'kel',
         'data',
         'is_active'
     ];
@@ -31,6 +32,16 @@ class Rekening extends Model
     public const KODE_VALUES = [
         'D' => 'Debit',
         'K' => 'Kredit',
+    ];
+
+    // KEL enum values (same as Kelompok)
+    public const KEL_VALUES = [
+        '1' => 'Kategori 1',
+        '2' => 'Kategori 2',
+        '3' => 'Kategori 3',
+        '4' => 'Kategori 4',
+        '5' => 'Kategori 5',
+        '6' => 'Kategori 6',
     ];
 
     /**

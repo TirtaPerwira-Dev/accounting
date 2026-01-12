@@ -92,11 +92,7 @@ class RecentJournalsTable extends BaseWidget
                     ->sortable(),
             ])
             ->actions([
-                Tables\Actions\Action::make('view')
-                    ->label('Lihat')
-                    ->icon('heroicon-o-eye')
-                    ->url(fn(Journal $record): string => route('filament.admin.resources.jurnal-umum.view', $record))
-                    ->openUrlInNewTab(),
+                // Actions removed - Journal resource has been deleted
             ])
             ->defaultSort('created_at', 'desc');
     }

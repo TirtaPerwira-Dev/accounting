@@ -88,8 +88,7 @@ class FinancialOverviewWidget extends BaseWidget
                 Stat::make('Jurnal Draft', $draftJournals)
                     ->description('Menunggu persetujuan')
                     ->descriptionIcon('heroicon-m-clock')
-                    ->color($draftJournals > 0 ? 'warning' : 'success')
-                    ->url(route('filament.admin.resources.jurnal-umum.index')),
+                    ->color($draftJournals > 0 ? 'warning' : 'success'),
             ];
         });
     }

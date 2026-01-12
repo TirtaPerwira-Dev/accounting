@@ -89,10 +89,7 @@ class DraftJournalsTable extends BaseWidget
                     ->color(fn(string $state): string => $state === 'Yes' ? 'success' : 'danger'),
             ])
             ->actions([
-                Tables\Actions\Action::make('edit')
-                    ->label('Edit')
-                    ->icon('heroicon-o-pencil')
-                    ->url(fn(Journal $record): string => route('filament.admin.resources.jurnal-umum.edit', $record)),
+                // Edit action removed - Journal resource has been deleted
 
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')

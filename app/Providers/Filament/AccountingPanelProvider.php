@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use Filament\Http\Middleware\Authenticate;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
@@ -19,7 +18,6 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Jeffgreco13\FilamentBreezy\BreezyCore;
 use App\Filament\Widgets\WelcomeWidget;
 use App\Filament\Widgets\FinancialOverviewWidget;
 use App\Filament\Widgets\RevenueExpenseChart;
@@ -29,48 +27,48 @@ use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
 
-class AdminPanelProvider extends PanelProvider
+class AccountingPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
+            ->id('accounting')
+            ->path('accounting')
             ->login()
-            ->registration()
-            ->passwordReset()
-            ->emailVerification()
-            ->profile()
-            ->sidebarCollapsibleOnDesktop()
-            ->globalSearch(false)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
             ->navigationGroups([
-                NavigationGroup::make('Setup & Konfigurasi')
-                    ->label('Setup & Konfigurasi')
+                NavigationGroup::make('Master Penomoran')
+                    ->label('Master Penomoran')
                     ->collapsible(),
-                NavigationGroup::make('Monitoring & Audit')
-                    ->label('Monitoring & Audit')
+                NavigationGroup::make('Setup Saldo Awal')
+                    ->label('Setup Saldo Awal')
                     ->collapsible(),
-                NavigationGroup::make('Manajemen Pengguna')
-                    ->label('Manajemen Pengguna')
-                    ->collapsible(true),
+                NavigationGroup::make('Laporan Keuangan')
+                    ->label('Laporan Keuangan')
+                    ->collapsible(),
             ])
-            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
-            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
+            ->discoverResources(in: app_path('Filament/Accounting/Resources'), for: 'App\\Filament\\Accounting\\Resources')
+            ->discoverPages(in: app_path('Filament/Accounting/Pages'), for: 'App\\Filament\\Accounting\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
+                WelcomeWidget::class,
+                FinancialOverviewWidget::class,
+                RevenueExpenseChart::class,
+                CashFlowTrendChart::class,
+                RecentJournalsTable::class,
+                DraftJournalsTable::class,
+                LiquidityRatioChart::class,
+                TransactionTypeChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                // AuthenticateSession::class, // Disabled - causes login loop and redirect prompts on hosting
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
@@ -97,19 +95,6 @@ class AdminPanelProvider extends PanelProvider
                         'default' => 1,
                         'sm' => 2,
                     ]),
-                BreezyCore::make()
-                    ->myProfile(
-                        shouldRegisterUserMenu: true, // Sets the 'account' link in the panel User Menu (default = true)
-                        shouldRegisterNavigation: false, // Adds a main navigation item for the My Profile page (default = false)
-                        hasAvatars: true, // Enables the avatar upload form component (default = false)
-                        slug: 'my-profile' // Sets the slug for the profile page (default = 'my-profile')
-                    )
-                    ->enableTwoFactorAuthentication(
-                        force: false, // force the user to enable 2FA before they can use the application (default = false)
-                    )
-                    ->enableSanctumTokens(
-                        permissions: ['create', 'view', 'update', 'delete'] // optional, customize the permissions (default = ['create', 'view', 'update', 'delete'])
-                    ),
             ]);
     }
 }
