@@ -47,9 +47,11 @@ class JurnalRekeningAirResource extends Resource
         return parent::getEloquentQuery()
             ->with([
                 'jurnalRekeningAir',
+                'kelompok',
                 'rekening.kelompok',
                 'nomorBantu',
                 'kodeProyek'
+                // Note: Detail tables don't have created_by column
             ]);
     }
 
@@ -407,12 +409,11 @@ class JurnalRekeningAirResource extends Resource
                     ])
                     ->visible(fn(Forms\Get $get) => !empty($get('rekening_air_items'))),
 
-                // === NOMOR REFERENSI (Auto-generate) ===
                 Forms\Components\Section::make('Nomor Referensi')
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
                             ->label('Nomor Referensi')
-                            ->content('Auto-generate: 2-X/2024')
+                            ->content('Nomor Reff Jurnal Pembelian Barang adalah = 2')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -499,22 +500,15 @@ class JurnalRekeningAirResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
-                    ->label('No. Referensi')
-                    ->searchable()
-                    ->sortable()
-                    ->copyable(),
-
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.tanggal')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.bukti')
                     ->label('Bukti')
                     ->searchable()
                     ->limit(20),
-
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.tanggal')
+                    ->label('Tanggal')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Rekening')
                     ->searchable()
@@ -528,21 +522,20 @@ class JurnalRekeningAirResource extends Resource
                         $record->rekening->no_rek . ' ' .
                         $record->rekening->nama_rek : '-'),
 
-                Tables\Columns\TextColumn::make('nomorBantu.nm_bantu')
+                Tables\Columns\TextColumn::make('nomorBantu.no_bantu')
                     ->label('Nomor Bantu')
                     ->searchable()
                     ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                        $record->nomorBantu->no_bantu . ' - ' .
-                        $record->nomorBantu->nm_bantu : '-')
-                    ->limit(30)
+                        str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
+                    ->description(fn($record) => $record->nomorBantu ?
+                        $record->nomorBantu->nm_bantu : null)
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('kodeProyek.name')
                     ->label('Proyek')
                     ->searchable()
                     ->default('-')
-                    ->limit(20)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->limit(20),
 
                 Tables\Columns\TextColumn::make('position')
                     ->label('D/K')
@@ -577,6 +570,11 @@ class JurnalRekeningAirResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
+                    ->label('No. Referensi')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -624,6 +622,22 @@ class JurnalRekeningAirResource extends Resource
                         'debit' => 'Debit',
                         'kredit' => 'Kredit',
                     ]),
+
+                Tables\Filters\SelectFilter::make('rekening_id')
+                    ->label('Rekening')
+                    ->relationship('rekening', 'nama_rek')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\SelectFilter::make('nomor_bantu_id')
+                    ->label('Nomor Bantu')
+                    ->relationship('nomorBantu', 'nm_bantu')
+                    ->searchable()
+                    ->preload()
+                    ->getOptionLabelFromRecordUsing(
+                        fn($record) =>
+                        str_pad($record->no_bantu, 2, '0', STR_PAD_LEFT) . ' - ' . $record->nm_bantu
+                    ),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -643,7 +657,8 @@ class JurnalRekeningAirResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
-                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
+                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff')),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('Batal Konfirmasi')
@@ -661,7 +676,8 @@ class JurnalRekeningAirResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Batal Konfirmasi Jurnal')
                         ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
-                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed),
+                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff')),
 
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail')

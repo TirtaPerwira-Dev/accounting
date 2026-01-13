@@ -43,11 +43,17 @@ class JurnalPembelianResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
+                'kelompokKredit',
                 'rekeningKredit.kelompok',
                 'nomorBantuKredit',
+                'kelompokDebit',
+                'rekeningDebit.kelompok',
+                'nomorBantuDebit',
+                'details.kelompokDebit',
                 'details.rekeningDebit.kelompok',
                 'details.nomorBantuDebit',
-                'kodeProyek'
+                'kodeProyek',
+                'confirmedBy'
             ]);
     }
 
@@ -84,23 +90,6 @@ class JurnalPembelianResource extends Resource
     {
         return $form
             ->schema([
-                // // === INFO & PANDUAN ===
-                // Forms\Components\Section::make('📋 Panduan Jurnal Pembelian')
-                //     ->description('Catat transaksi pembelian barang/jasa dengan multiple item dan pembayaran hutang.')
-                //     ->schema([
-                //         Forms\Components\Placeholder::make('info')
-                //             ->label('')
-                //             ->content('
-                //                 **💡 Tips Jurnal Pembelian:**
-                //                 - **Hutang**: Pilih akun hutang/kas/bank untuk pembayaran
-                //                 - **Pembelian**: Tambah beberapa item pembelian (persediaan, aset, beban)
-                //                 - Total pembelian harus sama dengan jumlah hutang
-                //                 - Nomor referensi dibuat otomatis: 1-1/2024, 1-2/2024, dst.
-                //             ')
-                //             ->columnSpanFull(),
-                //     ])
-                //     ->collapsible()
-                //     ->collapsed(),
 
                 // === SECTION HUTANG ===
                 Forms\Components\Section::make('Akun Hutang/Pembayaran')
@@ -548,10 +537,7 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No. Ref')
-                    ->searchable()
-                    ->sortable(),
+
 
                 Tables\Columns\TextColumn::make('bukti_item')
                     ->label('Bukti')
@@ -562,6 +548,9 @@ class JurnalPembelianResource extends Resource
                     ->label('Tanggal')
                     ->date('d/m/Y')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('kodeProyek.name')
+                    ->label('Proyek'),
 
                 Tables\Columns\TextColumn::make('kodeSakepKredit')
                     ->label('Akun Hutang')
@@ -576,17 +565,21 @@ class JurnalPembelianResource extends Resource
                     ->limit(40),
 
                 Tables\Columns\TextColumn::make('pembelianSummary')
-                    ->label('Pembelian')
-                    ->getStateUsing(fn($record) => $record->keterangan_item)
-                    ->limit(30)
-                    ->tooltip(function ($record) {
-                        return ($record->keterangan_item ?? 'Item') .
-                            ' - Rp ' . number_format($record->jumlah_item ?? 0, 0, ',', '.');
-                    }),
+                    ->label('Pembelian Barang')
+                    ->getStateUsing(function ($record) {
+                        return $record->keterangan_item ?: ($record->keterangan ?: 'Pembelian barang');
+                    })
+                    ->description(fn($record) => $record->bukti_item ?: $record->bukti)
+                    ->searchable()
+                    ->limit(40)
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('jumlah_item')
-                    ->label('Total')
-                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                    ->label('Total Pembelian')
+                    ->formatStateUsing(function ($state, $record) {
+                        $amount = $state ?: $record->rp ?: 0;
+                        return 'Rp ' . number_format($amount, 0, ',', '.');
+                    })
                     ->alignRight()
                     ->sortable(),
 
@@ -598,14 +591,16 @@ class JurnalPembelianResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('kodeProyek.name')
-                    ->label('Proyek')
-                    ->toggleable(isToggledHiddenByDefault: true),
+
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d/m/Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('no_reff')
+                    ->label('No. Ref')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('is_confirmed')
@@ -644,6 +639,7 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
@@ -659,6 +655,7 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
                         ->visible(fn($record) => $record->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')

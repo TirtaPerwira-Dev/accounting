@@ -19,6 +19,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Filament\Tables\Filters\Filter;
 
 class UserResource extends Resource
 {
@@ -97,9 +98,15 @@ class UserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('Nama')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->badge()
+                    ->color(fn(User $record) => !$record->email_verified_at ? 'danger' : 'success')
+                    ->icon(fn(User $record) => !$record->email_verified_at ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
+                    ->description(fn(User $record) => !$record->email_verified_at ? '⚠️ Perlu Verifikasi' : '✅ Terverifikasi'),
                 TextColumn::make('email')
+                    ->label('Email')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('roles.name')
@@ -123,17 +130,50 @@ class UserResource extends Resource
                 Tables\Filters\SelectFilter::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple(),
+                Tables\Filters\Filter::make('unverified')
+                    ->query(fn(Builder $query): Builder => $query->whereNull('email_verified_at'))
+                    ->label('Belum Terverifikasi')
+                    ->toggle(),
             ])
             ->actions([
+                Tables\Actions\Action::make('verify')
+                    ->label('Verifikasi')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn($record) => !$record->email_verified_at)
+                    ->requiresConfirmation()
+                    ->form([
+                        Select::make('roles')
+                            ->label('Assign Role')
+                            ->multiple()
+                            ->relationship('roles', 'name')
+                            ->options(Role::all()->pluck('name', 'id'))
+                            ->required()
+                            ->preload(),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->update([
+                            'email_verified_at' => now(),
+                            'is_verified' => true, // Also update is_verified flag
+                        ]);
+                        if (!empty($data['roles'])) {
+                            $record->syncRoles($data['roles']);
+                        }
+                        \Filament\Notifications\Notification::make()
+                            ->title('User Verified')
+                            ->body('User telah diverifikasi dan role berhasil di-assign.')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),
                 ])
-                    ->color('warning') // Ini yang membuat warnanya kuning (warning)
-                    ->icon('heroicon-o-ellipsis-vertical') // Opsional: ganti icon
-                    ->size('sm') // Opsional: ukuran kecil
-                    ->button() // Menjadikan dropdown sebagai tombol (bukan dropdown biasa)
+                    ->color('warning')
+                    ->icon('heroicon-o-ellipsis-vertical')
+                    ->size('sm')
+                    ->button()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -47,9 +47,13 @@ class JurnalPenerimaanKasResource extends Resource
         return parent::getEloquentQuery()
             ->with([
                 'jurnalPenerimaanKas.kasBank',
+                'jurnalPenerimaanKas.confirmedBy',
+                'jurnalPenerimaanKas.createdBy',
+                'kelompok',
                 'rekening.kelompok',
                 'nomorBantu',
                 'kodeProyek'
+                // Note: Detail tables don't have created_by/confirmed_by columns
             ]);
     }
 
@@ -455,13 +459,11 @@ class JurnalPenerimaanKasResource extends Resource
                     ->collapsible()
                     ->collapsed(),
 
-                // === NOMOR REFERENSI ===
                 Forms\Components\Section::make('Nomor Referensi')
-                    ->description('Kode referensi otomatis untuk sistem jurnal penerimaan kas')
                     ->schema([
-                        Forms\Components\Placeholder::make('reff_info')
+                        Forms\Components\Placeholder::make('no_reff_preview')
                             ->label('Nomor Referensi')
-                            ->content('Auto-generate: 3-X/' . now()->format('m/Y'))
+                            ->content('Nomor Reff Jurnal Pembelian Barang adalah = 3')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -548,54 +550,45 @@ class JurnalPenerimaanKasResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.tanggal')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.reff')
-                    ->label('Referensi')
-                    ->searchable()
-                    ->copyable()
-                    ->badge()
-                    ->color('primary'),
-
                 Tables\Columns\TextColumn::make('nomor_bukti')
                     ->label('No. Bukti')
                     ->searchable()
                     ->limit(20),
-
+                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.tanggal')
+                    ->label('Tanggal')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('jurnalPenerimaanKas.kasBank.nm_bantu')
                     ->label('Kas/Bank (Tujuan)')
                     ->searchable()
                     ->formatStateUsing(fn($record) => $record->jurnalPenerimaanKas?->kasBank ?
-                        $record->jurnalPenerimaanKas->kasBank->no_bantu . ' - ' .
-                        $record->jurnalPenerimaanKas->kasBank->nm_bantu : '-')
-                    ->limit(30)
-                    ->tooltip(fn($record) => $record->jurnalPenerimaanKas?->kasBank ?
-                        $record->jurnalPenerimaanKas->kasBank->no_bantu . ' - ' .
-                        $record->jurnalPenerimaanKas->kasBank->nm_bantu : '-'),
+                        str_pad($record->jurnalPenerimaanKas->kasBank->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
+                    ->description(fn($record) => $record->jurnalPenerimaanKas?->kasBank ?
+                        $record->jurnalPenerimaanKas->kasBank->nm_bantu : null)
+                    ->weight('bold')
+                    ->size('lg'),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Rekening (Sumber)')
                     ->searchable()
                     ->formatStateUsing(fn($record) => $record->rekening ?
                         $record->rekening->kelompok->no_kel . '-' .
-                        $record->rekening->no_rek . ' ' .
-                        $record->rekening->nama_rek : '-')
-                    ->limit(40)
-                    ->tooltip(fn($record) => $record->rekening ?
-                        $record->rekening->kelompok->no_kel . '-' .
-                        $record->rekening->no_rek . ' ' .
-                        $record->rekening->nama_rek : '-'),
+                        $record->rekening->no_rek : '-')
+                    ->description(fn($record) => $record->rekening ?
+                        $record->rekening->nama_rek : null)
+                    ->weight('bold')
+                    ->size('lg')
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('nomorBantu.nm_bantu')
                     ->label('Nomor Bantu')
                     ->searchable()
                     ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                        $record->nomorBantu->no_bantu . ' - ' .
-                        $record->nomorBantu->nm_bantu : '-')
-                    ->limit(30)
+                        str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
+                    ->description(fn($record) => $record->nomorBantu ?
+                        $record->nomorBantu->nm_bantu : null)
+                    ->weight('bold')
+                    ->size('lg')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('kodeProyek.name')
@@ -623,6 +616,23 @@ class JurnalPenerimaanKasResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+
+                Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_confirmed')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.reff')
+                    ->label('Referensi')
+                    ->searchable()
+                    ->copyable()
+                    ->badge()
+                    ->color('primary'),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -655,27 +665,69 @@ class JurnalPenerimaanKasResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->label('Lihat Detail')
-                    ->icon('heroicon-o-eye'),
-
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus Item')
-                    ->modalHeading('Hapus Item Transaksi')
-                    ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->reff}")
-                    ->after(function ($record) {
-                        // Check if parent jurnal still has details
-                        $parent = $record->jurnalPenerimaanKas;
-                        if ($parent && $parent->details()->count() === 0) {
-                            // Delete parent if no more details
-                            $parent->delete();
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('confirm')
+                        ->label('✓ Konfirmasi')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($record) {
+                            $record->jurnalPenerimaanKas->confirm();
                             Notification::make()
-                                ->title('Jurnal dihapus')
-                                ->body('Jurnal header juga dihapus karena tidak memiliki item lagi')
-                                ->warning()
+                                ->title('Jurnal berhasil dikonfirmasi')
+                                ->body("No. Reff: {$record->jurnalPenerimaanKas->reff}")
+                                ->success()
                                 ->send();
-                        }
-                    }),
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Konfirmasi Jurnal')
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalPenerimaanKas->reff}?")
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+
+                    Tables\Actions\Action::make('unconfirm')
+                        ->label('↶ Batal Konfirmasi')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->action(function ($record) {
+                            $record->jurnalPenerimaanKas->unconfirm();
+                            Notification::make()
+                                ->title('Konfirmasi jurnal dibatalkan')
+                                ->body("No. Reff: {$record->jurnalPenerimaanKas->reff}")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Batal Konfirmasi Jurnal')
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalPenerimaanKas->reff}?")
+                        ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus Item')
+                        ->modalHeading('Hapus Item Transaksi')
+                        ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->reff}")
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed)
+                        ->after(function ($record) {
+                            // Check if parent jurnal still has details
+                            $parent = $record->jurnalPenerimaanKas;
+                            if ($parent && $parent->details()->count() === 0) {
+                                // Delete parent if no more details
+                                $parent->delete();
+                                Notification::make()
+                                    ->title('Jurnal dihapus')
+                                    ->body('Jurnal header juga dihapus karena tidak memiliki item lagi')
+                                    ->warning()
+                                    ->send();
+                            }
+                        }),
+                ])
+                    ->button()
+                    ->label('Action')
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -3,11 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class JurnalPenerimaanKas extends Model
 {
+    use SoftDeletes, LogsActivity;
+
     protected $table = 'jurnal_penerimaan_kas';
 
     /**
@@ -20,16 +25,32 @@ class JurnalPenerimaanKas extends Model
         'tanggal',
         'nomor_bukti',
         'keterangan',
-        'detail_penerimaan', // Changed from detail_items
+        'detail_penerimaan',
         'total_amount',
         'reff',
+        'created_by',
+        'is_confirmed',
+        'confirmed_by',
+        'confirmed_at',
+        'company_id',
     ];
 
     protected $casts = [
         'tanggal' => 'date',
         'total_amount' => 'decimal:2',
-        'detail_penerimaan' => 'array', // Cast JSON to array
+        'detail_penerimaan' => 'array',
+        'is_confirmed' => 'boolean',
+        'confirmed_at' => 'datetime',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['tanggal', 'nomor_bukti', 'keterangan', 'total_amount', 'is_confirmed'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Jurnal Penerimaan Kas has been {$eventName}")
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected static function boot()
     {
@@ -40,7 +61,13 @@ class JurnalPenerimaanKas extends Model
                 $model->tanggal = now()->toDateString();
             }
             if (empty($model->reff)) {
-                $model->reff = '3';
+                $model->reff = $model->generateReff();
+            }
+            if (empty($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
+            if (empty($model->company_id)) {
+                $model->company_id = 1;
             }
         });
     }
@@ -74,6 +101,35 @@ class JurnalPenerimaanKas extends Model
     public function details(): HasMany
     {
         return $this->hasMany(JurnalPenerimaanKasDetail::class, 'jurnal_penerimaan_kas_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    /**
+     * Generate nomor referensi - hanya angka sequential (3, 4, 5, ...)
+     */
+    public function generateReff(): string
+    {
+        $lastJurnal = self::orderBy('id', 'desc')->first();
+
+        if ($lastJurnal && is_numeric($lastJurnal->reff)) {
+            return (string)((int)$lastJurnal->reff + 1);
+        }
+
+        return '3'; // Start from 3
     }
 
     // Scopes

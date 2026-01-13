@@ -3,10 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class JurnalRekeningAir extends Model
 {
+    use SoftDeletes, LogsActivity;
+
     protected $table = 'jurnal_rekening_air';
 
     /**
@@ -22,6 +27,7 @@ class JurnalRekeningAir extends Model
         'is_confirmed',
         'confirmed_at',
         'company_id',
+        'created_by',
     ];
 
     protected $casts = [
@@ -31,6 +37,15 @@ class JurnalRekeningAir extends Model
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['no_reff', 'tanggal', 'bukti', 'keterangan', 'rp', 'is_confirmed'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Jurnal Rekening Air has been {$eventName}")
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected static function boot()
     {
@@ -43,23 +58,25 @@ class JurnalRekeningAir extends Model
             if (empty($model->company_id)) {
                 $model->company_id = 1; // Default company
             }
+            if (empty($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
         });
     }
 
     /**
-     * Generate nomor referensi otomatis
-     * Format: 2-{urutan}/2024
+     * Generate nomor referensi - hanya angka sequential (2, 3, 4, ...)
      */
     public function generateNoReff(): string
     {
-        $year = date('Y');
-        $lastEntry = static::whereYear('created_at', $year)
-            ->orderBy('id', 'desc')
-            ->first();
+        // Get last number
+        $lastJurnal = self::orderBy('id', 'desc')->first();
 
-        $nextNumber = $lastEntry ? (int)explode('-', $lastEntry->no_reff)[1] + 1 : 1;
+        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
+            return (string)((int)$lastJurnal->no_reff + 1);
+        }
 
-        return "2-{$nextNumber}/{$year}";
+        return '2'; // Start from 2
     }
 
     // Relations - Hanya yang diperlukan untuk struktur baru
@@ -78,6 +95,16 @@ class JurnalRekeningAir extends Model
     public function details(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(JurnalRekeningAirDetail::class);
+    }
+
+    public function createdBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function confirmedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
     }
 
     // Scopes

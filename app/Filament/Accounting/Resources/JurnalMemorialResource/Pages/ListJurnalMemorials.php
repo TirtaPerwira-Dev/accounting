@@ -25,7 +25,7 @@ class ListJurnalMemorials extends ListRecords
             Actions\Action::make('exportPdf')
                 ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
-                ->color('danger')
+                ->color('success')
                 ->form([
                     Forms\Components\DatePicker::make('start_date')
                         ->label('Tanggal Mulai')

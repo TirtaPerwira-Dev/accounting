@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class JurnalPemakaianBahan extends Model
 {
+    use SoftDeletes, LogsActivity;
     protected $fillable = [
         'no_reff',
         'tanggal',
@@ -33,6 +37,7 @@ class JurnalPemakaianBahan extends Model
         'group_transaksi',
         'item_sequence',
         'company_id',
+        'created_by',
         'is_confirmed',
         'confirmed_by',
         'confirmed_at'
@@ -44,6 +49,15 @@ class JurnalPemakaianBahan extends Model
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['no_reff', 'tanggal', 'bukti', 'keterangan', 'rp', 'is_confirmed', 'created_by'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Jurnal Pemakaian Bahan has been {$eventName}")
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function kelompokDebit(): BelongsTo
     {
@@ -76,5 +90,51 @@ class JurnalPemakaianBahan extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    /**
+     * Generate nomor referensi - hanya angka sequential (5, 6, 7, ...)
+     */
+    public function generateNoReff(): string
+    {
+        $lastJurnal = self::orderBy('id', 'desc')->first();
+
+        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
+            return (string)((int)$lastJurnal->no_reff + 1);
+        }
+
+        return '5'; // Start from 5
+    }
+
+    /**
+     * Boot model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Auto-generate no_reff if not set
+            if (empty($model->no_reff)) {
+                $model->no_reff = $model->generateNoReff();
+            }
+
+            if (empty($model->company_id)) {
+                $model->company_id = 1;
+            }
+            if (empty($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
+        });
     }
 }

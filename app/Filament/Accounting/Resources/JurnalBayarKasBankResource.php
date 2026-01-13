@@ -38,7 +38,13 @@ class JurnalBayarKasBankResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->with(['kelompok', 'rekening', 'nomorBantu', 'kodeProyek']);
+        return parent::getEloquentQuery()->with([
+            'kelompok',
+            'rekening.kelompok',
+            'nomorBantu',
+            'kodeProyek',
+            'createdBy'
+        ]);
     }
 
     public static function canViewAny(): bool
@@ -240,6 +246,16 @@ class JurnalBayarKasBankResource extends Resource
                                     ->live(),
                             ])
                             ->collapsible(),
+                        Forms\Components\Section::make('Nomor Referensi')
+                            ->schema([
+                                Forms\Components\Placeholder::make('no_reff_preview')
+                                    ->label('Nomor Referensi')
+                                    ->content('Nomor Reff Jurnal Pembelian Barang adalah = 4')
+                                    ->columnSpanFull(),
+                            ])
+                            ->compact()
+                            ->collapsible()
+                            ->collapsed(),
                     ]),
 
                 // Hidden Fields
@@ -295,6 +311,9 @@ class JurnalBayarKasBankResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('warning'),
+
+                Tables\Columns\TextColumn::make('no_reff')
+                    ->label('No. Reff'),
             ])
             ->headerActions([
                 // Import Excel
@@ -368,6 +387,7 @@ class JurnalBayarKasBankResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
                         ->action(function ($record) {
                             $record->update([
@@ -376,6 +396,22 @@ class JurnalBayarKasBankResource extends Resource
                                 'confirmed_at' => now(),
                             ]);
                             Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
+                        }),
+
+                    Tables\Actions\Action::make('unconfirm')
+                        ->label('Batal Konfirmasi')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn($record) => $record->is_confirmed)
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->requiresConfirmation()
+                        ->action(function ($record) {
+                            $record->update([
+                                'is_confirmed' => false,
+                                'confirmed_by' => null,
+                                'confirmed_at' => null,
+                            ]);
+                            Notification::make()->title('Konfirmasi dibatalkan')->success()->send();
                         }),
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),

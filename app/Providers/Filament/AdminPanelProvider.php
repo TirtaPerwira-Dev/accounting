@@ -29,6 +29,7 @@ use App\Filament\Widgets\RecentJournalsTable;
 use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
+use App\Filament\Admin\Pages\Auth\Register as CustomRegister;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -40,7 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('/')
             ->login()
             ->authGuard('web')
-            ->registration()
+            ->registration(CustomRegister::class)
             ->passwordReset()
             ->emailVerification()
             ->profile()

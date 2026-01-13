@@ -3,13 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class JurnalPembelian extends Model
 {
+    use SoftDeletes, LogsActivity;
+
     protected $table = 'jurnal_pembelians';
 
     protected $fillable = [
@@ -30,6 +35,7 @@ class JurnalPembelian extends Model
         'is_confirmed',
         'confirmed_by',
         'confirmed_at',
+        'created_by',
         // Fields untuk item individual
         'bukti_item',
         'keterangan_item',
@@ -55,15 +61,27 @@ class JurnalPembelian extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Sementara comment untuk debug no_reff issue
-            // if (empty($model->no_reff) || is_numeric($model->no_reff)) {
-            //     $model->no_reff = $model->generateNoReff();
-            // }
+            // Auto-generate no_reff if not set
+            if (empty($model->no_reff)) {
+                $model->no_reff = $model->generateNoReff();
+            }
 
             if (empty($model->company_id)) {
                 $model->company_id = 1; // Default company
             }
+            if (empty($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
         });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['no_reff', 'tanggal', 'bukti', 'keterangan', 'rp', 'is_confirmed', 'created_by'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Jurnal Pembelian has been {$eventName}")
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 
     // === RELATIONSHIPS ===
@@ -116,6 +134,11 @@ class JurnalPembelian extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     // Relasi untuk akun debit item
     public function kelompokDebit(): BelongsTo
     {
@@ -132,31 +155,27 @@ class JurnalPembelian extends Model
         return $this->belongsTo(NomorBantu::class, 'nomor_bantu_debit_id');
     }
 
+    // Relasi ke detail items (jika menggunakan tabel detail terpisah)
+    public function details(): HasMany
+    {
+        return $this->hasMany(JurnalPembelianDetail::class);
+    }
+
     // === METHODS ===
 
     /**
-     * Generate nomor referensi format: 1-1/2024
+     * Generate nomor referensi - hanya angka sequential (1, 2, 3, ...)
      */
     public function generateNoReff(): string
     {
-        $year = Carbon::now()->year;
+        // Get last number
+        $lastJurnal = self::orderBy('id', 'desc')->first();
 
-        // Get last number for this year - cari yang berbentuk format lengkap
-        $lastJurnal = self::where('no_reff', 'LIKE', "1-_/{$year}")
-            ->where('no_reff', 'NOT LIKE', '%-%-%') // Avoid malformed formats
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        $nextNumber = 1;
-
-        if ($lastJurnal && $lastJurnal->no_reff) {
-            // Extract number from format like "1-5/2024"
-            if (preg_match('/^1-(\d+)\/\d{4}$/', $lastJurnal->no_reff, $matches)) {
-                $nextNumber = intval($matches[1]) + 1;
-            }
+        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
+            return (string)((int)$lastJurnal->no_reff + 1);
         }
 
-        return "1-{$nextNumber}/{$year}";
+        return '1'; // Start from 1
     }
 
     /**
