@@ -27,6 +27,7 @@ use App\Filament\Widgets\RecentJournalsTable;
 use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
+use App\Filament\Pages\Auth\Login;
 
 class AccountingPanelProvider extends PanelProvider
 {
@@ -36,7 +37,7 @@ class AccountingPanelProvider extends PanelProvider
             ->id('accounting')
             ->path('accounting')
             ->authGuard('web')
-            ->login()
+            ->login(Login::class)
             ->userMenuItems([
                 'admin' => MenuItem::make()
                     ->label('Admin Panel')

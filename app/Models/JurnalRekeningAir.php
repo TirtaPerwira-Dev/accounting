@@ -107,6 +107,11 @@ class JurnalRekeningAir extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
+    public function approvedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     // Scopes
     public function scopeThisYear($query)
     {

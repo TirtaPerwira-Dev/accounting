@@ -102,6 +102,11 @@ class JurnalPemakaianBahan extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     /**
      * Generate nomor referensi - hanya angka sequential (5, 6, 7, ...)
      */

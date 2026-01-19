@@ -46,6 +46,7 @@ class JurnalRekeningAirResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
+                'jurnalRekeningAir.approvedBy',
                 'jurnalRekeningAir',
                 'kelompok',
                 'rekening.kelompok',
@@ -575,6 +576,35 @@ class JurnalRekeningAirResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
+
+                Tables\Columns\BadgeColumn::make('jurnalRekeningAir.approval_status')
+                    ->label('Status Approval')
+                    ->colors([
+                        'warning' => 'pending',
+                        'success' => 'approved',
+                        'danger' => 'rejected',
+                    ])
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'pending' => '⏳ Pending',
+                        'approved' => '✅ Disetujui',
+                        'rejected' => '❌ Ditolak',
+                        default => $state,
+                    })
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.approvedBy.name')
+                    ->label('Disetujui Oleh')
+                    ->default('-')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.approved_at')
+                    ->label('Tanggal Approval')
+                    ->dateTime('d/m/Y H:i')
+                    ->default('-')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -616,6 +646,20 @@ class JurnalRekeningAirResource extends Resource
                         false: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_confirmed', false)),
                     ),
 
+                Tables\Filters\SelectFilter::make('approval_status')
+                    ->label('Status Approval')
+                    ->options([
+                        'pending' => '⏳ Pending',
+                        'approved' => '✅ Disetujui',
+                        'rejected' => '❌ Ditolak',
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when(
+                            $data['value'],
+                            fn($q) => $q->whereHas('jurnalRekeningAir', fn($query) => $query->where('approval_status', $data['value']))
+                        );
+                    }),
+
                 Tables\Filters\SelectFilter::make('position')
                     ->label('Posisi')
                     ->options([
@@ -641,6 +685,64 @@ class JurnalRekeningAirResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('approve')
+                        ->label('Setujui')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('success')
+                        ->action(function ($record) {
+                            $parent = $record->jurnalRekeningAir;
+                            $parent->update([
+                                'approval_status' => 'approved',
+                                'approved_by' => auth()->id(),
+                                'approved_at' => now(),
+                                'approval_notes' => null,
+                            ]);
+
+                            Notification::make()
+                                ->title('Jurnal Disetujui')
+                                ->body("No. Reff: {$parent->no_reff} telah disetujui")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Setujui Jurnal')
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin menyetujui jurnal {$record->jurnalRekeningAir->no_reff}?")
+                        ->visible(fn($record) => $record->jurnalRekeningAir->approval_status === 'pending')
+                        ->hidden(fn() => !auth()->user()->hasAnyRole(['kepala_sub_bagian_anggaran_pendapatan', 'kepala_bagian'])),
+
+                    Tables\Actions\Action::make('reject')
+                        ->label('Tolak')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->form([
+                            Forms\Components\Textarea::make('approval_notes')
+                                ->label('Alasan Penolakan')
+                                ->required()
+                                ->rows(3)
+                                ->placeholder('Masukkan alasan penolakan jurnal ini...')
+                        ])
+                        ->action(function ($record, array $data) {
+                            $parent = $record->jurnalRekeningAir;
+                            $parent->update([
+                                'approval_status' => 'rejected',
+                                'approved_by' => auth()->id(),
+                                'approved_at' => now(),
+                                'approval_notes' => $data['approval_notes'],
+                            ]);
+
+                            Notification::make()
+                                ->title('Jurnal Ditolak')
+                                ->body("No. Reff: {$parent->no_reff} ditolak")
+                                ->danger()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Tolak Jurnal')
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin menolak jurnal {$record->jurnalRekeningAir->no_reff}?")
+                        ->modalSubmitActionLabel('Ya, Tolak')
+                        ->visible(fn($record) => $record->jurnalRekeningAir->approval_status === 'pending')
+                        ->hidden(fn() => !auth()->user()->hasAnyRole(['kepala_sub_bagian_anggaran_pendapatan', 'kepala_bagian'])),
+
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi Jurnal')
                         ->icon('heroicon-o-check-circle')

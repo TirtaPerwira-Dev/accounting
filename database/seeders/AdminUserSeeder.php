@@ -16,6 +16,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@mail.com'],
             [
                 'name' => 'System Super Admin',
+                'username' => 'admin',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -24,15 +25,15 @@ class AdminUserSeeder extends Seeder
 
         // Default BUMD accounts
         $users = [
-            'direktur_utama'     => ['email' => 'dirut@mail.com',  'name' => 'Direktur Utama'],
-            'direktur_umum'      => ['email' => 'dirum@mail.com',  'name' => 'Direktur Umum'],
-            'kepala_bagian'      => ['email' => 'kabag@mail.com',  'name' => 'Kepala Bagian'],
-            'kepala_sub_bagian'  => ['email' => 'kasubag@mail.com', 'name' => 'Kepala Sub Bagian'],
-            'kepala_sub_bagian_anggaran_pendapatan'  => ['email' => 'kasubanggaran@mail.com', 'name' => 'Kepala Sub Bagian Anggaran Pendapatan'],
-            'kepala_sub_bagian_verifikasi_pembukuan'  => ['email' => 'kasubverifikasi@mail.com', 'name' => 'Kepala Sub Bagian Verifikasi Pembukuan'],
-            'staff'              => ['email' => 'staff@mail.com',  'name' => 'Staff'],
-            'staff_anggaran_pendapatan'              => ['email' => 'staffanggaran@mail.com',  'name' => 'Staff Anggaran Pendapatan'],
-            'staff_verifikasi_pembukuan'              => ['email' => 'staffverifikasi@mail.com',  'name' => 'Staff Verifikasi Pembukuan'],
+            'direktur_utama'     => ['email' => 'dirut@mail.com',  'name' => 'Direktur Utama', 'username' => 'dirut'],
+            'direktur_umum'      => ['email' => 'dirum@mail.com',  'name' => 'Direktur Umum', 'username' => 'dirum'],
+            'kepala_bagian'      => ['email' => 'kabag@mail.com',  'name' => 'Kepala Bagian', 'username' => 'kabag'],
+            'kepala_sub_bagian'  => ['email' => 'kasubag@mail.com', 'name' => 'Kepala Sub Bagian', 'username' => 'kasubag'],
+            'kepala_sub_bagian_anggaran_pendapatan'  => ['email' => 'kasubanggaran@mail.com', 'name' => 'Kepala Sub Bagian Anggaran Pendapatan', 'username' => 'kasubanggaran'],
+            'kepala_sub_bagian_verifikasi_pembukuan'  => ['email' => 'kasubverifikasi@mail.com', 'name' => 'Kepala Sub Bagian Verifikasi Pembukuan', 'username' => 'kasubverifikasi'],
+            'staff'              => ['email' => 'staff@mail.com',  'name' => 'Staff', 'username' => 'staff'],
+            'staff_anggaran_pendapatan'              => ['email' => 'staffanggaran@mail.com',  'name' => 'Staff Anggaran Pendapatan', 'username' => 'staffanggaran'],
+            'staff_verifikasi_pembukuan'              => ['email' => 'staffverifikasi@mail.com',  'name' => 'Staff Verifikasi Pembukuan', 'username' => 'staffverifikasi'],
         ];
 
         foreach ($users as $role => $userData) {
@@ -47,6 +48,7 @@ class AdminUserSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],
+                    'username' => $userData['username'],
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                 ]
