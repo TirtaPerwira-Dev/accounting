@@ -33,20 +33,20 @@
             <div class="fi-ta-empty-state-icon-ctn mb-4 flex justify-center">
                 <div class="fi-ta-empty-state-icon flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                     <svg class="fi-ta-empty-state-icon-svg h-5 w-5 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/>
                     </svg>
                 </div>
             </div>
 
             <div class="fi-ta-empty-state-heading-ctn">
                 <h4 class="fi-ta-empty-state-heading text-base font-semibold leading-6 text-gray-950 dark:text-white">
-                    Belum Ada Item Sumber Penerimaan
+                    Belum Ada Item Pembayaran
                 </h4>
             </div>
 
             <div class="fi-ta-empty-state-description-ctn">
                 <p class="fi-ta-empty-state-description text-sm text-gray-500 dark:text-gray-400">
-                    Gunakan form di atas untuk menambah item sumber penerimaan
+                    Gunakan form di atas untuk menambah item pembayaran
                 </p>
             </div>
         </div>
@@ -63,22 +63,17 @@
                     </th>
                     <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                         <span class="group flex w-full items-center gap-x-1 whitespace-nowrap justify-start">
-                            <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">No. Bukti</span>
-                        </span>
-                    </th>
-                    <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                        <span class="group flex w-full items-center gap-x-1 whitespace-nowrap justify-start">
-                            <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">Keterangan</span>
-                        </span>
-                    </th>
-                    <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                        <span class="group flex w-full items-center gap-x-1 whitespace-nowrap justify-start">
                             <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">Kode Proyek</span>
                         </span>
                     </th>
                     <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                         <span class="group flex w-full items-center gap-x-1 whitespace-nowrap justify-start">
                             <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">Rekening</span>
+                        </span>
+                    </th>
+                    <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
+                        <span class="group flex w-full items-center gap-x-1 whitespace-nowrap justify-start">
+                            <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">Keterangan</span>
                         </span>
                     </th>
                     <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
@@ -112,30 +107,6 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        {{ $item['nomor_bukti'] ?: '-' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-4">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        <span class="text-gray-600 dark:text-gray-400 text-xs max-w-xs truncate">
-                                            {{ $item['keterangan_item'] ?: '-' }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-4">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
                                         @if(!empty($item['kode_proyek']) && $kodeProyekOptions->has($item['kode_proyek']))
                                             <span class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-2 py-1 fi-color-info fi-badge-color-info bg-info-50 text-info-600 ring-info-600/10 dark:bg-info-400/10 dark:text-info-400 dark:ring-info-400/30">
                                                 {{ $kodeProyekOptions->get($item['kode_proyek']) }}
@@ -153,7 +124,7 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex flex-col gap-1">
                                     @if(!empty($item['rekening']) && $rekeningOptions->has($item['rekening']))
-                                        <div class="fi-ta-text-item text-sm leading-6 text-gray-950 dark:text-white">
+                                        <div class="text-sm leading-6 text-gray-950 dark:text-white">
                                             {{ $rekeningOptions->get($item['rekening']) }}
                                         </div>
                                         @if(!empty($item['nomor_bantu']) && $nomorBantuOptions->has($item['nomor_bantu']))
@@ -164,6 +135,19 @@
                                     @else
                                         <span class="text-gray-500 dark:text-gray-400 italic text-xs">-</span>
                                     @endif
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-4">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex">
+                                    <div class="fi-ta-text-item text-sm leading-6 text-gray-950 dark:text-white">
+                                        <span class="text-gray-600 dark:text-gray-400 text-xs max-w-xs truncate">
+                                            {{ $item['keterangan'] ?: '-' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -187,19 +171,7 @@
                                 <div class="flex justify-center gap-2">
                                     <button
                                         type="button"
-                                        wire:click="editItem({{ $index }})"
-                                        class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-custom fi-ac-action fi-ac-link-action"
-                                        style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);"
-                                        title="Edit item">
-                                        <svg class="fi-link-icon h-5 w-5 text-custom-500 dark:text-custom-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z"/>
-                                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z"/>
-                                        </svg>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        wire:click="removeItem({{ $index }})"
+                                        wire:click="$dispatch('remove-bayar-item', { index: {{ $index }} })"
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-danger fi-ac-action fi-ac-link-action"
                                         title="Hapus item">
                                         <svg class="fi-link-icon h-5 w-5 text-danger-500 dark:text-danger-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -220,7 +192,7 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 font-bold text-gray-950 dark:text-white">
-                                        TOTAL PENERIMAAN:
+                                        TOTAL PEMBAYARAN:
                                     </div>
                                 </div>
                             </div>
@@ -240,35 +212,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr>
-                    <td colspan="6" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-center">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-xs leading-6 text-gray-500 dark:text-gray-400">
-                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                                        </svg>
-                                        {{ count($items) }} item sumber penerimaan • Total: Rp {{ number_format($total, 0, ',', '.') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
             </tfoot>
         </table>
     </div>
-
-    <script>
-        function removeItem(index) {
-            if (confirm('Yakin ingin menghapus item ini?')) {
-                @this.call('removeItem', index);
-            }
-        }
-
-        function editItem(index) {
-            @this.call('editItem', index);
-        }
-    </script>
 @endif

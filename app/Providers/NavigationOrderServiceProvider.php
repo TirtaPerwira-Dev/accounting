@@ -33,7 +33,7 @@ class NavigationOrderServiceProvider extends ServiceProvider
         // Define the desired order of navigation groups
         $groupOrder = [
             'Master Penomoran' => 1,
-            'Setup Saldo Awal' => 2,
+            'Setup Saldo' => 2,
             'Transaksi Kas' => 3,
             'Laporan Keuangan' => 4,
             'Setup & Konfigurasi' => 5,
@@ -61,7 +61,7 @@ class NavigationOrderServiceProvider extends ServiceProvider
     {
         return match ($groupName) {
             'Master Penomoran' => 'heroicon-o-numbered-list',
-            'Setup Saldo Awal' => 'heroicon-o-calculator',
+            'Setup Saldo' => 'heroicon-o-banknotes',
             'Transaksi Kas' => 'heroicon-o-banknotes',
             'Laporan Keuangan' => 'heroicon-o-document-chart-bar',
             'Setup & Konfigurasi' => 'heroicon-o-cog-6-tooth',

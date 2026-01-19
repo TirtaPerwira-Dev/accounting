@@ -28,7 +28,7 @@ class JurnalPembelianResource extends Resource
 
     protected static ?string $navigationLabel = 'Jurnal Pembelian Barang';
 
-    protected static ?string $navigationGroup = 'Jurnal Transaksi';
+    protected static ?string $navigationGroup = 'Jurnal';
 
     protected static ?int $navigationGroupSort = 3;
 

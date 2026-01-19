@@ -31,7 +31,7 @@ class JurnalPenerimaanKasResource extends Resource
 
     protected static ?string $navigationLabel = 'Jurnal Penerimaan Kas';
 
-    protected static ?string $navigationGroup = 'Jurnal Transaksi';
+    protected static ?string $navigationGroup = 'Jurnal';
 
     protected static ?int $navigationGroupSort = 3;
 
@@ -96,28 +96,13 @@ class JurnalPenerimaanKasResource extends Resource
                 Forms\Components\Section::make('Kas/Bank Tujuan (DEBIT)')
                     ->description('Pilih rekening kas atau bank tempat uang masuk')
                     ->schema([
-                        Forms\Components\Grid::make(4)
+                        Forms\Components\Grid::make(3)
                             ->schema([
-                                // Kelompok
-                                Forms\Components\Select::make('kelompok_id')
-                                    ->label('Kelompok')
-                                    ->options(function () {
-                                        return Kelompok::where('no_kel', '10') // Aktiva Lancar only
-                                            ->pluck('nama_kel', 'id')
-                                            ->mapWithKeys(fn($nama, $id) => [
-                                                $id => Kelompok::find($id)->no_kel . ' - ' . $nama
-                                            ]);
-                                    })
+                                // Kelompok (Hidden) - Auto-set to Aktiva Lancar
+                                Forms\Components\Hidden::make('kelompok_id')
                                     ->default(function () {
                                         return Kelompok::where('no_kel', '10')->first()?->id;
                                     })
-                                    ->required()
-                                    ->live()
-                                    ->afterStateUpdated(function (callable $set) {
-                                        $set('rekening_id', null);
-                                        $set('kas_bank_id', null);
-                                    })
-                                    ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                     ->dehydrated(),
 
                                 // Rekening

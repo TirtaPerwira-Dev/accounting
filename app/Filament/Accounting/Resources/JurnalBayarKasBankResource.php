@@ -28,7 +28,7 @@ class JurnalBayarKasBankResource extends Resource
 
     protected static ?string $navigationLabel = 'Jurnal Bayar Kas/Bank';
 
-    protected static ?string $navigationGroup = 'Jurnal Transaksi';
+    protected static ?string $navigationGroup = 'Jurnal';
 
     protected static ?int $navigationSort = 4;
 
@@ -113,7 +113,17 @@ class JurnalBayarKasBankResource extends Resource
                                     if (!$state) return;
                                     [$rekeningId, $nomorBantuId] = explode('|', $state);
                                     $rekening = Rekening::find($rekeningId);
-                                    $set('nama_bank', $rekening?->nama_rek ?? '');
+
+                                    // Get nama bank (hanya nama, tanpa kode)
+                                    $namaBank = $rekening?->nama_rek ?? '';
+                                    if ($nomorBantuId > 0) {
+                                        $nomorBantu = NomorBantu::find($nomorBantuId);
+                                        if ($nomorBantu) {
+                                            $namaBank = $nomorBantu->nm_bantu; // Hanya nama bantu
+                                        }
+                                    }
+
+                                    $set('nama_bank', $namaBank);
                                     $set('rekening_id', $rekeningId);
                                     $set('nomor_bantu_id', $nomorBantuId > 0 ? $nomorBantuId : null);
                                 }),
@@ -149,114 +159,280 @@ class JurnalBayarKasBankResource extends Resource
                         Forms\Components\Hidden::make('nomor_bantu_id'),
                     ]),
 
-                // SECTION 2: Detail Pembayaran (Repeater)
-                Forms\Components\Section::make('Detail Pembayaran')
-                    ->description('Tambahkan detail rekening pembayaran')
+                // SECTION 2: FORM TAMBAH ITEM PEMBAYARAN
+                Forms\Components\Section::make('Tambah Item Pembayaran')
+                    ->description('Isi form di bawah ini lalu klik "Tambah Item"')
                     ->schema([
-                        Forms\Components\Repeater::make('details')
+                        Forms\Components\Grid::make(3)->schema([
+                            // Kode Proyek
+                            Forms\Components\Select::make('temp_kode_proyek')
+                                ->label('Kode Proyek')
+                                ->options(function () {
+                                    return KodeProyek::all()
+                                        ->pluck('name', 'id')
+                                        ->mapWithKeys(fn($nama, $id) => [
+                                            $id => KodeProyek::find($id)->kode . ' - ' . $nama
+                                        ]);
+                                })
+                                ->searchable()
+                                ->placeholder('Pilih Proyek')
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // Rekening
+                            Forms\Components\Select::make('temp_rekening')
+                                ->label('Rekening')
+                                ->options(function () {
+                                    return Rekening::with('kelompok')
+                                        ->get()
+                                        ->mapWithKeys(fn($rekening) => [
+                                            $rekening->id => "{$rekening->kelompok->no_kel}-{$rekening->no_rek} - {$rekening->nama_rek}"
+                                        ]);
+                                })
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, $state) {
+                                    if ($state) {
+                                        $set('temp_nomor_bantu', null);
+                                    }
+                                })
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // Nomor Bantu
+                            Forms\Components\Select::make('temp_nomor_bantu')
+                                ->label('Nomor Bantu')
+                                ->options(function (callable $get) {
+                                    $rekeningId = $get('temp_rekening');
+                                    if (!$rekeningId) return [];
+
+                                    return NomorBantu::where('rekening_id', $rekeningId)
+                                        ->get()
+                                        ->mapWithKeys(fn($item) => [
+                                            $item->id => $item->no_bantu . ' - ' . $item->nm_bantu
+                                        ]);
+                                })
+                                ->searchable()
+                                ->placeholder('Pilih No. Bantu')
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+                        ]),
+
+                        // Jumlah dan Keterangan
+                        Forms\Components\Grid::make(2)->schema([
+                            // Jumlah
+                            Forms\Components\TextInput::make('temp_jumlah')
+                                ->label('Jumlah (Rp)')
+                                ->prefix('Rp')
+                                ->placeholder('0')
+                                ->numeric()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                ])
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // Keterangan
+                            Forms\Components\Textarea::make('temp_keterangan')
+                                ->label('Keterangan')
+                                ->placeholder('Detail pembayaran...')
+                                ->rows(2)
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+                        ]),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('add_item')
+                                ->label('Tambah Item')
+                                ->icon('heroicon-o-plus-circle')
+                                ->color('warning')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $tempData = [
+                                        'kode_proyek' => $get('temp_kode_proyek'),
+                                        'rekening' => $get('temp_rekening'),
+                                        'nomor_bantu' => $get('temp_nomor_bantu'),
+                                        'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
+                                        'keterangan' => $get('temp_keterangan'),
+                                    ];
+
+                                    // Validate required fields
+                                    if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Data tidak lengkap!')
+                                            ->body('Rekening dan Jumlah harus diisi.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $currentItems = $get('detail_pembayaran') ?? [];
+                                    $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
+                                    $set('detail_pembayaran', $currentItems);
+
+                                    // Clear form
+                                    $set('temp_kode_proyek', null);
+                                    $set('temp_rekening', null);
+                                    $set('temp_nomor_bantu', null);
+                                    $set('temp_jumlah', '');
+                                    $set('temp_keterangan', '');
+
+                                    // Reset konfirmasi selesai karena ada item baru
+                                    $set('items_completed', false);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Item berhasil ditambahkan!')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation(false),
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Info saat form disabled
+                        Forms\Components\Placeholder::make('form_disabled_info')
                             ->label('')
-                            ->schema([
-                                Forms\Components\Grid::make(3)->schema([
-                                    // Nama Rekening
-                                    Forms\Components\Select::make('rekening_detail_id')
-                                        ->label('Nama Rekening')
-                                        ->options(function () {
-                                            return Rekening::with('kelompok')
-                                                ->get()
-                                                ->mapWithKeys(fn($r) => [
-                                                    $r->id => "[{$r->kelompok->no_kel}-{$r->no_rek}] {$r->nama_rek}"
-                                                ]);
-                                        })
-                                        ->searchable()
-                                        ->required()
-                                        ->live()
-                                        ->afterStateUpdated(fn($set) => $set('nomor_bantu_detail_id', null)),
+                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" jika ingin menambah item lagi.')
+                            ->visible(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                            ->columnSpanFull(),
+                    ]),
 
-                                    // Rekening (Nomor Bantu)
-                                    Forms\Components\Select::make('nomor_bantu_detail_id')
-                                        ->label('Rekening (No. Bantu)')
-                                        ->options(function (Forms\Get $get) {
-                                            if (!$get('rekening_detail_id')) return [];
-                                            return NomorBantu::where('rekening_id', $get('rekening_detail_id'))
-                                                ->get()
-                                                ->mapWithKeys(fn($nb) => [$nb->id => "[{$nb->no_bantu}] {$nb->nm_bantu}"]);
-                                        })
-                                        ->searchable(),
+                // SECTION 3: PREVIEW ITEMS
+                Forms\Components\Section::make('Daftar Item Pembayaran')
+                    ->description('Preview item yang telah ditambahkan')
+                    ->schema([
+                        Forms\Components\ViewField::make('detail_pembayaran')
+                            ->view('filament.forms.components.bayar-kas-bank-items-table'),
 
-                                    // Jumlah
-                                    Forms\Components\TextInput::make('jumlah')
-                                        ->label('Jumlah')
-                                        ->prefix('Rp')
-                                        ->numeric()
-                                        ->required()
-                                        ->default(0)
-                                        ->live(),
-                                ]),
+                        // Action untuk konfirmasi selesai menambah item
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('confirm_items_complete')
+                                ->label('Konfirmasi Selesai Menambah Item')
+                                ->icon('heroicon-o-check-circle')
+                                ->color('success')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('detail_pembayaran')))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $items = $get('detail_pembayaran') ?? [];
 
-                                // Keterangan dengan Dropdown Template
-                                Forms\Components\Grid::make(2)->schema([
-                                    Forms\Components\Select::make('keterangan_template')
-                                        ->label('Template Keterangan')
-                                        ->options([
-                                            'Bayar Lembur' => 'Bayar Lembur',
-                                            'Perbaikan Kebocoran' => 'Perbaikan Kebocoran',
-                                            'Pembelian Bahan' => 'Pembelian Bahan',
-                                            'Biaya Operasional' => 'Biaya Operasional',
-                                            'Gaji Karyawan' => 'Gaji Karyawan',
-                                        ])
-                                        ->placeholder('Pilih template keterangan')
-                                        ->live()
-                                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                            $tanggal = $get('../../tanggal_check') ?? now()->format('d/m/Y');
-                                            $keterangan = $state ? "{$state} - {$tanggal}" : '';
-                                            $set('keterangan', $keterangan);
-                                        }),
+                                    if (empty($items)) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Tidak ada item!')
+                                            ->body('Tambahkan minimal 1 item pembayaran terlebih dahulu.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
 
-                                    Forms\Components\Textarea::make('keterangan')
-                                        ->label('Keterangan')
-                                        ->rows(2),
-                                ]),
-                            ])
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah Item')
-                            ->addAction(
-                                fn($action) => $action
-                                    ->icon('heroicon-o-plus-circle')
-                                    ->color('warning')
-                            )
-                            ->collapsible()
+                                    $total = collect($items)->sum('jumlah');
+                                    if ($total == 0) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Total tidak boleh 0!')
+                                            ->body('Pastikan ada item dengan jumlah yang valid.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $set('items_completed', true);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Item dikonfirmasi!')
+                                        ->body('Silakan klik tombol "Buat" untuk menyimpan jurnal.')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation()
+                                ->modalHeading('Konfirmasi Item Selesai')
+                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item pembayaran?')
+                                ->modalSubmitActionLabel('Ya, Selesai'),
+
+                            Forms\Components\Actions\Action::make('reset_items_confirmation')
+                                ->label('Reset Konfirmasi')
+                                ->icon('heroicon-o-arrow-path')
+                                ->color('warning')
+                                ->size('md')
+                                ->visible(fn(Forms\Get $get) => $get('items_completed'))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $set('items_completed', false);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Konfirmasi direset')
+                                        ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
+                                        ->info()
+                                        ->send();
+                                })
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Status konfirmasi
+                        Forms\Components\Placeholder::make('items_status')
+                            ->label('')
+                            ->content(function (Forms\Get $get) {
+                                if ($get('items_completed')) {
+                                    return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
+                                } else {
+                                    $count = count($get('detail_pembayaran') ?? []);
+                                    if ($count > 0) {
+                                        $items = $get('detail_pembayaran') ?? [];
+                                        $total = collect($items)->sum('jumlah');
+                                        return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                    }
+                                    return '📋 Belum ada item yang ditambahkan';
+                                }
+                            })
+                            ->visible(fn(Forms\Get $get) => !empty($get('detail_pembayaran')))
                             ->columnSpanFull(),
 
-                        // Summary Total
-                        Forms\Components\Section::make('Ringkasan')
+                        // Hidden field untuk status konfirmasi
+                        Forms\Components\Hidden::make('items_completed')
+                            ->default(false)
+                            ->dehydrated(true),
+
+                        // Hidden field untuk menyimpan array items
+                        Forms\Components\Hidden::make('detail_pembayaran')
+                            ->dehydrated(true),
+                    ])
+                    ->visible(fn(Forms\Get $get) => !empty($get('detail_pembayaran')))
+                    ->collapsible(),
+
+                // SECTION 4: RINGKASAN
+                Forms\Components\Section::make('Ringkasan Transaksi')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Placeholder::make('total_pembayaran')
+                                Forms\Components\Placeholder::make('total_amount')
                                     ->label('Total Pembayaran')
-                                    ->content(function (Forms\Get $get) {
-                                        $details = $get('details') ?? [];
-                                        $total = 0;
-                                        foreach ($details as $detail) {
-                                            $total += (float)($detail['jumlah'] ?? 0);
-                                        }
-                                        return new \Illuminate\Support\HtmlString(
-                                            '<span style="font-size: 1.2em; font-weight: bold; color: #059669;">Rp ' .
-                                                number_format($total, 0, ',', '.') . '</span>'
-                                        );
-                                    })
-                                    ->live(),
-                            ])
-                            ->collapsible(),
-                        Forms\Components\Section::make('Nomor Referensi')
-                            ->schema([
-                                Forms\Components\Placeholder::make('no_reff_preview')
-                                    ->label('Nomor Referensi')
-                                    ->content('Nomor Reff Jurnal Pembelian Barang adalah = 4')
-                                    ->columnSpanFull(),
-                            ])
-                            ->compact()
-                            ->collapsible()
-                            ->collapsed(),
-                    ]),
+                                    ->content(function (callable $get) {
+                                        $details = $get('detail_pembayaran') ?? [];
+                                        $total = collect($details)->sum('jumlah');
+                                        return 'Rp ' . number_format($total, 0, ',', '.');
+                                    }),
+
+                                Forms\Components\Placeholder::make('status_balance')
+                                    ->label('⚖️ Status')
+                                    ->content(function (callable $get) {
+                                        $details = $get('detail_pembayaran') ?? [];
+                                        $total = collect($details)->sum('jumlah');
+                                        $isBalance = $total > 0;
+                                        return $isBalance ? '✅ Valid' : '⚠️ Belum ada item';
+                                    }),
+                            ]),
+                    ])
+                    ->compact()
+                    ->collapsible()
+                    ->collapsed(),
+
+                Forms\Components\Section::make('Nomor Referensi')
+                    ->schema([
+                        Forms\Components\Placeholder::make('no_reff_preview')
+                            ->label('Nomor Referensi')
+                            ->content('Nomor Reff Jurnal Bayar Kas/Bank adalah = 3')
+                            ->columnSpanFull(),
+                    ])
+                    ->compact()
+                    ->collapsible()
+                    ->collapsed(),
 
                 // Hidden Fields
                 Forms\Components\Hidden::make('ref')->default('3'),

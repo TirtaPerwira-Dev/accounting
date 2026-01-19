@@ -31,7 +31,7 @@ class JurnalRekeningAirResource extends Resource
 
     protected static ?string $navigationLabel = 'Jurnal Rekening Air';
 
-    protected static ?string $navigationGroup = 'Jurnal Transaksi';
+    protected static ?string $navigationGroup = 'Jurnal';
 
     protected static ?int $navigationGroupSort = 3;
 

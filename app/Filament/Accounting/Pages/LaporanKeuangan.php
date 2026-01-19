@@ -17,6 +17,7 @@ use App\Models\JurnalPembelian;
 use App\Models\JurnalBayarKasBank;
 use App\Models\JurnalPenerimaanKas;
 use App\Models\Kelompok;
+use App\Models\SaldoAwalRekening;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -136,6 +137,7 @@ class LaporanKeuangan extends Page implements HasForms
     protected function generateNeraca(array $filters): array
     {
         $periodeEnd = Carbon::parse($filters['periode_end']);
+        $tahun = $periodeEnd->year;
 
         // Ambil semua transaksi sampai periode akhir
         $transaksi = $this->getAllTransactions(null, $periodeEnd);
@@ -147,12 +149,16 @@ class LaporanKeuangan extends Page implements HasForms
         // Kelompok 10-40 = Aktiva
         $aktivaKelompok = Kelompok::where('kel', 1)->get();
         foreach ($aktivaKelompok as $kelompok) {
-            $saldo = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
-            if ($saldo != 0) {
+            // Saldo = Saldo Awal + Mutasi
+            $saldoAwal = $this->getSaldoAwalKelompok($kelompok->id, $tahun);
+            $mutasi = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
+            $saldoAkhir = $saldoAwal + $mutasi;
+            
+            if ($saldoAkhir != 0) {
                 $aktiva[] = [
                     'kode' => $kelompok->no_kel,
                     'nama' => $kelompok->nama_kel,
-                    'saldo' => $saldo,
+                    'saldo' => $saldoAkhir,
                 ];
             }
         }
@@ -160,12 +166,15 @@ class LaporanKeuangan extends Page implements HasForms
         // Kelompok 50-70 = Pasiva
         $pasivaKelompok = Kelompok::where('kel', 2)->get();
         foreach ($pasivaKelompok as $kelompok) {
-            $saldo = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
-            if ($saldo != 0) {
+            $saldoAwal = $this->getSaldoAwalKelompok($kelompok->id, $tahun);
+            $mutasi = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
+            $saldoAkhir = $saldoAwal + $mutasi;
+            
+            if ($saldoAkhir != 0) {
                 $pasiva[] = [
                     'kode' => $kelompok->no_kel,
                     'nama' => $kelompok->nama_kel,
-                    'saldo' => $saldo,
+                    'saldo' => $saldoAkhir,
                 ];
             }
         }
@@ -276,11 +285,14 @@ class LaporanKeuangan extends Page implements HasForms
             $rekeningId = $t['rekening_id'];
 
             if (!isset($bukuBesarPerRekening[$rekeningId])) {
+                // Ambil saldo awal rekening untuk tahun periode
+                $saldoAwal = $this->getSaldoAwalRekening($rekeningId, $periodeStart->year);
+                
                 $bukuBesarPerRekening[$rekeningId] = [
                     'kode' => $t['kode_rekening'],
                     'nama' => $t['nama_rekening'],
                     'transaksi' => [],
-                    'saldo_awal' => 0,
+                    'saldo_awal' => $saldoAwal,
                     'total_debit' => 0,
                     'total_kredit' => 0,
                 ];
@@ -325,6 +337,7 @@ class LaporanKeuangan extends Page implements HasForms
     protected function generateTrialBalance(array $filters): array
     {
         $periodeEnd = Carbon::parse($filters['periode_end']);
+        $tahun = $periodeEnd->year;
         $transaksi = $this->getAllTransactions(null, $periodeEnd);
 
         $saldoPerRekening = [];
@@ -332,9 +345,13 @@ class LaporanKeuangan extends Page implements HasForms
         foreach ($transaksi as $t) {
             $rekeningId = $t['rekening_id'];
             if (!isset($saldoPerRekening[$rekeningId])) {
+                // Include saldo awal
+                $saldoAwal = $this->getSaldoAwalRekening($rekeningId, $tahun);
+                
                 $saldoPerRekening[$rekeningId] = [
                     'kode' => $t['kode_rekening'],
                     'nama' => $t['nama_rekening'],
+                    'saldo_awal' => $saldoAwal,
                     'debit' => 0,
                     'kredit' => 0,
                 ];
@@ -534,5 +551,39 @@ class LaporanKeuangan extends Page implements HasForms
         $date = now()->format('Y-m-d-His');
 
         return "{$reportName}_{$date}.{$extension}";
+    }
+
+    /**
+     * Ambil saldo awal per rekening untuk tahun tertentu
+     */
+    protected function getSaldoAwalRekening(int $rekeningId, int $tahun): float
+    {
+        $saldoAwal = SaldoAwalRekening::where('rekening_id', $rekeningId)
+            ->where('tahun', $tahun)
+            ->first();
+
+        if (!$saldoAwal) {
+            return 0;
+        }
+
+        // Jika posisi Debit = positif, Kredit = negatif
+        return $saldoAwal->posisi === 'D' ? $saldoAwal->saldo_awal : -$saldoAwal->saldo_awal;
+    }
+
+    /**
+     * Ambil total saldo awal untuk satu kelompok (agregasi dari semua rekening di kelompok)
+     */
+    protected function getSaldoAwalKelompok(int $kelompokId, int $tahun): float
+    {
+        // Ambil semua rekening di kelompok ini
+        $rekening = \App\Models\Rekening::where('kelompok_id', $kelompokId)->pluck('id');
+
+        $totalSaldo = 0;
+
+        foreach ($rekening as $rekeningId) {
+            $totalSaldo += $this->getSaldoAwalRekening($rekeningId, $tahun);
+        }
+
+        return $totalSaldo;
     }
 }

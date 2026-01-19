@@ -18,7 +18,10 @@ class SaldoAwalJurnalResource extends Resource
 
     protected static ?string $navigationLabel = 'Saldo Awal Jurnal';
 
-    protected static ?string $navigationGroup = 'Setup Akuntansi';
+    protected static ?string $navigationGroup = 'Setup Saldo';
+
+    // DEPRECATED: Gunakan SaldoAwalRekeningResource yang baru
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 1;
 

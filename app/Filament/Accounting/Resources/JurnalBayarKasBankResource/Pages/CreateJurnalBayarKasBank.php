@@ -15,9 +15,10 @@ class CreateJurnalBayarKasBank extends CreateRecord
 
     protected function handleRecordCreation(array $data): JurnalBayarKasBank
     {
-        // Extract repeater items
-        $details = $data['details'] ?? [];
-        unset($data['details']);
+        // Extract item pembayaran dari detail_pembayaran
+        $details = $data['detail_pembayaran'] ?? [];
+        unset($data['detail_pembayaran']);
+        unset($data['items_completed']);
 
         if (empty($details)) {
             throw new \Exception('Minimal harus ada 1 item pembayaran');
@@ -35,8 +36,8 @@ class CreateJurnalBayarKasBank extends CreateRecord
         foreach ($details as $index => $item) {
             // Get nomor bantu info untuk populate kelompok dan rekening
             $nomorBantu = null;
-            if (!empty($item['nomor_bantu_detail_id'])) {
-                $nomorBantu = NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_detail_id']);
+            if (!empty($item['nomor_bantu'])) {
+                $nomorBantu = NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu']);
             }
 
             $jumlah = (float) ($item['jumlah'] ?? 0);
@@ -45,9 +46,11 @@ class CreateJurnalBayarKasBank extends CreateRecord
             // Prepare data untuk setiap record
             $recordData = array_merge($data, [
                 'no_voucher' => $noVoucher,
-                'rekening_id' => $nomorBantu?->rekening_id ?? $data['rekening_bank_id'],
+                'tanggal' => $data['tanggal_check'], // Fix: Add tanggal field
+                'rekening_id' => $nomorBantu?->rekening_id ?? ($item['rekening'] ?? $data['rekening_id']),
                 'kelompok_id' => $nomorBantu?->rekening->kelompok_id ?? $data['kelompok_id'],
-                'nomor_bantu_id' => $item['nomor_bantu_detail_id'] ?? null,
+                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
+                'kode_proyek_id' => $item['kode_proyek'] ?? null,
                 'rp' => $jumlah,
                 'keterangan' => $item['keterangan'] ?? '',
                 'group_transaksi' => $groupTransaksi,
