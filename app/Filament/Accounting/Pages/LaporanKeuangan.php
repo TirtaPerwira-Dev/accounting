@@ -153,7 +153,7 @@ class LaporanKeuangan extends Page implements HasForms
             $saldoAwal = $this->getSaldoAwalKelompok($kelompok->id, $tahun);
             $mutasi = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
             $saldoAkhir = $saldoAwal + $mutasi;
-            
+
             if ($saldoAkhir != 0) {
                 $aktiva[] = [
                     'kode' => $kelompok->no_kel,
@@ -169,7 +169,7 @@ class LaporanKeuangan extends Page implements HasForms
             $saldoAwal = $this->getSaldoAwalKelompok($kelompok->id, $tahun);
             $mutasi = $this->hitungSaldoKelompok($kelompok->id, $transaksi);
             $saldoAkhir = $saldoAwal + $mutasi;
-            
+
             if ($saldoAkhir != 0) {
                 $pasiva[] = [
                     'kode' => $kelompok->no_kel,
@@ -287,7 +287,7 @@ class LaporanKeuangan extends Page implements HasForms
             if (!isset($bukuBesarPerRekening[$rekeningId])) {
                 // Ambil saldo awal rekening untuk tahun periode
                 $saldoAwal = $this->getSaldoAwalRekening($rekeningId, $periodeStart->year);
-                
+
                 $bukuBesarPerRekening[$rekeningId] = [
                     'kode' => $t['kode_rekening'],
                     'nama' => $t['nama_rekening'],
@@ -347,7 +347,7 @@ class LaporanKeuangan extends Page implements HasForms
             if (!isset($saldoPerRekening[$rekeningId])) {
                 // Include saldo awal
                 $saldoAwal = $this->getSaldoAwalRekening($rekeningId, $tahun);
-                
+
                 $saldoPerRekening[$rekeningId] = [
                     'kode' => $t['kode_rekening'],
                     'nama' => $t['nama_rekening'],

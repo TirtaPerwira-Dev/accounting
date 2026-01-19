@@ -19,16 +19,16 @@ class SaldoAwalRekeningSeeder extends Seeder
         $saldoAwalData = [
             // Kas (Debit)
             ['no_kel' => 10, 'no_rek' => 1101, 'saldo' => 50000000, 'posisi' => 'D', 'keterangan' => 'Saldo awal kas besar'],
-            
+
             // Bank BPD (Debit)
             ['no_kel' => 10, 'no_rek' => 1102, 'saldo' => 150000000, 'posisi' => 'D', 'keterangan' => 'Saldo awal bank BPD'],
-            
+
             // Piutang Rekening Air (Debit)
             ['no_kel' => 10, 'no_rek' => 1301, 'saldo' => 75000000, 'posisi' => 'D', 'keterangan' => 'Saldo awal piutang pelanggan air'],
-            
+
             // Utang Usaha (Kredit)
             ['no_kel' => 50, 'no_rek' => 5001, 'saldo' => 30000000, 'posisi' => 'K', 'keterangan' => 'Saldo awal hutang supplier'],
-            
+
             // Modal (Kredit)
             ['no_kel' => 70, 'no_rek' => 7003, 'saldo' => 245000000, 'posisi' => 'K', 'keterangan' => 'Saldo awal modal usaha'],
         ];

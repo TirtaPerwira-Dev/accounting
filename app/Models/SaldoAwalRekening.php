@@ -81,13 +81,13 @@ class SaldoAwalRekening extends Model
     public function getNamaRekeningLengkapAttribute()
     {
         if (!$this->rekening) return '-';
-        
+
         $nama = "[{$this->rekening->kelompok->no_kel}-{$this->rekening->no_rek}] {$this->rekening->nama_rek}";
-        
+
         if ($this->nomorBantu) {
             $nama .= " - [{$this->nomorBantu->no_bantu}] {$this->nomorBantu->nm_bantu}";
         }
-        
+
         return $nama;
     }
 }

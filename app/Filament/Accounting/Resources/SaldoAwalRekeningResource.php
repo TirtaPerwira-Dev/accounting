@@ -71,7 +71,7 @@ class SaldoAwalRekeningResource extends Resource
                             ->label('Nomor Bantu / Sub Rekening (Opsional)')
                             ->options(function (Forms\Get $get) {
                                 if (!$get('rekening_id')) return [];
-                                
+
                                 return NomorBantu::where('rekening_id', $get('rekening_id'))
                                     ->get()
                                     ->mapWithKeys(fn($nb) => [
@@ -122,7 +122,7 @@ class SaldoAwalRekeningResource extends Resource
                             ->content(function (Forms\Get $get) {
                                 $saldo = (float) preg_replace('/[^0-9]/', '', $get('saldo_awal') ?? '0');
                                 $posisi = $get('posisi') ?? 'D';
-                                
+
                                 if ($saldo == 0) {
                                     return '⚪ Saldo Rp 0';
                                 }
@@ -211,12 +211,12 @@ class SaldoAwalRekeningResource extends Resource
                             ->orderBy('tahun', 'desc')
                             ->pluck('tahun', 'tahun')
                             ->toArray();
-                        
+
                         if (empty($years)) {
                             $currentYear = now()->year;
                             return [$currentYear => $currentYear];
                         }
-                        
+
                         return $years;
                     })
                     ->default(now()->year),
