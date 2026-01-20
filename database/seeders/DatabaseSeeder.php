@@ -15,8 +15,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Generate permissions first before seeding roles
-        $this->command->info('Generating permissions...');
+        $this->command->info('Generating permissions for Admin panel...');
         Artisan::call('shield:generate', ['--all' => true, '--panel' => 'admin']);
+        
+        $this->command->info('Generating permissions for Accounting panel...');
+        Artisan::call('shield:generate', ['--all' => true, '--panel' => 'accounting']);
+        
         $this->command->info('Permissions generated successfully!');
 
         $this->call([
