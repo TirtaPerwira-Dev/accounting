@@ -429,7 +429,7 @@ class JurnalBayarKasBankResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
                             ->label('Nomor Referensi')
-                            ->content('Nomor Reff Jurnal Bayar Kas/Bank adalah = 3')
+                            ->content('Nomor Reff Jurnal Bayar Kas/Bank adalah = 4')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -437,7 +437,7 @@ class JurnalBayarKasBankResource extends Resource
                     ->collapsed(),
 
                 // Hidden Fields
-                Forms\Components\Hidden::make('ref')->default('3'),
+                Forms\Components\Hidden::make('ref')->default('4'),
                 Forms\Components\Hidden::make('company_id')->default(1),
                 Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
                 Forms\Components\Hidden::make('kelompok_id')
@@ -494,7 +494,6 @@ class JurnalBayarKasBankResource extends Resource
                     ->label('No. Reff'),
             ])
             ->headerActions([
-                // Import Excel
                 Tables\Actions\Action::make('import')
                     ->label('Import Excel')
                     ->icon('heroicon-o-arrow-up-tray')
@@ -503,29 +502,51 @@ class JurnalBayarKasBankResource extends Resource
                         Forms\Components\FileUpload::make('file')
                             ->label('File Excel')
                             ->acceptedFileTypes(['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
-                            ->required(),
+                            ->directory('imports')
+                            ->storeFileNamesIn('original_filename')
+                            ->required()
+                            ->helperText('Upload file Excel dengan format template yang sudah disediakan')
                     ])
                     ->action(function (array $data) {
                         try {
-                            $import = new JurnalBayarKasBankImport();
-                            Excel::import($import, $data['file']);
+                            // Get the uploaded file path
+                            $filePath = storage_path('app/public/' . $data['file']);
 
-                            if (!empty($import->getErrors())) {
+                            // Check if file exists
+                            if (!file_exists($filePath)) {
+                                throw new \Exception("File tidak ditemukan: {$filePath}");
+                            }
+
+                            $import = new JurnalBayarKasBankImport();
+                            Excel::import($import, $filePath);
+
+                            // Clean up - delete the uploaded file
+                            if (file_exists($filePath)) {
+                                unlink($filePath);
+                            }
+
+                            // Show success or error messages
+                            if ($import->getErrors()) {
+                                $errorMessage = "Import selesai dengan beberapa error:\n" . implode("\n", array_slice($import->getErrors(), 0, 5));
+                                if (count($import->getErrors()) > 5) {
+                                    $errorMessage .= "\n... dan " . (count($import->getErrors()) - 5) . " error lainnya";
+                                }
+
                                 Notification::make()
-                                    ->title('Import selesai dengan error')
-                                    ->body('Berhasil: ' . $import->getImportedCount() . ' | Error: ' . count($import->getErrors()))
+                                    ->title('Import Selesai dengan Error')
+                                    ->body($errorMessage)
                                     ->warning()
                                     ->send();
                             } else {
                                 Notification::make()
-                                    ->title('Import berhasil!')
-                                    ->body('Berhasil import ' . $import->getImportedCount() . ' data')
+                                    ->title('Import Berhasil')
+                                    ->body("Berhasil mengimport {$import->getImportedCount()} data jurnal bayar kas/bank")
                                     ->success()
                                     ->send();
                             }
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Import gagal')
+                                ->title('Import Gagal')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();

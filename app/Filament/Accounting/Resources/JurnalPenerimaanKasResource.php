@@ -448,7 +448,7 @@ class JurnalPenerimaanKasResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
                             ->label('Nomor Referensi')
-                            ->content('Nomor Reff Jurnal Pembelian Barang adalah = 3')
+                            ->content('Nomor Reff Jurnal Penerimaan Kas adalah = 3')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -456,7 +456,7 @@ class JurnalPenerimaanKasResource extends Resource
                     ->collapsed(),
 
                 // === HIDDEN FIELDS ===
-                Forms\Components\Hidden::make('reff'),
+                Forms\Components\Hidden::make('reff')->default('3'),
             ]);
     }
 
@@ -607,9 +607,9 @@ class JurnalPenerimaanKasResource extends Resource
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
+                    ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
-                    ->falseColor('danger')
+                    ->falseColor('warning')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('jurnalPenerimaanKas.reff')
