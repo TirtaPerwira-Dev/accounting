@@ -26,6 +26,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'view_dashboard',
             'page_MyProfilePage',
+            'page_FinancialReports',
 
             // User management
             'view_any_user',
@@ -111,25 +112,48 @@ class RolePermissionSeeder extends Seeder
             'delete_nomor::bantu',
 
             // All journals - view and approval
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_penerimaan::journal',
-            'view_penerimaan::journal',
-            'create_penerimaan::journal',
-            'update_penerimaan::journal',
-            'view_any_pengeluaran::journal',
-            'view_pengeluaran::journal',
-            'create_pengeluaran::journal',
-            'update_pengeluaran::journal',
+            'view_any_jurnal::pembelian',
+            'view_jurnal::pembelian',
+            'create_jurnal::pembelian',
+            'update_jurnal::pembelian',
+            'delete_jurnal::pembelian',
+            'view_any_jurnal::rekening::air',
+            'view_jurnal::rekening::air',
+            'create_jurnal::rekening::air',
+            'update_jurnal::rekening::air',
+            'delete_jurnal::rekening::air',
+            'view_any_jurnal::penerimaan::kas',
+            'view_jurnal::penerimaan::kas',
+            'create_jurnal::penerimaan::kas',
+            'update_jurnal::penerimaan::kas',
+            'delete_jurnal::penerimaan::kas',
+            'view_any_jurnal::bayar::kas::bank',
+            'view_jurnal::bayar::kas::bank',
+            'create_jurnal::bayar::kas::bank',
+            'update_jurnal::bayar::kas::bank',
+            'delete_jurnal::bayar::kas::bank',
+            'view_any_jurnal::memorial',
+            'view_jurnal::memorial',
+            'create_jurnal::memorial',
+            'update_jurnal::memorial',
+            'delete_jurnal::memorial',
+            'view_any_jurnal::pemakaian::bahan',
+            'view_jurnal::pemakaian::bahan',
+            'create_jurnal::pemakaian::bahan',
+            'update_jurnal::pemakaian::bahan',
+            'delete_jurnal::pemakaian::bahan',
 
             // Input saldo awal
-            'view_any_opening::balance',
-            'view_opening::balance',
-            'create_opening::balance',
-            'update_opening::balance',
-            'delete_opening::balance',
+            'view_any_saldo::awal::rekening',
+            'view_saldo::awal::rekening',
+            'create_saldo::awal::rekening',
+            'update_saldo::awal::rekening',
+            'delete_saldo::awal::rekening',
+            'view_any_saldo::awal::jurnal',
+            'view_saldo::awal::jurnal',
+            'create_saldo::awal::jurnal',
+            'update_saldo::awal::jurnal',
+            'delete_saldo::awal::jurnal',
 
             // Company settings
             'view_any_company',
@@ -170,21 +194,21 @@ class RolePermissionSeeder extends Seeder
             'update_nomor::bantu',
             'delete_nomor::bantu',
 
-            // Lihat jurnal umum & pengeluaran (approving post)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_pengeluaran::journal',
-            'view_pengeluaran::journal',
-            'create_pengeluaran::journal',
-            'update_pengeluaran::journal',
+            // Lihat jurnal bayar kas bank & memorial (approving post)
+            'view_any_jurnal::bayar::kas::bank',
+            'view_jurnal::bayar::kas::bank',
+            'create_jurnal::bayar::kas::bank',
+            'update_jurnal::bayar::kas::bank',
+            'view_any_jurnal::memorial',
+            'view_jurnal::memorial',
+            'create_jurnal::memorial',
+            'update_jurnal::memorial',
 
             // Input saldo awal
-            'view_any_opening::balance',
-            'view_opening::balance',
-            'create_opening::balance',
-            'update_opening::balance',
+            'view_any_saldo::awal::rekening',
+            'view_saldo::awal::rekening',
+            'create_saldo::awal::rekening',
+            'update_saldo::awal::rekening',
 
             // Laporan keuangan
             'page_FinancialReports',
@@ -214,21 +238,21 @@ class RolePermissionSeeder extends Seeder
             'update_nomor::bantu',
             'delete_nomor::bantu',
 
-            // Lihat jurnal penerimaan (approving post)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_penerimaan::journal',
-            'view_penerimaan::journal',
-            'create_penerimaan::journal',
-            'update_penerimaan::journal',
+            // Lihat jurnal penerimaan kas & rekening air (approving post)
+            'view_any_jurnal::penerimaan::kas',
+            'view_jurnal::penerimaan::kas',
+            'create_jurnal::penerimaan::kas',
+            'update_jurnal::penerimaan::kas',
+            'view_any_jurnal::rekening::air',
+            'view_jurnal::rekening::air',
+            'create_jurnal::rekening::air',
+            'update_jurnal::rekening::air',
 
             // Input saldo awal
-            'view_any_opening::balance',
-            'view_opening::balance',
-            'create_opening::balance',
-            'update_opening::balance',
+            'view_any_saldo::awal::rekening',
+            'view_saldo::awal::rekening',
+            'create_saldo::awal::rekening',
+            'update_saldo::awal::rekening',
 
             // Laporan keuangan
             'page_FinancialReports',
@@ -247,15 +271,15 @@ class RolePermissionSeeder extends Seeder
             'view_any_nomor::bantu',
             'view_nomor::bantu',
 
-            // Input dan edit jurnal pengeluaran & umum (draft only)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_pengeluaran::journal',
-            'view_pengeluaran::journal',
-            'create_pengeluaran::journal',
-            'update_pengeluaran::journal',
+            // Input dan edit jurnal bayar kas bank & memorial (draft only)
+            'view_any_jurnal::bayar::kas::bank',
+            'view_jurnal::bayar::kas::bank',
+            'create_jurnal::bayar::kas::bank',
+            'update_jurnal::bayar::kas::bank',
+            'view_any_jurnal::memorial',
+            'view_jurnal::memorial',
+            'create_jurnal::memorial',
+            'update_jurnal::memorial',
         ]);
 
         // Permissions untuk staff anggaran pendapatan
@@ -268,15 +292,15 @@ class RolePermissionSeeder extends Seeder
             'view_any_nomor::bantu',
             'view_nomor::bantu',
 
-            // Input dan edit jurnal penerimaan & umum (draft only)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_penerimaan::journal',
-            'view_penerimaan::journal',
-            'create_penerimaan::journal',
-            'update_penerimaan::journal',
+            // Input dan edit jurnal penerimaan kas & rekening air (draft only)
+            'view_any_jurnal::penerimaan::kas',
+            'view_jurnal::penerimaan::kas',
+            'create_jurnal::penerimaan::kas',
+            'update_jurnal::penerimaan::kas',
+            'view_any_jurnal::rekening::air',
+            'view_jurnal::rekening::air',
+            'create_jurnal::rekening::air',
+            'update_jurnal::rekening::air',
             // Hanya lihat chart of accounts
             'view_any_kelompok',
             'view_kelompok',
@@ -285,15 +309,15 @@ class RolePermissionSeeder extends Seeder
             'view_any_nomor::bantu',
             'view_nomor::bantu',
 
-            // Input dan edit jurnal penerimaan & umum (draft only)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_pengeluaran::journal',
-            'view_pengeluaran::journal',
-            'create_pengeluaran::journal',
-            'update_pengeluaran::journal',
+            // Input dan edit jurnal pembelian & pemakaian bahan (draft only)
+            'view_any_jurnal::pembelian',
+            'view_jurnal::pembelian',
+            'create_jurnal::pembelian',
+            'update_jurnal::pembelian',
+            'view_any_jurnal::pemakaian::bahan',
+            'view_jurnal::pemakaian::bahan',
+            'create_jurnal::pemakaian::bahan',
+            'update_jurnal::pemakaian::bahan',
         ]);
 
         // Permissions untuk staff umum
@@ -310,18 +334,30 @@ class RolePermissionSeeder extends Seeder
             'view_nomor::bantu',
 
             // Input dan edit semua jenis jurnal (draft only)
-            'view_any_journal',
-            'view_journal',
-            'create_journal',
-            'update_journal',
-            'view_any_penerimaan::journal',
-            'view_penerimaan::journal',
-            'create_penerimaan::journal',
-            'update_penerimaan::journal',
-            'view_any_pengeluaran::journal',
-            'view_pengeluaran::journal',
-            'create_pengeluaran::journal',
-            'update_pengeluaran::journal',
+            'view_any_jurnal::pembelian',
+            'view_jurnal::pembelian',
+            'create_jurnal::pembelian',
+            'update_jurnal::pembelian',
+            'view_any_jurnal::rekening::air',
+            'view_jurnal::rekening::air',
+            'create_jurnal::rekening::air',
+            'update_jurnal::rekening::air',
+            'view_any_jurnal::penerimaan::kas',
+            'view_jurnal::penerimaan::kas',
+            'create_jurnal::penerimaan::kas',
+            'update_jurnal::penerimaan::kas',
+            'view_any_jurnal::bayar::kas::bank',
+            'view_jurnal::bayar::kas::bank',
+            'create_jurnal::bayar::kas::bank',
+            'update_jurnal::bayar::kas::bank',
+            'view_any_jurnal::memorial',
+            'view_jurnal::memorial',
+            'create_jurnal::memorial',
+            'update_jurnal::memorial',
+            'view_any_jurnal::pemakaian::bahan',
+            'view_jurnal::pemakaian::bahan',
+            'create_jurnal::pemakaian::bahan',
+            'update_jurnal::pemakaian::bahan',
         ]);
 
         // Super Admin full access
