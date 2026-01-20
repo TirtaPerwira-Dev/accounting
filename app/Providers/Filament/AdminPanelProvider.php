@@ -30,6 +30,13 @@ use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
 use App\Filament\Admin\Pages\Auth\Register as CustomRegister;
+use App\Filament\Admin\Widgets\UserStatsWidget;
+use App\Filament\Admin\Widgets\RoleStatsWidget;
+use App\Filament\Admin\Widgets\ActivityLogStatsWidget;
+use App\Filament\Admin\Widgets\RecentActivityLogTableWidget;
+use App\Filament\Admin\Widgets\RecentAuthenticationLogTableWidget;
+use App\Filament\Admin\Widgets\ActivityLogEventChartWidget;
+use App\Filament\Admin\Widgets\UserRoleChartWidget;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -74,7 +81,15 @@ class AdminPanelProvider extends PanelProvider
                 Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
-            ->widgets([])
+            ->widgets([
+                UserStatsWidget::class,
+                RoleStatsWidget::class,
+                ActivityLogStatsWidget::class,
+                ActivityLogEventChartWidget::class,
+                UserRoleChartWidget::class,
+                RecentActivityLogTableWidget::class,
+                RecentAuthenticationLogTableWidget::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

@@ -20,6 +20,8 @@ class SaldoAwalJurnalResource extends Resource
 
     protected static ?string $navigationGroup = 'Setup Saldo';
 
+    protected static ?int $navigationGroupSort = 1;
+
     // DEPRECATED: Gunakan SaldoAwalRekeningResource yang baru
     protected static bool $shouldRegisterNavigation = false;
 

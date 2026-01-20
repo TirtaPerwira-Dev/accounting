@@ -34,7 +34,7 @@ class NomorBantuResource extends Resource
 
     protected static ?string $navigationGroup = 'Master Penomoran';
 
-    protected static ?int $navigationGroupSort = 1;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 3;
 

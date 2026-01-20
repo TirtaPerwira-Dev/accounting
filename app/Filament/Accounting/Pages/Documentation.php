@@ -14,6 +14,8 @@ class Documentation extends Page
 
     protected static ?string $navigationGroup = 'Bantuan';
 
+    protected static ?int $navigationGroupSort = 5;
+
     protected static ?int $navigationSort = 98;
 
     public function getTitle(): string

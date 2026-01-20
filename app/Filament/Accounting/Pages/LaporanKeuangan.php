@@ -29,7 +29,8 @@ class LaporanKeuangan extends Page implements HasForms
     protected static string $view = 'filament.accounting.pages.laporan-keuangan';
     protected static ?string $navigationLabel = 'Laporan Keuangan';
     protected static ?string $title = 'Laporan Keuangan';
-    protected static ?string $navigationGroup = 'Laporan';
+    protected static ?string $navigationGroup = 'Laporan Keuangan';
+    protected static ?int $navigationGroupSort = 4;
     protected static ?int $navigationSort = 1;
 
     public ?array $data = [];

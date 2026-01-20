@@ -87,13 +87,15 @@ class AuthenticationLogResource extends Resource
                 TextColumn::make('login_successful')
                     ->label('Status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn($state): string => match ((string) $state) {
                         '1' => 'success',
                         '0' => 'danger',
+                        default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn($state): string => match ((string) $state) {
                         '1' => 'Success',
                         '0' => 'Failed',
+                        default => 'Unknown',
                     }),
                 TextColumn::make('logout_at')
                     ->label('Logout At')

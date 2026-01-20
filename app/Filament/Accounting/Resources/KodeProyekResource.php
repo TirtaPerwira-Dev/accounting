@@ -28,6 +28,8 @@ class KodeProyekResource extends Resource
 
     protected static ?string $navigationGroup = 'Master Penomoran';
 
+    protected static ?int $navigationGroupSort = 2;
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form

@@ -28,6 +28,8 @@ class JurnalMemorialResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
+    protected static ?int $navigationGroupSort = 3;
+
     protected static ?int $navigationSort = 6;
 
     protected static ?string $pluralModelLabel = 'Jurnal Memorial';
