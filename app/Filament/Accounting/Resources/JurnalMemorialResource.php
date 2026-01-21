@@ -3,9 +3,9 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalMemorialResource\Pages;
-use App\Filament\Accounting\Resources\JurnalMemorialResource\RelationManagers;
 use App\Filament\Widgets\JurnalMemorialStatsWidget;
 use App\Models\JurnalMemorial;
+use App\Models\JurnalMemorialDetail;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
 use App\Imports\JurnalMemorialImport;
@@ -17,11 +17,10 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalMemorialResource extends Resource
 {
-    protected static ?string $model = JurnalMemorial::class;
+    protected static ?string $model = JurnalMemorialDetail::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
@@ -40,29 +39,29 @@ class JurnalMemorialResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()->with([
+            'jurnalMemorial',
             'kelompok',
             'rekening.kelompok',
             'nomorBantu',
             'kodeProyek',
-            'createdBy'
         ]);
     }
 
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canEdit($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
     public static function canDelete($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
 
     public static function form(Form $form): Form
@@ -86,8 +85,7 @@ class JurnalMemorialResource extends Resource
                                 ->required(),
                         ]),
 
-                        Forms\Components\Hidden::make('no_reff')
-                            ->default(fn() => 'MEM-' . date('YmdHis')),
+                        Forms\Components\Hidden::make('no_reff'),
                     ]),
 
                 // SECTION 2: FORM TAMBAH ITEM MEMORIAL
@@ -359,7 +357,7 @@ class JurnalMemorialResource extends Resource
                 // Hidden Fields
                 Forms\Components\Hidden::make('ref')->default('6'),
                 Forms\Components\Hidden::make('company_id')->default(1),
-                Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
+                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
     }
 
@@ -367,45 +365,51 @@ class JurnalMemorialResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('bukti')
+                Tables\Columns\TextColumn::make('jurnalMemorial.bukti')
                     ->label('No Bukti')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('tanggal')
+                Tables\Columns\TextColumn::make('jurnalMemorial.tanggal')
                     ->label('Tanggal')
                     ->date('d/m/Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Nama Rekening')
-                    ->limit(30),
+                    ->limit(30)
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        if ($record->kode_proyek_id) {
-                            return $record->kodeProyek?->name ?? '-';
-                        }
-                        $kelompok = $record->kelompok?->no_kel ?? '';
-                        $rek = $record->rekening?->no_rek ?? '';
-                        $bantu = $record->nomorBantu?->no_bantu ?? '';
-                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $rekening = $record->rekening?->no_rek ?? '';
+                        $namaRekening = $record->rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $rekening)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
-                Tables\Columns\TextColumn::make('kode')
+                Tables\Columns\TextColumn::make('posisi')
                     ->label('D/K')
-                    ->formatStateUsing(fn($state) => strtoupper($state))
                     ->badge()
-                    ->color(fn($state) => $state === 'D' ? 'info' : 'success'),
+                    ->color(fn($state) => $state === 'D' ? 'info' : ($state === 'K' ? 'success' : 'gray')),
 
-                Tables\Columns\TextColumn::make('rp')
+                Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight(),
 
-                Tables\Columns\IconColumn::make('is_confirmed')
+                Tables\Columns\IconColumn::make('jurnalMemorial.is_confirmed')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -413,7 +417,7 @@ class JurnalMemorialResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('no_reff')
+                Tables\Columns\TextColumn::make('jurnalMemorial.no_reff')
                     ->label('No Reff')
                     ->searchable(),
             ])
@@ -512,29 +516,49 @@ class JurnalMemorialResource extends Resource
                         ->visible(fn($record) => !$record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => true,
-                                'confirmed_by' => Auth::id(),
-                                'confirmed_at' => now(),
-                            ]);
-                            Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
-                        }),
+                        ->modalHeading('Konfirmasi Jurnal')
+                        ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
+                        ->action(fn($record) => $record->confirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Jurnal berhasil dikonfirmasi')
+                        ),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('danger')
+                        ->color('warning')
                         ->visible(fn($record) => $record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
+                        ->modalHeading('Batalkan Konfirmasi')
+                        ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
+                        ->action(fn($record) => $record->unconfirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Konfirmasi berhasil dibatalkan')
+                        ),
+
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
                         ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => false,
-                                'confirmed_by' => null,
-                                'confirmed_at' => null,
+                            $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek']);
+
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-memorial-single', [
+                                'jurnal' => $record,
+                                'generatedAt' => now()->format('d M Y H:i'),
                             ]);
-                            Notification::make()->title('Konfirmasi dibatalkan')->success()->send();
+
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->bukti ?? $record->id);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                'jurnal-memorial-' . $safeFilename . '.pdf'
+                            );
                         }),
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
@@ -546,8 +570,39 @@ class JurnalMemorialResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    Tables\Actions\BulkAction::make('confirm_selected')
+                        ->label('✓ Konfirmasi Terpilih')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                if (!$record->is_confirmed) {
+                                    $record->confirm();
+                                }
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi'),
+
+                    Tables\Actions\BulkAction::make('unconfirm_selected')
+                        ->label('↶ Batal Konfirmasi Terpilih')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('warning')
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                if ($record->is_confirmed) {
+                                    $record->unconfirm();
+                                }
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->successNotificationTitle('Konfirmasi dibatalkan'),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100]);
     }
 
     public static function getRelations(): array

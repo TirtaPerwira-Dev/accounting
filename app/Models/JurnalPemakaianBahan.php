@@ -119,13 +119,7 @@ class JurnalPemakaianBahan extends Model
      */
     public function generateNoReff(): string
     {
-        $lastJurnal = self::orderBy('id', 'desc')->first();
-
-        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
-            return (string)((int)$lastJurnal->no_reff + 1);
-        }
-
-        return '5'; // Start from 5
+        return '5';
     }
 
     /**
@@ -160,5 +154,29 @@ class JurnalPemakaianBahan extends Model
     public function deletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    /**
+     * Konfirmasi jurnal (approval)
+     */
+    public function confirm(): void
+    {
+        $this->update([
+            'is_confirmed' => true,
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Batalkan konfirmasi jurnal
+     */
+    public function unconfirm(): void
+    {
+        $this->update([
+            'is_confirmed' => false,
+            'confirmed_by' => null,
+            'confirmed_at' => null,
+        ]);
     }
 }

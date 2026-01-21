@@ -7,7 +7,6 @@ use App\Models\JurnalBayarKasBank;
 use App\Models\NomorBantu;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
 
 class CreateJurnalBayarKasBank extends CreateRecord
 {
@@ -55,7 +54,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
                 'keterangan' => $item['keterangan'] ?? '',
                 'group_transaksi' => $groupTransaksi,
                 'item_sequence' => $index + 1,
-                'created_by' => Auth::id(),
+                'created_by' => auth()->id(),
                 'is_confirmed' => false,
             ]);
 

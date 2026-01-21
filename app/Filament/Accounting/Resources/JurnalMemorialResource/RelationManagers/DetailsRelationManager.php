@@ -123,9 +123,23 @@ class DetailsRelationManager extends RelationManager
                         default => $state,
                     }),
 
+                Tables\Columns\TextColumn::make('kode_rekening')
+                    ->label('Kode Rek')
+                    ->formatStateUsing(
+                        fn($record) =>
+                        sprintf(
+                            '%02d %04d',
+                            $record->kelompok->no_kel ?? 0,
+                            $record->rekening->no_rek ?? 0
+                        )
+                    )
+                    ->searchable(false)
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('kelompok.nama_kel')
                     ->label('Kelompok')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Rekening')

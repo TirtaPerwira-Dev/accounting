@@ -3,7 +3,6 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalBayarKasBankResource\Pages;
-use App\Filament\Accounting\Resources\JurnalBayarKasBankResource\RelationManagers;
 use App\Filament\Widgets\JurnalBayarKasBankStatsWidget;
 use App\Models\JurnalBayarKasBank;
 use App\Models\Kelompok;
@@ -19,7 +18,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalBayarKasBankResource extends Resource
 {
@@ -52,19 +50,19 @@ class JurnalBayarKasBankResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canEdit($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
     public static function canDelete($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
 
     public static function form(Form $form): Form
@@ -79,8 +77,7 @@ class JurnalBayarKasBankResource extends Resource
                             Forms\Components\TextInput::make('no_voucher')
                                 ->label('No. Voucher')
                                 ->required()
-                                ->maxLength(255)
-                                ->default(fn() => 'BKB-' . date('Ymd') . '-' . rand(100, 999)),
+                                ->maxLength(255),
 
                             // Tanggal Check
                             Forms\Components\DatePicker::make('tanggal_check')
@@ -156,8 +153,7 @@ class JurnalBayarKasBankResource extends Resource
                         ]),
 
                         // Hidden fields for backend
-                        Forms\Components\Hidden::make('no_reff')
-                            ->default(fn() => 'BKB-' . date('YmdHis')),
+                        Forms\Components\Hidden::make('no_reff'),
                         Forms\Components\Hidden::make('rekening_id'),
                         Forms\Components\Hidden::make('nomor_bantu_id'),
                     ]),
@@ -440,7 +436,7 @@ class JurnalBayarKasBankResource extends Resource
                 // Hidden Fields
                 Forms\Components\Hidden::make('ref')->default('4'),
                 Forms\Components\Hidden::make('company_id')->default(1),
-                Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
+                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
                 Forms\Components\Hidden::make('kelompok_id')
                     ->dehydrateStateUsing(
                         fn(Forms\Get $get) =>
@@ -474,16 +470,26 @@ class JurnalBayarKasBankResource extends Resource
                     ->limit(25)
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('kodeRekening')
-                    ->label('Rekening')
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
-                        $rek = $record->rekeningDebit?->no_rek ?? '';
-                        $bantu = str_pad($record->nomorBantuDebit?->no_bantu ?? '', 2, '0', STR_PAD_LEFT);
-                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                        // Format 2 baris: AA BBBB + Nama
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $rekening = $record->rekening?->no_rek ?? '';
+                        $namaRekening = $record->rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $rekening)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('rp')
                     ->label('Jumlah')
@@ -598,29 +604,49 @@ class JurnalBayarKasBankResource extends Resource
                         ->visible(fn($record) => !$record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => true,
-                                'confirmed_by' => Auth::id(),
-                                'confirmed_at' => now(),
-                            ]);
-                            Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
-                        }),
+                        ->modalHeading('Konfirmasi Jurnal')
+                        ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
+                        ->action(fn($record) => $record->confirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Jurnal berhasil dikonfirmasi')
+                        ),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('danger')
+                        ->color('warning')
                         ->visible(fn($record) => $record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
+                        ->modalHeading('Batalkan Konfirmasi')
+                        ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
+                        ->action(fn($record) => $record->unconfirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Konfirmasi berhasil dibatalkan')
+                        ),
+
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
                         ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => false,
-                                'confirmed_by' => null,
-                                'confirmed_at' => null,
+                            $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek']);
+
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-bayar-kas-bank-single', [
+                                'jurnal' => $record,
+                                'generatedAt' => now()->format('d M Y H:i'),
                             ]);
-                            Notification::make()->title('Konfirmasi dibatalkan')->success()->send();
+
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff ?? $record->id);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                'jurnal-bayar-kas-bank-' . $safeFilename . '.pdf'
+                            );
                         }),
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
@@ -632,8 +658,39 @@ class JurnalBayarKasBankResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    Tables\Actions\BulkAction::make('confirm_selected')
+                        ->label('✓ Konfirmasi Terpilih')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                if (!$record->is_confirmed) {
+                                    $record->confirm();
+                                }
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi'),
+
+                    Tables\Actions\BulkAction::make('unconfirm_selected')
+                        ->label('↶ Batal Konfirmasi Terpilih')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('warning')
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                if ($record->is_confirmed) {
+                                    $record->unconfirm();
+                                }
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->successNotificationTitle('Konfirmasi dibatalkan'),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100]);
     }
 
     public static function getRelations(): array

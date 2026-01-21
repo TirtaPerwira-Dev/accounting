@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -23,13 +21,11 @@ class JurnalPembelian extends Model
         'bukti',
         'rp',
         'keterangan',
-        'pembelian_items', // JSON data untuk repeater (backup)
-        'kelompok_kredit_id',
-        'rekening_kredit_id',
         'nomor_bantu_kredit_id',
-        'nama_nomor_bantu_kredit', // Manual input nama
+        'nama_nomor_bantu_kredit', // Denormalized for display
         'data_k',
-        'data_d', // Data untuk rekening AT (Aktiva Tetap)
+        'data_d',
+        'nomor_bantu_debit_id',
         'kode_proyek_id',
         'company_id',
         'is_confirmed',
@@ -37,13 +33,6 @@ class JurnalPembelian extends Model
         'confirmed_at',
         'created_by',
         'deleted_by',
-        // Fields untuk item individual
-        'bukti_item',
-        'keterangan_item',
-        'jumlah_item',
-        'kelompok_debit_id',
-        'rekening_debit_id',
-        'nomor_bantu_debit_id',
         'group_transaksi',
         'item_sequence',
     ];
@@ -51,8 +40,6 @@ class JurnalPembelian extends Model
     protected $casts = [
         'tanggal' => 'date',
         'rp' => 'decimal:2',
-        'pembelian_items' => 'array', // Cast JSON to array (backup)
-        'jumlah_item' => 'decimal:2',
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
@@ -124,12 +111,16 @@ class JurnalPembelian extends Model
     // === RELATIONSHIPS ===
     public function kelompokKredit(): BelongsTo
     {
-        return $this->belongsTo(Kelompok::class, 'kelompok_kredit_id');
+        // Derive from nomor_bantu_kredit -> rekening -> kelompok
+        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_kredit_id')
+            ->with(['rekening.kelompok']);
     }
 
     public function rekeningKredit(): BelongsTo
     {
-        return $this->belongsTo(Rekening::class, 'rekening_kredit_id');
+        // Derive from nomor_bantu_kredit -> rekening
+        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_kredit_id')
+            ->with(['rekening']);
     }
 
     public function nomorBantuKredit(): BelongsTo
@@ -155,12 +146,16 @@ class JurnalPembelian extends Model
     // Relasi untuk akun debit item
     public function kelompokDebit(): BelongsTo
     {
-        return $this->belongsTo(Kelompok::class, 'kelompok_debit_id');
+        // Derive from nomor_bantu_debit -> rekening -> kelompok
+        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_debit_id')
+            ->with(['rekening.kelompok']);
     }
 
     public function rekeningDebit(): BelongsTo
     {
-        return $this->belongsTo(Rekening::class, 'rekening_debit_id');
+        // Derive from nomor_bantu_debit -> rekening
+        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_debit_id')
+            ->with(['rekening']);
     }
 
     public function nomorBantuDebit(): BelongsTo
@@ -181,14 +176,7 @@ class JurnalPembelian extends Model
      */
     public function generateNoReff(): string
     {
-        // Get last number
-        $lastJurnal = self::orderBy('id', 'desc')->first();
-
-        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
-            return (string)((int)$lastJurnal->no_reff + 1);
-        }
-
-        return '1'; // Start from 1
+        return '1';
     }
 
     /**
@@ -196,13 +184,14 @@ class JurnalPembelian extends Model
      */
     public function getKodeSakepKreditAttribute(): string
     {
-        if (!$this->kelompokKredit || !$this->rekeningKredit || !$this->nomorBantuKredit) {
+        $nomorBantu = $this->nomorBantuKredit;
+        if (!$nomorBantu || !$nomorBantu->rekening || !$nomorBantu->rekening->kelompok) {
             return '-';
         }
 
-        return $this->kelompokKredit->no_kel .
-            $this->rekeningKredit->no_rek .
-            str_pad($this->nomorBantuKredit->no_bantu, 2, '0', STR_PAD_LEFT);
+        return $nomorBantu->rekening->kelompok->no_kel .
+            $nomorBantu->rekening->no_rek .
+            str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -218,13 +207,14 @@ class JurnalPembelian extends Model
      */
     public function getKodeSakepDebitAttribute(): string
     {
-        if (!$this->kelompokDebit || !$this->rekeningDebit || !$this->nomorBantuDebit) {
+        $nomorBantu = $this->nomorBantuDebit;
+        if (!$nomorBantu || !$nomorBantu->rekening || !$nomorBantu->rekening->kelompok) {
             return '-';
         }
 
-        return $this->kelompokDebit->no_kel .
-            $this->rekeningDebit->no_rek .
-            str_pad($this->nomorBantuDebit->no_bantu, 2, '0', STR_PAD_LEFT);
+        return $nomorBantu->rekening->kelompok->no_kel .
+            $nomorBantu->rekening->no_rek .
+            str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -241,11 +231,11 @@ class JurnalPembelian extends Model
     public function getTotalPembelianAttribute(): float
     {
         if (!$this->group_transaksi) {
-            return $this->jumlah_item ?? 0; // Single item
+            return $this->rp ?? 0;
         }
 
         return self::where('group_transaksi', $this->group_transaksi)
-            ->sum('jumlah_item');
+            ->sum('rp');
     }
 
     /**
@@ -262,7 +252,7 @@ class JurnalPembelian extends Model
                 return 'Tidak ada item';
             }
 
-            $firstItem = $items->first()->keterangan_item ?: 'Item pembelian';
+            $firstItem = $items->first()->keterangan ?: 'Item pembelian';
 
             if ($items->count() === 1) {
                 return $firstItem;
@@ -271,7 +261,7 @@ class JurnalPembelian extends Model
             return $firstItem . " (+ " . ($items->count() - 1) . " item lainnya)";
         }
 
-        return $this->keterangan_item ?: 'Item pembelian';
+        return $this->keterangan ?: 'Item pembelian';
     }
 
     /**
@@ -281,7 +271,7 @@ class JurnalPembelian extends Model
     {
         $this->update([
             'is_confirmed' => true,
-            'confirmed_by' => Auth::id(),
+            'confirmed_by' => auth()->id(),
             'confirmed_at' => now(),
         ]);
     }

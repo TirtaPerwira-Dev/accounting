@@ -20,13 +20,13 @@ return new class extends Migration
             $table->string('dibayar')->nullable();
             $table->string('no_check')->nullable();
 
-            $table->unsignedBigInteger('kelompok_debit_id');
-            $table->unsignedBigInteger('rekening_debit_id');
+            $table->unsignedBigInteger('kelompok_debit_id')->nullable();
+            $table->unsignedBigInteger('rekening_debit_id')->nullable();
             $table->unsignedBigInteger('nomor_bantu_debit_id')->nullable();
             $table->string('data_debit', 10)->nullable();
 
-            $table->unsignedBigInteger('kelompok_kredit_id');
-            $table->unsignedBigInteger('rekening_kredit_id');
+            $table->unsignedBigInteger('kelompok_kredit_id')->nullable();
+            $table->unsignedBigInteger('rekening_kredit_id')->nullable();
             $table->unsignedBigInteger('nomor_bantu_kredit_id')->nullable();
             $table->string('data_kredit', 10)->nullable();
 

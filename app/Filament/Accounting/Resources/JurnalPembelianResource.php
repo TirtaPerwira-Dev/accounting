@@ -7,7 +7,6 @@ use App\Filament\Accounting\Resources\JurnalPembelianResource\Widgets;
 use App\Models\JurnalPembelian;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
-use App\Models\Company;
 use App\Imports\JurnalPembelianImport;
 use App\Exports\JurnalPembelianTemplateExport;
 use Filament\Forms;
@@ -16,7 +15,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -43,15 +41,8 @@ class JurnalPembelianResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
-                'kelompokKredit',
-                'rekeningKredit.kelompok',
-                'nomorBantuKredit',
-                'kelompokDebit',
-                'rekeningDebit.kelompok',
-                'nomorBantuDebit',
-                'details.kelompokDebit',
-                'details.rekeningDebit.kelompok',
-                'details.nomorBantuDebit',
+                'nomorBantuKredit.rekening.kelompok',
+                'nomorBantuDebit.rekening.kelompok',
                 'kodeProyek',
                 'confirmedBy'
             ]);
@@ -60,12 +51,12 @@ class JurnalPembelianResource extends Resource
     // Authorization helpers (Allow all authenticated users to access jurnal pembelian)
     public static function canViewAny(): bool
     {
-        return Auth::check(); // Semua user yang sudah login bisa lihat
+        return auth()->check(); // Semua user yang sudah login bisa lihat
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check(); // Semua user yang sudah login bisa buat
+        return auth()->check(); // Semua user yang sudah login bisa buat
     }
 
     public static function canEdit($record): bool
@@ -74,7 +65,7 @@ class JurnalPembelianResource extends Resource
         if ($record && $record->is_confirmed) {
             return false; // Tidak bisa edit jika sudah dikonfirmasi
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canDelete($record): bool
@@ -83,7 +74,7 @@ class JurnalPembelianResource extends Resource
         if ($record && $record->is_confirmed) {
             return false; // Tidak bisa hapus jika sudah dikonfirmasi
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function form(Form $form): Form
@@ -156,30 +147,22 @@ class JurnalPembelianResource extends Resource
                         ]),
 
                         // Hidden fields
-                        Forms\Components\Hidden::make('kelompok_kredit_id')
-                            ->dehydrateStateUsing(function (Forms\Get $get) {
-                                $rekeningId = $get('rekening_kredit_id');
-                                if ($rekeningId) {
-                                    return \App\Models\Rekening::find($rekeningId)?->kelompok_id;
-                                }
-                                return null;
-                            }),
                         Forms\Components\Hidden::make('data_k')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
-                                $rekeningId = $get('rekening_kredit_id');
-                                if ($rekeningId) {
-                                    $rekening = \App\Models\Rekening::find($rekeningId);
-                                    return $rekening?->data; // Bisa kosong, bisa isi
+                                $nomorBantuId = $get('nomor_bantu_kredit_id');
+                                if ($nomorBantuId) {
+                                    $nomorBantu = NomorBantu::with('rekening')->find($nomorBantuId);
+                                    return $nomorBantu?->rekening?->data;
                                 }
-                                return null; // Boleh null
+                                return null;
                             }),
                         Forms\Components\Hidden::make('data_d')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $items = $get('pembelian_items') ?? [];
                                 foreach ($items as $item) {
-                                    if (!empty($item['rekening_debit_id'])) {
-                                        $rekening = \App\Models\Rekening::find($item['rekening_debit_id']);
-                                        if ($rekening && $rekening->data === 'AT') {
+                                    if (!empty($item['nomor_bantu_debit_id'])) {
+                                        $nomorBantu = NomorBantu::with('rekening')->find($item['nomor_bantu_debit_id']);
+                                        if ($nomorBantu && $nomorBantu->rekening && $nomorBantu->rekening->data === 'AT') {
                                             return 'AT'; // Isi jika ada rekening dengan data AT
                                         }
                                     }
@@ -396,25 +379,6 @@ class JurnalPembelianResource extends Resource
                     ])
                     ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')))
                     ->collapsible(),
-                Forms\Components\Section::make('Total')
-                    ->schema([
-                        Forms\Components\Placeholder::make('total_pembelian')
-                            ->label('Total Pembelian')
-                            ->content(function (Forms\Get $get) {
-                                $items = $get('pembelian_items') ?? [];
-                                $total = array_sum(array_column($items, 'jumlah'));
-                                return 'Rp ' . number_format($total, 0, ',', '.');
-                            })
-                            ->live(),
-
-                        Forms\Components\Hidden::make('rp')
-                            ->dehydrateStateUsing(function (Forms\Get $get) {
-                                $items = $get('pembelian_items') ?? [];
-                                return array_sum(array_column($items, 'jumlah'));
-                            }),
-                    ])
-                    ->compact()
-                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items'))),
 
                 // === NOMOR REFERENSI (Auto-generate) ===
                 Forms\Components\Section::make('Nomor Referensi')
@@ -537,7 +501,7 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('bukti_item')
+                Tables\Columns\TextColumn::make('bukti')
                     ->label('Bukti')
                     ->searchable()
                     ->placeholder('-'),
@@ -547,7 +511,7 @@ class JurnalPembelianResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('keterangan_item')
+                Tables\Columns\TextColumn::make('keterangan')
                     ->label('Keterangan')
                     ->searchable()
                     ->limit(30)
@@ -555,24 +519,30 @@ class JurnalPembelianResource extends Resource
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        if ($record->kode_proyek_id) {
-                            return $record->kodeProyek?->name ?? '-';
-                        }
-                        // Format: kelompok-rekening-nomor_bantu
-                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
-                        $rekening = $record->rekeningDebit?->no_rek ?? '';
-                        $bantu = $record->nomorBantuDebit?->no_bantu ?? '';
-                        return $kelompok ? "{$kelompok}-{$rekening}-{$bantu}" : '-';
+                        // Format 2 baris: AA BBBB + Nama
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $nomorBantu = $record->nomorBantuDebit;
+                        $rekening = $nomorBantu?->rekening?->no_rek ?? '';
+                        $namaRekening = $nomorBantu?->rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $rekening)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
-                Tables\Columns\TextColumn::make('jumlah_item')
+                Tables\Columns\TextColumn::make('rp')
                     ->label('Jumlah')
-                    ->formatStateUsing(function ($state, $record) {
-                        $amount = $state ?: $record->rp ?: 0;
-                        return 'Rp ' . number_format($amount, 0, ',', '.');
+                    ->formatStateUsing(function ($state) {
+                        return 'Rp ' . number_format($state ?: 0, 0, ',', '.');
                     })
                     ->alignRight()
                     ->sortable(),

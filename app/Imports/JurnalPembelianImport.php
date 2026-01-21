@@ -40,7 +40,7 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
 
                 // Check if this is a new group (different tanggal or bukti)
                 $prevRow = $rows[$index - 1] ?? null;
-                $isNewGroup = !$currentGroupId || 
+                $isNewGroup = !$currentGroupId ||
                     ($prevRow && ($prevRow['tanggal'] !== $row['tanggal'] || $prevRow['bukti'] !== $row['bukti']));
 
                 if ($isNewGroup) {
@@ -97,38 +97,30 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
                     continue;
                 }
 
-                // Create jurnal pembelian record
+                // Create jurnal pembelian record (simplified - no redundant columns)
                 $data = [
                     'no_reff' => $currentNoReff,
                     'tanggal' => $tanggal,
                     'bukti' => strtoupper($row['bukti'] ?? ''),
                     'rp' => $jumlah,
                     'keterangan' => $row['keterangan'] ?? '',
-                    
-                    // Akun Kredit (Hutang/Kas/Bank)
-                    'kelompok_kredit_id' => $rekeningKredit->kelompok_id,
-                    'rekening_kredit_id' => $rekeningKredit->id,
+
+                    // Akun Kredit (Hutang/Kas/Bank) - only nomor_bantu_id needed
                     'nomor_bantu_kredit_id' => $nomorBantuKredit->id,
                     'nama_nomor_bantu_kredit' => $row['nama_nomor_bantu_kredit'] ?? $nomorBantuKredit->nm_bantu,
                     'data_k' => $rekeningKredit->data,
-                    
-                    // Akun Debit (Pembelian)
-                    'kelompok_debit_id' => $nomorBantuDebit->rekening->kelompok_id,
-                    'rekening_debit_id' => $nomorBantuDebit->rekening_id,
+
+                    // Akun Debit (Pembelian) - only nomor_bantu_id needed
                     'nomor_bantu_debit_id' => $nomorBantuDebit->id,
                     'data_d' => $nomorBantuDebit->rekening->data,
-                    
-                    // Item details
-                    'bukti_item' => strtoupper($row['bukti'] ?? ''),
-                    'keterangan_item' => $row['keterangan'] ?? '',
-                    'jumlah_item' => $jumlah,
-                    
+
                     // Group management
                     'group_transaksi' => $currentGroupId,
                     'item_sequence' => $itemSequence,
-                    
+
                     'kode_proyek_id' => $kodeProyekId,
-                    'company_id' => 1,
+                    'company_id' => \Illuminate\Support\Facades\Auth::user()?->company_id ?? 1,
+                    'created_by' => \Illuminate\Support\Facades\Auth::id(),
                     'is_confirmed' => false,
                 ];
 
@@ -144,7 +136,6 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
                 Log::error("Jurnal Pembelian Import failed", ['errors' => $this->errors]);
                 throw new \Exception('Import failed: ' . implode(', ', $this->errors));
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Jurnal Pembelian Import Exception', [
@@ -175,7 +166,7 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
         try {
             // Try different date formats
             $formats = ['Y-m-d', 'd/m/Y', 'd-m-Y', 'Y/m/d'];
-            
+
             foreach ($formats as $format) {
                 $parsed = Carbon::createFromFormat($format, $date);
                 if ($parsed && $parsed->format($format) === $date) {
@@ -201,25 +192,15 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
     private function parseAmount($amount)
     {
         if (is_numeric($amount)) return (float) $amount;
-        
+
         // Remove currency symbols and separators
         $cleaned = preg_replace('/[^\d.-]/', '', $amount);
         return (float) $cleaned;
     }
 
-    private function generateNoReff(): string
+    public function generateNoReff(): string
     {
-        $year = date('Y');
-        $lastJurnal = JurnalPembelian::where('no_reff', 'LIKE', "1-_%/{$year}")
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        $nextNumber = 1;
-        if ($lastJurnal && preg_match('/^1-(\d+)\/\d{4}$/', $lastJurnal->no_reff, $matches)) {
-            $nextNumber = intval($matches[1]) + 1;
-        }
-
-        return "1-{$nextNumber}/{$year}";
+        return '1';
     }
 
     public function getErrors(): array

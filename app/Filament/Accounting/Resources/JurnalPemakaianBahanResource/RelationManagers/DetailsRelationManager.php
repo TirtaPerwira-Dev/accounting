@@ -171,18 +171,46 @@ class DetailsRelationManager extends RelationManager
                     ->label('Beban Bagian')
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('kode_debit')
+                    ->label('Kode D')
+                    ->formatStateUsing(
+                        fn($record) =>
+                        sprintf(
+                            '%02d %04d',
+                            $record->kelompokDebit->no_kel ?? 0,
+                            $record->rekeningDebit->no_rek ?? 0
+                        )
+                    )
+                    ->searchable(false)
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('kelompokDebit.nama_kel')
                     ->label('Kel. Debit')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rekeningDebit.nama_rek')
                     ->label('Rek. Debit')
                     ->searchable()
                     ->limit(30),
 
+                Tables\Columns\TextColumn::make('kode_kredit')
+                    ->label('Kode K')
+                    ->formatStateUsing(
+                        fn($record) =>
+                        sprintf(
+                            '%02d %04d',
+                            $record->kelompokKredit->no_kel ?? 0,
+                            $record->rekeningKredit->no_rek ?? 0
+                        )
+                    )
+                    ->searchable(false)
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('kelompokKredit.nama_kel')
                     ->label('Kel. Kredit')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rekeningKredit.nama_rek')
                     ->label('Rek. Kredit')

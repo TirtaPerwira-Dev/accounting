@@ -9,7 +9,6 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Auth;
 
 class ListJurnalMemorials extends ListRecords
 {
@@ -61,7 +60,7 @@ class ListJurnalMemorials extends ListRecords
                     }
 
                     $journals = $query->orderBy('tanggal', 'desc')->get();
-                    $company = Auth::user()?->company ?? (object)['name' => 'PDAM PURBALINGGA'];
+                    $company = auth()->user()?->company ?? (object)['name' => 'PDAM PURBALINGGA'];
                     $startDate = date('d/m/Y', strtotime($data['start_date']));
                     $endDate = date('d/m/Y', strtotime($data['end_date']));
                     $status = $data['status'];

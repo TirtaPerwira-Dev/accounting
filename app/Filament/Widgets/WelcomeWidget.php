@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class WelcomeWidget extends BaseWidget
@@ -16,7 +15,7 @@ class WelcomeWidget extends BaseWidget
     protected function getStats(): array
     {
         $now = Carbon::now('Asia/Jakarta');
-        $user = Auth::user();
+        $user = auth()->user();
 
         // Get greeting based on time
         $hour = $now->hour;

@@ -101,11 +101,6 @@ class JurnalPenerimaanKas extends Model
         return $this->belongsTo(KodeProyek::class);
     }
 
-    public function nomorRekening(): BelongsTo
-    {
-        return $this->belongsTo(Rekening::class, 'nomor_rekening_id');
-    }
-
     public function details(): HasMany
     {
         return $this->hasMany(JurnalPenerimaanKasDetail::class, 'jurnal_penerimaan_kas_id');
@@ -170,6 +165,7 @@ class JurnalPenerimaanKas extends Model
 
     /**
      * Get total dari semua items dalam repeater
+     * Alias: total_from_items dan total_kredit akan mengembalikan nilai yang sama
      */
     public function getTotalFromItemsAttribute(): float
     {
@@ -183,17 +179,11 @@ class JurnalPenerimaanKas extends Model
     }
 
     /**
-     * Get total kredit from detail_penerimaan
+     * Alias untuk getTotalFromItemsAttribute - untuk backward compatibility
      */
     public function getTotalKreditAttribute(): float
     {
-        if (!$this->detail_penerimaan) {
-            return 0;
-        }
-
-        return collect($this->detail_penerimaan)->sum(function ($item) {
-            return floatval($item['jumlah'] ?? 0);
-        });
+        return $this->total_from_items;
     }
 
     /**
@@ -241,5 +231,29 @@ class JurnalPenerimaanKas extends Model
         }
 
         return $entries;
+    }
+
+    /**
+     * Konfirmasi jurnal (approval)
+     */
+    public function confirm(): void
+    {
+        $this->update([
+            'is_confirmed' => true,
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Batalkan konfirmasi jurnal
+     */
+    public function unconfirm(): void
+    {
+        $this->update([
+            'is_confirmed' => false,
+            'confirmed_by' => null,
+            'confirmed_at' => null,
+        ]);
     }
 }

@@ -3,9 +3,9 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\Pages;
-use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\RelationManagers;
 use App\Filament\Widgets\JurnalPemakaianBahanStatsWidget;
 use App\Models\JurnalPemakaianBahan;
+use App\Models\JurnalPemakaianBahanDetail;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
 use App\Imports\JurnalPemakaianBahanImport;
@@ -17,11 +17,10 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalPemakaianBahanResource extends Resource
 {
-    protected static ?string $model = JurnalPemakaianBahan::class;
+    protected static ?string $model = JurnalPemakaianBahanDetail::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
@@ -33,13 +32,14 @@ class JurnalPemakaianBahanResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $pluralModelLabel = 'Jurnal Pemakaian Bahan/Inv/Kas';
+    protected static ?string $pluralModelLabel = 'Jurnal Pemakaian Bahan Instalasi & Kantor';
 
     protected static ?string $slug = 'jurnal-pemakaian-bahan';
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()->with([
+            'jurnalPemakaianBahan',
             'kelompokDebit',
             'rekeningDebit.kelompok',
             'nomorBantuDebit',
@@ -47,26 +47,24 @@ class JurnalPemakaianBahanResource extends Resource
             'rekeningKredit.kelompok',
             'nomorBantuKredit',
             'kodeProyek',
-            'confirmedBy',
-            'createdBy'
         ]);
     }
 
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
     public static function canEdit($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
     public static function canDelete($record): bool
     {
-        return Auth::check() && !$record->is_confirmed;
+        return auth()->check() && !$record->is_confirmed;
     }
 
     public static function form(Form $form): Form
@@ -90,8 +88,7 @@ class JurnalPemakaianBahanResource extends Resource
                                 ->required(),
                         ]),
 
-                        Forms\Components\Hidden::make('no_reff')
-                            ->default(fn() => 'JPBIK-' . date('YmdHis')),
+                        Forms\Components\Hidden::make('no_reff'),
                     ]),
 
                 // SECTION 2: FORM TAMBAH ITEM PEMAKAIAN BAHAN
@@ -352,7 +349,7 @@ class JurnalPemakaianBahanResource extends Resource
                 Forms\Components\Section::make('Nomor Referensi')
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
-                            ->content('Nomor Reff JPBIK (Jurnal Pemakaian Bahan/Inv/Kas) adalah = 5')
+                            ->content('Nomor Reff JPBIK (Jurnal Pemakaian Bahan Instalasi & Kantor) adalah = 5')
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -362,7 +359,7 @@ class JurnalPemakaianBahanResource extends Resource
                 // Hidden Fields
                 Forms\Components\Hidden::make('ref')->default('5'),
                 Forms\Components\Hidden::make('company_id')->default(1),
-                Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
+                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
     }
 
@@ -370,40 +367,61 @@ class JurnalPemakaianBahanResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('bukti')
+                Tables\Columns\TextColumn::make('jurnalPemakaianBahan.bukti')
                     ->label('No Bukti')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('rekening.nama_rek')
+                Tables\Columns\TextColumn::make('namaRekening')
                     ->label('Nama Rekening')
-                    ->limit(30),
+                    ->getStateUsing(function ($record) {
+                        // Ambil dari debit atau kredit
+                        $rekening = $record->rekeningDebit ?? $record->rekeningKredit;
+                        return $rekening?->nama_rek ?? '-';
+                    })
+                    ->limit(30)
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        if ($record->kode_proyek_id) {
-                            return $record->kodeProyek?->name ?? '-';
-                        }
-                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
-                        $rek = $record->rekeningDebit?->no_rek ?? '';
-                        $bantu = $record->nomorBantuDebit?->no_bantu ?? '';
-                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $rekening = $record->rekeningDebit ?? $record->rekeningKredit;
+                        $noRek = $rekening?->no_rek ?? '';
+                        $namaRekening = $rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $noRek)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($noRek))
+                            : ($noRek ? sprintf('-- %04d', intval($noRek)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
-                Tables\Columns\TextColumn::make('kode')
+                Tables\Columns\TextColumn::make('dkDisplay')
                     ->label('D/K')
-                    ->formatStateUsing(fn($state) => strtoupper($state))
+                    ->getStateUsing(function ($record) {
+                        // Cek apakah ini debit atau kredit
+                        if ($record->rekening_debit_id) {
+                            return 'D';
+                        } elseif ($record->rekening_kredit_id) {
+                            return 'K';
+                        }
+                        return '-';
+                    })
                     ->badge()
-                    ->color(fn($state) => $state === 'd' ? 'info' : 'success'),
+                    ->color(fn($state) => $state === 'D' ? 'info' : ($state === 'K' ? 'success' : 'gray')),
 
-                Tables\Columns\TextColumn::make('rp')
+                Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight(),
 
-                Tables\Columns\IconColumn::make('is_confirmed')
+                Tables\Columns\IconColumn::make('jurnalPemakaianBahan.is_confirmed')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -411,7 +429,7 @@ class JurnalPemakaianBahanResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('no_reff')
+                Tables\Columns\TextColumn::make('jurnalPemakaianBahan.no_reff')
                     ->label('No Reff')
                     ->searchable(),
             ])
@@ -510,14 +528,12 @@ class JurnalPemakaianBahanResource extends Resource
                         ->visible(fn($record) => !$record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => true,
-                                'confirmed_by' => Auth::id(),
-                                'confirmed_at' => now(),
-                            ]);
-                            Notification::make()->title('Jurnal dikonfirmasi')->success()->send();
-                        }),
+                        ->action(fn($record) => $record->confirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Jurnal berhasil dikonfirmasi')
+                        ),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('Batal Konfirmasi')
@@ -526,13 +542,25 @@ class JurnalPemakaianBahanResource extends Resource
                         ->visible(fn($record) => $record->is_confirmed)
                         ->hidden(fn() => auth()->user()->hasRole('staff'))
                         ->requiresConfirmation()
+                        ->action(fn($record) => $record->unconfirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Konfirmasi jurnal dibatalkan')
+                        ),
+
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('Export PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
                         ->action(function ($record) {
-                            $record->update([
-                                'is_confirmed' => false,
-                                'confirmed_by' => null,
-                                'confirmed_at' => null,
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pemakaian-bahan-detail', [
+                                'jurnal' => $record->load(['details.rekening', 'details.nomorBantu', 'kodeProyek', 'rekening', 'createdBy', 'confirmedBy']),
                             ]);
-                            Notification::make()->title('Konfirmasi dibatalkan')->success()->send();
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                "jurnal-pemakaian-bahan-{$record->no_bukti}.pdf"
+                            );
                         }),
 
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
@@ -544,8 +572,38 @@ class JurnalPemakaianBahanResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    Tables\Actions\BulkAction::make('confirm_selected')
+                        ->label('Konfirmasi Terpilih')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->requiresConfirmation()
+                        ->action(fn($records) => $records->each->confirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Jurnal terpilih berhasil dikonfirmasi')
+                        )
+                        ->deselectRecordsAfterCompletion(),
+
+                    Tables\Actions\BulkAction::make('unconfirm_selected')
+                        ->label('Batal Konfirmasi Terpilih')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->requiresConfirmation()
+                        ->action(fn($records) => $records->each->unconfirm())
+                        ->successNotification(
+                            Notification::make()
+                                ->success()
+                                ->title('Konfirmasi jurnal terpilih dibatalkan')
+                        )
+                        ->deselectRecordsAfterCompletion(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc')
+            ->paginated([10, 25, 50, 100]);
     }
 
     public static function getRelations(): array

@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Models\JurnalRekeningAir;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalRekeningAirStatsWidget extends BaseWidget
 {
@@ -16,32 +15,39 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $companyId = Auth::user()?->company_id ?? 1;
+        $companyId = auth()->user()?->company_id ?? 1;
 
-        // Query dasar dengan filter company
-        $baseQuery = JurnalRekeningAir::where('company_id', $companyId);
-
-        // Stats bulan ini
-        $thisMonth = $baseQuery->whereYear('tanggal', date('Y'))
-            ->whereMonth('tanggal', date('m'));
-
-        // Stats tahun ini
-        $thisYear = $baseQuery->whereYear('tanggal', date('Y'));
+        // Query dasar - gunakan closure untuk clone setiap kali
+        $baseQuery = fn() => JurnalRekeningAir::where('company_id', $companyId);
 
         // Total piutang air bulan ini
-        $totalPiutangAir = $thisMonth->sum('rp');
-        $totalPiutangLastMonth = $baseQuery->whereYear('tanggal', date('Y'))
-            ->whereMonth('tanggal', date('m') - 1)
+        $totalPiutangAir = $baseQuery()
+            ->whereYear('tanggal', date('Y'))
+            ->whereMonth('tanggal', date('m'))
+            ->sum('rp');
+
+        // Total bulan lalu
+        $lastMonth = date('m') == 1 ? 12 : date('m') - 1;
+        $lastMonthYear = date('m') == 1 ? date('Y') - 1 : date('Y');
+        $totalPiutangLastMonth = $baseQuery()
+            ->whereYear('tanggal', $lastMonthYear)
+            ->whereMonth('tanggal', $lastMonth)
             ->sum('rp');
 
         // Total transaksi air tahun ini
-        $totalTransaksiTahun = $thisYear->count();
+        $totalTransaksiTahun = $baseQuery()
+            ->whereYear('tanggal', date('Y'))
+            ->count();
 
-        // Rata-rata nilai per transaksi bulan ini
-        $avgValueThisMonth = $thisMonth->count() > 0 ? $thisMonth->sum('rp') / $thisMonth->count() : 0;
+        // Count dan sum untuk rata-rata bulan ini
+        $countThisMonth = $baseQuery()
+            ->whereYear('tanggal', date('Y'))
+            ->whereMonth('tanggal', date('m'))
+            ->count();
+        $avgValueThisMonth = $countThisMonth > 0 ? $totalPiutangAir / $countThisMonth : 0;
 
         // Transaksi air yang belum dikonfirmasi (pending)
-        $pendingAir = $baseQuery->where('is_confirmed', false)->count();
+        $pendingAir = $baseQuery()->where('is_confirmed', false)->count();
 
         return [
             Stat::make('Total Piutang Air Bulan Ini', 'Rp ' . number_format($totalPiutangAir, 0, ',', '.'))
@@ -107,7 +113,7 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
     private function getPiutangChart(): array
     {
         $data = [];
-        $companyId = Auth::user()?->company_id ?? 1;
+        $companyId = auth()->user()?->company_id ?? 1;
 
         // Data 7 hari terakhir untuk nilai piutang
         for ($i = 6; $i >= 0; $i--) {
@@ -124,7 +130,7 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
     private function getYearlyChart(): array
     {
         $data = [];
-        $companyId = Auth::user()?->company_id ?? 1;
+        $companyId = auth()->user()?->company_id ?? 1;
 
         // Data 12 bulan terakhir untuk trend tahunan
         for ($i = 11; $i >= 0; $i--) {

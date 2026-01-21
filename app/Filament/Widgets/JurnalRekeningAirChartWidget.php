@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\JurnalRekeningAir;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalRekeningAirChartWidget extends ChartWidget
 {
@@ -21,7 +20,7 @@ class JurnalRekeningAirChartWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $companyId = Auth::user()?->company_id ?? 1;
+        $companyId = auth()->user()?->company_id ?? 1;
 
         $data = [];
         $labels = [];

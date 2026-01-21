@@ -57,14 +57,14 @@ class CreateJurnalRekeningAir extends CreateRecord
     {
         try {
             $items = $this->data['rekening_air_items'] ?? [];
-            
+
             if (isset($items[$index])) {
                 array_splice($items, $index, 1);
                 $this->data['rekening_air_items'] = $items;
-                
+
                 // Reset konfirmasi
                 $this->data['items_completed'] = false;
-                
+
                 \Filament\Notifications\Notification::make()
                     ->title('Item berhasil dihapus!')
                     ->success()
@@ -90,30 +90,29 @@ class CreateJurnalRekeningAir extends CreateRecord
             $this->data['temp_rekening'] = $item['rekening'] ?? null;
             $this->data['temp_nomor_bantu'] = $item['nomor_bantu'] ?? null;
             $this->data['temp_position'] = $item['position'] ?? 'debit';
-            
+
             // Format jumlah
             $jumlah = $item['jumlah'] ?? 0;
             $this->data['temp_jumlah'] = $jumlah ? number_format($jumlah, 0, ',', '.') : '';
-            
+
             // Remove item from list
             $items = $this->data['rekening_air_items'] ?? [];
             if (isset($items[$index])) {
                 array_splice($items, $index, 1);
                 $this->data['rekening_air_items'] = $items;
             }
-            
+
             // Reset konfirmasi
             $this->data['items_completed'] = false;
-            
+
             \Filament\Notifications\Notification::make()
                 ->title('Item dimuat untuk diedit')
                 ->body('Data item telah dimuat ke form. Silakan ubah dan klik "Tambah Item" untuk menyimpan perubahan.')
                 ->info()
                 ->send();
-                
+
             // Dispatch event untuk scroll ke form
             $this->dispatch('scroll-to-form');
-                
         } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
                 ->title('Gagal edit item')
@@ -158,18 +157,8 @@ class CreateJurnalRekeningAir extends CreateRecord
         // Set rp dari total
         $data['rp'] = $totalDebit;
 
-        // Generate nomor referensi
-        $year = now()->year;
-        $lastJurnal = JurnalRekeningAir::where('no_reff', 'LIKE', "2-%/{$year}")
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        $nextNumber = 1;
-        if ($lastJurnal && preg_match('/^2-(\d+)\/\d{4}$/', $lastJurnal->no_reff, $matches)) {
-            $nextNumber = intval($matches[1]) + 1;
-        }
-
-        $data['no_reff'] = "2-{$nextNumber}/{$year}";
+        // no_reff akan di-generate otomatis oleh model boot()
+        // Tidak perlu set manual di sini
 
         // Create jurnal header
         $jurnal = JurnalRekeningAir::create($data);
@@ -177,7 +166,7 @@ class CreateJurnalRekeningAir extends CreateRecord
         // Create detail items
         foreach ($rekeningAirItems as $item) {
             $rekening = Rekening::with('kelompok')->find($item['rekening'] ?? null);
-            
+
             JurnalRekeningAirDetail::create([
                 'jurnal_rekening_air_id' => $jurnal->id,
                 'kelompok_id' => $rekening?->kelompok_id,

@@ -16,26 +16,25 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
 {
     public function array(): array
     {
-        $sampleKodeProyek = KodeProyek::first()?->kode ?? '01';
-
         return [
             [
-                'VCH-001', // no_voucher
+                'VCH-001', // bukti
                 '2024-11-26', // tanggal
                 '2024-11-26', // tanggal_check
                 'Bank BPD', // nama_bank
                 'CHK-12345', // no_cek
-                '10', // kelompok
-                '1102', // rekening
-                '20', // nomor_bantu
+                '10', // kelompok (NO_KEL)
+                '1102', // rekening (NO_REK)
+                '20', // nomor_bantu (NO_BANTU)
                 'D', // kode (D/K)
-                '5000000', // jumlah
+                '5000000', // jumlah (rp)
                 'PT Supplier ABC', // dibayar_kepada
+                'Operasional', // beban_bagian
                 'Pembayaran pembelian bahan kimia', // keterangan
-                $sampleKodeProyek, // kode_proyek
+                '01', // kode_proyek (kode)
             ],
             [
-                'VCH-002', // no_voucher
+                'VCH-002', // bukti
                 '2024-11-27', // tanggal
                 '2024-11-27', // tanggal_check
                 'Bank BRI', // nama_bank
@@ -43,11 +42,12 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
                 '10', // kelompok
                 '1101', // rekening
                 '10', // nomor_bantu
-                'K', // kode (D/K)
+                'K', // kode
                 '2500000', // jumlah
                 'CV Teknik Jaya', // dibayar_kepada
+                'Administrasi', // beban_bagian
                 'Pembayaran jasa perawatan pompa', // keterangan
-                '', // kode_proyek (kosong)
+                '', // kode_proyek (kosong jika tidak ada)
             ],
         ];
     }
@@ -55,7 +55,7 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
     public function headings(): array
     {
         return [
-            'no_voucher',
+            'bukti',
             'tanggal',
             'tanggal_check',
             'nama_bank',
@@ -66,6 +66,7 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
             'kode',
             'jumlah',
             'dibayar_kepada',
+            'beban_bagian',
             'keterangan',
             'kode_proyek',
         ];
@@ -91,7 +92,7 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
     public function columnWidths(): array
     {
         return [
-            'A' => 15, // no_voucher
+            'A' => 15, // bukti
             'B' => 12, // tanggal
             'C' => 12, // tanggal_check
             'D' => 20, // nama_bank
@@ -102,8 +103,9 @@ class JurnalBayarKasBankTemplateExport implements FromArray, WithHeadings, WithS
             'I' => 8,  // kode
             'J' => 15, // jumlah
             'K' => 25, // dibayar_kepada
-            'L' => 35, // keterangan
-            'M' => 15, // kode_proyek
+            'L' => 20, // beban_bagian
+            'M' => 35, // keterangan
+            'N' => 15, // kode_proyek
         ];
     }
 }

@@ -10,7 +10,6 @@ use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
-use App\Models\Company;
 use App\Imports\JurnalRekeningAirImport;
 use App\Exports\JurnalRekeningAirTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -20,8 +19,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Model;
 
 class JurnalRekeningAirResource extends Resource
 {
@@ -58,12 +55,12 @@ class JurnalRekeningAirResource extends Resource
     // Authorization helpers
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canEdit($record): bool
@@ -72,7 +69,7 @@ class JurnalRekeningAirResource extends Resource
         if ($record && $record->jurnalRekeningAir && $record->jurnalRekeningAir->is_confirmed) {
             return false;
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canDelete($record): bool
@@ -81,7 +78,7 @@ class JurnalRekeningAirResource extends Resource
         if ($record && $record->jurnalRekeningAir && $record->jurnalRekeningAir->is_confirmed) {
             return false;
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function form(Form $form): Form
@@ -512,17 +509,24 @@ class JurnalRekeningAirResource extends Resource
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        if ($record->kode_proyek_id) {
-                            return $record->kodeProyek?->name ?? '-';
-                        }
-                        $kelompok = $record->kelompok?->no_kel ?? '';
-                        $rek = $record->rekening?->no_rek ?? '';
-                        $bantu = $record->nomorBantu?->no_bantu ?? '';
-                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                        // Format 2 baris: AA BBBB + Nama
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $rekening = $record->rekening?->no_rek ?? '';
+                        $namaRekening = $record->rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $rekening)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('position')
                     ->label('K/D')

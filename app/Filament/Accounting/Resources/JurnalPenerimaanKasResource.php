@@ -19,9 +19,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Blade;
 
 class JurnalPenerimaanKasResource extends Resource
 {
@@ -60,12 +57,12 @@ class JurnalPenerimaanKasResource extends Resource
     // Authorization helpers
     public static function canViewAny(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canEdit($record): bool
@@ -75,7 +72,7 @@ class JurnalPenerimaanKasResource extends Resource
             // Add your confirmation check here if needed
             // For now, allow edit
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function canDelete($record): bool
@@ -85,7 +82,7 @@ class JurnalPenerimaanKasResource extends Resource
             // Add your confirmation check here if needed
             // For now, allow delete
         }
-        return Auth::check();
+        return auth()->check();
     }
 
     public static function form(Form $form): Form
@@ -548,17 +545,24 @@ class JurnalPenerimaanKasResource extends Resource
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        if ($record->kode_proyek_id) {
-                            return $record->kodeProyek?->name ?? '-';
-                        }
-                        $kelompok = $record->kelompok?->no_kel ?? '';
-                        $rek = $record->rekening?->no_rek ?? '';
-                        $bantu = $record->nomorBantu?->no_bantu ?? '';
-                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                        // Format 2 baris: AA BBBB + Nama
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
+                        $rekening = $record->rekening?->no_rek ?? '';
+                        $namaRekening = $record->rekening?->nama_rek ?? '';
+
+                        $kode = ($kodeProyek && $rekening)
+                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
+
+                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
-                    ->limit(20),
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')

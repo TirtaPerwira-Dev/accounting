@@ -61,38 +61,30 @@ class CreateJurnalPenerimaanKas extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        // Generate reff otomatis
-        $lastRecord = JurnalPenerimaanKas::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
-            ->count();
-        $nextNumber = $lastRecord + 1;
-        $reff = '3-' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT) . '/' . now()->format('m/Y');
-
         // Calculate total
         $items = $data['detail_penerimaan'] ?? [];
         $total = collect($items)->sum('jumlah');
 
-        // Buat header jurnal
+        // Buat header jurnal - no_reff auto-generate dari boot()
         $jurnal = JurnalPenerimaanKas::create([
             'kelompok_id' => $data['kelompok_id'] ?? null,
             'rekening_id' => $data['rekening_id'] ?? null,
             'kas_bank_id' => $data['kas_bank_id'],
             'tanggal' => $data['tanggal'],
-            'nomor_bukti' => $items[0]['nomor_bukti'] ?? 'AUTO-' . $reff,
+            'nomor_bukti' => $items[0]['nomor_bukti'] ?? 'AUTO-' . date('YmdHis'),
             'keterangan' => $data['keterangan'] ?? 'Penerimaan Kas/Bank',
             'kode_proyek_id' => null, // Tidak ada di form utama
             'nomor_rekening_id' => $data['rekening_id'] ?? null,
             'jumlah' => $total,
             'detail_penerimaan' => $items,
             'total_amount' => $total,
-            'reff' => $reff,
         ]);
 
         // Buat detail items dari array
         foreach ($items as $item) {
             // Get kelompok_id from rekening sumber
             $rekening = \App\Models\Rekening::find($item['rekening']);
-            
+
             JurnalPenerimaanKasDetail::create([
                 'jurnal_penerimaan_kas_id' => $jurnal->id,
                 'nomor_bukti' => $item['nomor_bukti'] ?? null,

@@ -100,9 +100,23 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('kode_rekening')
+                    ->label('Kode Rek')
+                    ->formatStateUsing(
+                        fn($record) =>
+                        sprintf(
+                            '%02d %04d',
+                            $record->kelompokDebit->no_kel ?? 0,
+                            $record->rekeningDebit->no_rek ?? 0
+                        )
+                    )
+                    ->searchable(false)
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('kelompokDebit.nama_kel')
                     ->label('Kelompok')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rekeningDebit.nama_rek')
                     ->label('Rekening')

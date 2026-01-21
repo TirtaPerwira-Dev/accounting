@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Models\JurnalMemorial;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Auth;
 
 class JurnalMemorialStatsWidget extends BaseWidget
 {
@@ -14,7 +13,7 @@ class JurnalMemorialStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $companyId = Auth::user()?->company_id ?? 1;
+        $companyId = auth()->user()?->company_id ?? 1;
         $baseQuery = JurnalMemorial::where('company_id', $companyId);
 
         $thisMonth = $baseQuery->whereYear('tanggal', date('Y'))->whereMonth('tanggal', date('m'));

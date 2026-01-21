@@ -7,7 +7,6 @@ use App\Filament\Widgets\JurnalRekeningAirStatsWidget;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Support\Facades\Auth;
 
 class ListJurnalRekeningAir extends ListRecords
 {
@@ -69,7 +68,7 @@ class ListJurnalRekeningAir extends ListRecords
 
                     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air', [
                         'journals' => $journals,
-                        'company' => Auth::user()?->company ?? \App\Models\Company::first(),
+                        'company' => auth()->user()?->company ?? \App\Models\Company::first(),
                         'startDate' => $data['start_date'],
                         'endDate' => $data['end_date'],
                         'status' => $data['status'],

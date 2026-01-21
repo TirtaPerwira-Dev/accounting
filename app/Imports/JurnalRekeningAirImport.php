@@ -70,7 +70,7 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
                         $this->errors[] = "Baris {$currentRowNumber}: Posisi harus D atau K";
                         continue 2;
                     }
-                    
+
                     $position = $posisiInput === 'D' ? 'debit' : 'kredit';
 
                     // Find kode proyek if specified
@@ -115,7 +115,8 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
                     'keterangan' => $firstRow['keterangan'] ?? '',
                     'rekening_air_items' => $rekeningAirItems,
                     'rp' => $totalRp,
-                    'company_id' => 1,
+                    'company_id' => \Illuminate\Support\Facades\Auth::user()?->company_id ?? 1,
+                    'created_by' => \Illuminate\Support\Facades\Auth::id(),
                     'is_confirmed' => false,
                 ]);
 
@@ -130,7 +131,6 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
                 Log::error("Jurnal Rekening Air Import failed", ['errors' => $this->errors]);
                 throw new \Exception('Import failed: ' . implode(', ', $this->errors));
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Jurnal Rekening Air Import Exception', [
@@ -160,7 +160,7 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
 
         try {
             $formats = ['Y-m-d', 'd/m/Y', 'd-m-Y', 'Y/m/d'];
-            
+
             foreach ($formats as $format) {
                 $parsed = Carbon::createFromFormat($format, $date);
                 if ($parsed && $parsed->format($format) === $date) {
@@ -205,20 +205,14 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
     private function parseAmount($amount)
     {
         if (is_numeric($amount)) return (float) $amount;
-        
+
         $cleaned = preg_replace('/[^\d.-]/', '', $amount);
         return (float) $cleaned;
     }
 
-    private function generateNoReff(): string
+    public function generateNoReff(): string
     {
-        $year = date('Y');
-        $lastEntry = JurnalRekeningAir::whereYear('created_at', $year)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        $nextNumber = $lastEntry ? (int)explode('-', $lastEntry->no_reff)[1] + 1 : 1;
-        return "2-{$nextNumber}/{$year}";
+        return '1';
     }
 
     public function getErrors(): array

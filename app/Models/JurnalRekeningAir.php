@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -78,14 +77,7 @@ class JurnalRekeningAir extends Model
      */
     public function generateNoReff(): string
     {
-        // Get last number
-        $lastJurnal = self::orderBy('id', 'desc')->first();
-
-        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
-            return (string)((int)$lastJurnal->no_reff + 1);
-        }
-
-        return '2'; // Start from 2
+        return '2';
     }
 
     // Relations - Hanya yang diperlukan untuk struktur baru
@@ -170,6 +162,7 @@ class JurnalRekeningAir extends Model
     {
         $this->update([
             'is_confirmed' => true,
+            'confirmed_by' => auth()->id(),
             'confirmed_at' => now(),
         ]);
     }
@@ -181,6 +174,7 @@ class JurnalRekeningAir extends Model
     {
         $this->update([
             'is_confirmed' => false,
+            'confirmed_by' => null,
             'confirmed_at' => null,
         ]);
     }

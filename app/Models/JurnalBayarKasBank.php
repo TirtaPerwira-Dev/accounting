@@ -62,18 +62,22 @@ class JurnalBayarKasBank extends Model
     {
         return $this->belongsTo(Kelompok::class);
     }
+
     public function rekening(): BelongsTo
     {
         return $this->belongsTo(Rekening::class);
     }
+
     public function nomorBantu(): BelongsTo
     {
         return $this->belongsTo(NomorBantu::class);
     }
+
     public function kodeProyek(): BelongsTo
     {
         return $this->belongsTo(KodeProyek::class);
     }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
@@ -89,22 +93,6 @@ class JurnalBayarKasBank extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
-    // Additional relationships for table columns display
-    public function kelompokDebit(): BelongsTo
-    {
-        return $this->belongsTo(Kelompok::class, 'kelompok_id');
-    }
-
-    public function rekeningDebit(): BelongsTo
-    {
-        return $this->belongsTo(Rekening::class, 'rekening_id');
-    }
-
-    public function nomorBantuDebit(): BelongsTo
-    {
-        return $this->belongsTo(NomorBantu::class, 'nomor_bantu_id');
-    }
-
     public function details(): HasMany
     {
         return $this->hasMany(JurnalBayarKasBankDetail::class);
@@ -115,13 +103,7 @@ class JurnalBayarKasBank extends Model
      */
     public function generateNoReff(): string
     {
-        $lastJurnal = self::orderBy('id', 'desc')->first();
-
-        if ($lastJurnal && is_numeric($lastJurnal->no_reff)) {
-            return (string)((int)$lastJurnal->no_reff + 1);
-        }
-
-        return '4'; // Start from 4
+        return '4';
     }
 
     /**
@@ -156,5 +138,29 @@ class JurnalBayarKasBank extends Model
     public function deletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    /**
+     * Konfirmasi jurnal (approval)
+     */
+    public function confirm(): void
+    {
+        $this->update([
+            'is_confirmed' => true,
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Batalkan konfirmasi jurnal
+     */
+    public function unconfirm(): void
+    {
+        $this->update([
+            'is_confirmed' => false,
+            'confirmed_by' => null,
+            'confirmed_at' => null,
+        ]);
     }
 }
