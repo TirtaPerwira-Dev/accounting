@@ -7,6 +7,7 @@ use App\Models\NomorBantu;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Notifications\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
@@ -84,17 +85,51 @@ class ListJurnalPembelians extends ListRecords
                 ->modalHeading('Filter Laporan Jurnal Pembelian')
                 ->modalSubmitActionLabel('Generate PDF')
                 ->action(function (array $data) {
-                    return $this->generatePdfReport($data);
+                    // Generate URL with parameters
+                    $params = http_build_query([
+                        'dari_tanggal' => $data['dari_tanggal'],
+                        'sampai_tanggal' => $data['sampai_tanggal'],
+                        'kode_hutang' => $data['kode_hutang'] ?? null,
+                        'status' => $data['status'] ?? 'all',
+                    ]);
+                    
+                    // Open in new tab using JavaScript
+                    $url = route('jurnal-pembelian.pdf') . '?' . $params;
+                    
+                    Notification::make()
+                        ->title('PDF sedang diproses')
+                        ->body('Laporan PDF akan dibuka di tab baru')
+                        ->success()
+                        ->send();
+                    
+                    // Redirect to PDF URL
+                    $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];
     }
 
-    protected function generatePdfReport(array $filters): \Symfony\Component\HttpFoundation\StreamedResponse
+    protected function generatePdfReport(array $filters): \Illuminate\Http\Response
     {
         $query = $this->getFilteredQuery($filters);
         $data = $query->with(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek'])
             ->orderBy('tanggal', 'desc')
             ->get();
+
+        // Clean data to ensure proper UTF-8 encoding
+        $data->each(function ($item) {
+            if (isset($item->bukti_item)) {
+                $item->bukti_item = mb_convert_encoding($item->bukti_item, 'UTF-8', 'UTF-8');
+            }
+            if (isset($item->keterangan)) {
+                $item->keterangan = mb_convert_encoding($item->keterangan, 'UTF-8', 'UTF-8');
+            }
+            if (isset($item->nama_akun_kredit)) {
+                $item->nama_akun_kredit = mb_convert_encoding($item->nama_akun_kredit, 'UTF-8', 'UTF-8');
+            }
+            if (isset($item->nama_akun_debit)) {
+                $item->nama_akun_debit = mb_convert_encoding($item->nama_akun_debit, 'UTF-8', 'UTF-8');
+            }
+        });
 
         $totalAmount = $data->sum('rp');
         $period = Carbon::parse($filters['dari_tanggal'])->format('d M Y') . ' - ' .
@@ -106,12 +141,18 @@ class ListJurnalPembelians extends ListRecords
             'period' => $period,
             'totalAmount' => $totalAmount,
             'generatedAt' => now()->format('d M Y H:i'),
-        ]);
+        ])->setPaper('a4', 'portrait')
+          ->setOption('isHtml5ParserEnabled', true)
+          ->setOption('isRemoteEnabled', true);
 
-        return response()->streamDownload(
-            fn() => print($pdf->output()),
-            'laporan-jurnal-pembelian-' . now()->format('Y-m-d-H-i-s') . '.pdf'
-        );
+        // Stream PDF untuk preview di browser (bukan download langsung)
+        $filename = 'laporan-jurnal-pembelian-' . now()->format('Y-m-d-H-i-s') . '.pdf';
+        
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf; charset=utf-8')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate')
+            ->header('Pragma', 'public');
     }
 
     protected function getFilteredQuery(array $filters)

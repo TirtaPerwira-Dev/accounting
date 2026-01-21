@@ -18,6 +18,10 @@ Route::get('/report/export/excel', [ReportExportController::class, 'exportExcel'
 // Nomor Bantu Export Routes
 Route::get('/nomor-bantu/export/pdf', [NomorBantuExportController::class, 'exportPdf'])->name('nomor-bantu.export-pdf');
 
+// Jurnal Pembelian PDF Routes
+Route::get('/jurnal-pembelian/laporan-pdf', [ReportExportController::class, 'jurnalPembelianPdf'])->name('jurnal-pembelian.pdf');
+Route::get('/jurnal-pembelian/{id}/pdf', [ReportExportController::class, 'jurnalPembelianSinglePdf'])->name('jurnal-pembelian.single-pdf');
+
 // Jurnal Penerimaan Kas PDF Routes
 Route::get('/jurnal-penerimaan-kas/{record}/pdf', function (JurnalPenerimaanKas $record) {
     $record->load(['kasBank.rekening.kelompok']);
