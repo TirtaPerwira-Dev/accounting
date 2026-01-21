@@ -1,280 +1,383 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Jurnal Pembelian Barang</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Laporan Jurnal Pembelian Barang - PDAM Tirta Perwira</title>
     <style>
+        @page {
+            size: A4 portrait;
+            margin: 20mm 30mm 20mm 25mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            margin: 30px;
-            line-height: 1.4;
+            font-size: 8pt;
+            line-height: 1.35;
             color: #000;
+            padding: 0 5mm;
         }
 
-        .text-center {
+        /* ====== HEADER ====== */
+        .kop-surat {
             text-align: center;
+            margin-bottom: 5px;
+            border-bottom: 1.5px solid #000;
+            padding-bottom: 5px;
+            margin-top: 40px;
         }
 
-        .uppercase {
+        .company-name {
+            font-size: 9.5pt;
+            font-weight: bold;
+            line-height: 1.25;
+            margin-bottom: 1px;
             text-transform: uppercase;
         }
 
-        /* Header rapi & elegan */
-        .header-title {
-            margin: 0;
-            font-size: 14pt;
+        .header-container {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .report-title {
+            font-size: 10.5pt;
             font-weight: bold;
+            margin: 5px 0 3px 0;
+            text-transform: uppercase;
         }
 
-        .header-period {
-            margin: 6px 0 0 0;
-            font-size: 12pt;
+        .report-period {
+            font-size: 8.5pt;
+            margin-bottom: 2px;
+            color: #444;
         }
 
-        table {
+        /* ====== TABLE STYLES ====== */
+        .main-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 7pt;
         }
 
-        th,
-        td {
-            border: 1px solid #000;
-            padding: 7px;
+        .main-table thead tr {
+            background-color: #e8e8e8;
+        }
+
+        .main-table th {
+            border: 0.5px solid #555;
+            padding: 4px 5px;
+            text-align: center;
+            font-weight: bold;
+            vertical-align: middle;
+            line-height: 1.2;
+            font-size: 7pt;
+        }
+
+        .main-table td {
+            border: 0.5px solid #777;
+            padding: 2px 5px;
             vertical-align: top;
+            line-height: 1.3;
+            font-size: 7pt;
         }
 
-        th {
-            background-color: #f0f0f0;
+        .main-table .text-center {
             text-align: center;
         }
 
-        .amount {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
+        .main-table .text-right {
+            text-align: right;
+            padding-right: 6px;
         }
 
-        /* === INFO JURNAL — TITIK DUA 100% RATA === */
-        .info-row {
-            display: flex;
-            margin-bottom: 6px;
-            font-size: 11pt;
+        .main-table .text-left {
+            text-align: left;
         }
 
-        .info-label {
-            width: 165px;
-            flex-shrink: 0;
-            font-weight: bold;
-        }
-
-        .info-value {
-            flex: 1;
-        }
-
-        .total-value {
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            font-size: 12pt;
-        }
-
+        /* ====== STATUS BADGE ====== */
         .status-badge {
-            padding: 4px 12px;
-            border-radius: 4px;
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
             color: white;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 8.5pt;
         }
 
         .status-confirmed {
-            background-color: #0b6e04;
+            background-color: #28a745;
         }
 
         .status-pending {
-            background-color: #e65100;
+            background-color: #ff9800;
         }
 
-        /* === FOOTER SERAGAM DENGAN LAPORAN SINGLE === */
-        .report-footer {
-            margin-top: 70px;
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            position: relative;
-            min-height: 300px;
+        /* ====== TABLES ====== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            page-break-inside: auto;
+        }
+
+        table thead tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        table tbody tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        th {
+            background-color: #e9ecef;
+            border: 1px solid #000;
+            padding: 8px 6px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9.5pt;
+            vertical-align: middle;
+        }
+
+        td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            vertical-align: top;
+            font-size: 9.5pt;
+        }
+
+        .detail-table td {
+            padding: 5px 6px;
+        }
+
+        /* ====== AMOUNTS ====== */
+        .amount {
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+            font-size: 7pt;
+        }
+
+        /* ====== GROUP HEADER ====== */
+        .group-row {
+            background-color: #f8f8f8;
+            font-weight: bold;
+        }
+
+        /* ====== SUMMARY ====== */
+        .summary-row {
+            background-color: #ececec;
+            font-weight: bold;
+        }
+
+        .grand-total-row {
+            background-color: #dadada;
+            font-weight: bold;
+            font-size: 7.5pt;
+        }
+
+        /* ====== FOOTER ====== */
+        .footer-container {
+            margin-top: 20px;
             page-break-inside: avoid;
         }
 
-        .signature-block {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 380px;
-            text-align: center;
+        .signature-section {
+            width: 100%;
+            margin-top: 12px;
         }
 
-        .system-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
+        .signature-box {
+            display: inline-block;
+            width: 170px;
             text-align: center;
-            font-size: 11pt;
-            color: #555;
-            padding: 10px 0;
+            font-size: 7.5pt;
+            float: right;
+            line-height: 1.35;
         }
+
+        .signature-line {
+            margin-top: 40px;
+            border-top: 1px solid #000;
+            padding-top: 2px;
+        }
+
+        .footer-info {
+            margin-top: 65px;
+            padding-top: 6px;
+            border-top: 0.5px solid #aaa;
+            text-align: center;
+            font-size: 6.5pt;
+            color: #666;
+            clear: both;
+            line-height: 1.3;
+        }
+
+        /* ====== NO DATA ====== */
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-data h3 {
+            font-size: 12pt;
+            margin-bottom: 6px;
+            color: #666;
+        }
+
+        /* ====== UTILITIES ====== */
+        .text-bold { font-weight: bold; }
+        .nowrap { white-space: nowrap; }
     </style>
 </head>
 
 <body>
+    <!-- ====== KOP SURAT ====== -->
+    <div class="kop-surat">
+        <div class="company-name">Pemerintah Kabupaten Purbalingga</div>
+        <div class="company-name">Perusahaan Umum Daerah Air Minum Tirta Perwira</div>
+        <div class="company-name">Kabupaten Purbalingga</div>
+    </div>
 
-    <!-- Header Perusahaan -->
-    <div class="text-center">
-        <h2 class="uppercase" style="margin:0; line-height:1.2;">PEMERINTAH KABUPATEN PURBALINGGA</h2>
-        <h2 class="uppercase" style="margin:5px 0 0 0; line-height:1.2;">PERUSAHAAN UMUM DAERAH AIR MINUM TIRTA PERWIRA
-        </h2>
-        <h2 class="uppercase" style="margin:5px 0 10px 0; line-height:1.2;">KABUPATEN PURBALINGGA</h2>
-        <hr style="border: 2px solid #000; margin:8px 0;">
-        <p class="header-title">LAPORAN JURNAL PEMBELIAN BARANG</p>
-        <p class="header-period">Periode: {{ $period }}</p>
+    <!-- ====== JUDUL LAPORAN ====== -->
+    <div class="header-container">
+        <div class="report-title">Laporan Jurnal Pembelian Barang</div>
+        <div class="report-period">Periode: {{ $period }}</div>
     </div>
 
     @if($data->count() > 0)
-    @php
-        // Group data by no_reff and group_transaksi for proper display
-        $groupedData = $data->groupBy(function ($item) {
-            return $item->group_transaksi ?? 'single_' . $item->id;
-        });
-    @endphp
+        @php
+            $groupedData = $data->groupBy(function ($item) {
+                return $item->group_transaksi ?? 'single_' . $item->id;
+            });
+            $grandTotalDebit = 0;
+            $grandTotalCredit = 0;
+        @endphp
 
-    @foreach($groupedData as $groupKey => $groupItems)
-    @php
-        $jurnal = $groupItems->first(); // Main record
-        $totalGroupAmount = $groupItems->sum('jumlah_item');
-        $no = $loop->iteration;
-    @endphp
+        <!-- ====== MAIN TABLE ====== -->
+        <table class="main-table">
+            <thead>
+                <tr>
+                    <th style="width: 2.5%;">No</th>
+                    <th style="width: 7%;">No. Reff</th>
+                    <th style="width: 6%;">Tanggal</th>
+                    <th style="width: 7.5%;">Bukti</th>
+                    <th style="width: 7.5%;">Kode<br>Akun</th>
+                    <th style="width: 29%;">Nama Akun</th>
+                    <th style="width: 23%;">Keterangan</th>
+                    <th style="width: 4.5%;">Status</th>
+                    <th style="width: 13%;">Debit (Rp)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($groupedData as $groupKey => $groupItems)
+                    @php
+                        $jurnal = $groupItems->first();
+                        $totalGroupAmount = $groupItems->sum('jumlah_item');
+                        $loopNum = $loop->iteration;
+                    @endphp
 
-    <!-- INFO JURNAL (2 kolom, titik dua rata) -->
-    <table width="100%" style="margin:25px 0 10px 0; border:none;">
-        <tr>
-            <td width="55%" style="vertical-align:top; border:none;">
-                <div class="info-row"><span class="info-label">NO. REFERENSI :</span><span class="info-value"><strong>{{
-                            $jurnal->no_reff }}</strong></span></div>
-                <div class="info-row"><span class="info-label">TANGGAL :</span><span class="info-value">{{
-                        $jurnal->tanggal->format('d M Y') }}</span></div>
-                <div class="info-row"><span class="info-label">BUKTI :</span><span class="info-value">{{ $jurnal->bukti_item
-                        ?: '-' }}</span></div>
-                @if($jurnal->keterangan)
-                <div class="info-row"><span class="info-label">KETERANGAN :</span><span class="info-value">{{
-                        $jurnal->keterangan }}</span></div>
-                @endif
-                <div class="info-row"><span class="info-label">AKUN KREDIT :</span><span class="info-value">{{
-                        $jurnal->kode_sakep_kredit }} - {{ $jurnal->nama_akun_kredit }}</span></div>
-                @if($jurnal->kodeProyek)
-                <div class="info-row"><span class="info-label">KODE PROYEK :</span><span class="info-value">{{
-                        $jurnal->kodeProyek->name }}</span></div>
-                @endif
-            </td>
-            <td width="45%" style="vertical-align:top; border:none;">
-                <div class="info-row"><span class="info-label">TOTAL NILAI :</span><span
-                        class="info-value total-value">Rp {{ number_format($totalGroupAmount, 0, ',', '.') }}</span></div>
-                <div class="info-row"><span class="info-label">STATUS JURNAL :</span><span class="info-value">
-                        @if($jurnal->is_confirmed)
-                        <span class="status-badge status-confirmed">DIKONFIRMASI</span>
-                        @else
-                        <span class="status-badge status-pending">PENDING</span>
-                        @endif
-                    </span></div>
-                @if($jurnal->is_confirmed && $jurnal->confirmed_at)
-                <div class="info-row"><span class="info-label">WAKTU KONFIRMASI :</span><span class="info-value">{{
-                        $jurnal->confirmed_at->format('d/m/Y H:i') }}</span></div>
-                @endif
-            </td>
-        </tr>
-    </table>
+                    <!-- Group Header Row (Akun Kredit) -->
+                    <tr class="group-row">
+                        <td class="text-center">{{ $loopNum }}</td>
+                        <td class="text-center">{{ $jurnal->no_reff }}</td>
+                        <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
+                        <td colspan="3" style="padding-left: 6px;">
+                            <strong>KREDIT:</strong> {{ $jurnal->kode_sakep_kredit }} - {{ $jurnal->nama_akun_kredit }}
+                            @if($jurnal->kodeProyek)
+                                <br><span style="font-size: 6pt; font-weight: normal;">Proyek : {{ $jurnal->kodeProyek->name }}</span>
+                            @endif
+                        </td>
+                        <td style="font-size: 6.5pt; padding-left: 4px;">{{ $jurnal->keterangan ?: '-' }}</td>
+                        <td class="text-center">
+                            @if($jurnal->is_confirmed)
+                                <span style="color: green; font-size: 8pt;">✓</span>
+                            @else
+                                <span style="color: orange; font-size: 8pt;">?</span>
+                            @endif
+                        </td>
+                        <td class="text-right amount">{{ number_format($totalGroupAmount, 0, ',', '.') }}</td>
+                    </tr>
 
-    <!-- Tabel Detail Item -->
-    <table>
-        <thead>
-            <tr>
-                <th width="5%">No</th>
-                <th width="12%">Bukti</th>
-                <th width="10%">Kode Akun</th>
-                <th width="38%">Nama Akun Debit</th>
-                <th width="18%">Debit</th>
-                <th width="17%">Kredit</th>
+                    <!-- Detail Rows (Akun Debit) -->
+                    @foreach($groupItems as $item)
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->bukti_item ?: '-' }}</td>
+                            <td class="text-center">{{ $item->kode_sakep_debit }}</td>
+                            <td style="padding-left: 10px;">{{ $item->nama_akun_debit }}</td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->keterangan_item ?: '-' }}</td>
+                            <td></td>
+                            <td class="text-right amount">{{ number_format($item->jumlah_item, 0, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+
+                    @php
+                        $grandTotalDebit += $totalGroupAmount;
+                        $grandTotalCredit += $totalGroupAmount;
+                    @endphp
+                @endforeach
+
+                <!-- Grand Total -->
+                <tr class="grand-total-row">
+                    <td colspan="8" class="text-right" style="padding-right: 8px;">TOTAL KESELURUHAN:</td>
+                    <td class="text-right amount" style="font-size: 7.5pt;">{{ number_format($grandTotalDebit, 0, ',', '.') }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Summary Info -->
+        <table style="width: 40%; margin-top: 6px; border: none; font-size: 7pt;">
+            <tr style="border: none;">
+                <td style="border: none; padding: 1px 4px; font-weight: bold; width: 38%;">Total Transaksi:</td>
+                <td style="border: none; padding: 1px 4px;">{{ $groupedData->count() }} Jurnal</td>
             </tr>
-        </thead>
-        <tbody>
-            @forelse($groupItems as $i => $item)
-            <tr>
-                <td class="text-center">{{ $i + 1 }}</td>
-                <td>{{ $item->bukti_item ?: '-' }}</td>
-                <td>{{ $item->kode_sakep_debit }}</td>
-                <td style="padding-left:15px;">{{ $item->nama_akun_debit }}</td>
-                <td class="amount text-right">Rp {{ number_format($item->jumlah_item, 0, ',', '.') }}</td>
-                <td class="amount text-right">{{ $i == 0 ? 'Rp '.number_format($totalGroupAmount, 0, ',', '.') : '' }}</td>
+            <tr style="border: none;">
+                <td style="border: none; padding: 1px 4px; font-weight: bold;">Total Debit:</td>
+                <td style="border: none; padding: 1px 4px;" class="amount">Rp {{ number_format($grandTotalDebit, 0, ',', '.') }}</td>
             </tr>
-            @empty
-            <tr>
-                <td colspan="6" class="text-center" style="font-style:italic; color:#666;">— Tidak ada detail item —
-                </td>
+            <tr style="border: none;">
+                <td style="border: none; padding: 1px 4px; font-weight: bold;">Total Kredit:</td>
+                <td style="border: none; padding: 1px 4px;" class="amount">Rp {{ number_format($grandTotalCredit, 0, ',', '.') }}</td>
             </tr>
-            @endforelse
-        </tbody>
-    </table>
+        </table>
 
-    <!-- Pemisah antar jurnal -->
-    <div style="margin:30px 0; page-break-after:avoid;">
-        <hr style="border-top:3px double #000;">
-    </div>
-    @endforeach
-
-    <!-- Total Keseluruhan -->
-    @php
-        $totalAmount = $data->sum('jumlah_item');
-    @endphp
-    <table style="margin-top:20px;">
-        <tr style="background:#e0e0e0; font-weight:bold; font-size:13pt;">
-            <td colspan="4" class="text-right">TOTAL PEMBELIAN PERIODE</td>
-            <td class="amount text-right">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
-            <td class="amount text-right">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
-        </tr>
-    </table>
     @else
-    <div style="text-align:center; padding:120px 0; color:#666; font-style:italic;">
-        <h3>— TIDAK ADA DATA —</h3>
-        <p>Tidak ditemukan transaksi pembelian barang pada periode yang dipilih.</p>
-    </div>
+        <!-- No Data Message -->
+        <div class="no-data">
+            <h3>— TIDAK ADA DATA —</h3>
+            <p style="font-size: 8pt;">Tidak ditemukan transaksi pembelian pada periode yang dipilih.</p>
+        </div>
     @endif
 
-    <!-- FOOTER SERAGAM DENGAN LAPORAN SINGLE -->
-    <div class="report-footer">
-        <div class="signature-block">
-            <div style="margin-bottom:20px;">
-                Purbalingga, {{ \Carbon\Carbon::parse($generatedAt)->locale('id')->translatedFormat('d F Y') }}
+    <!-- ====== FOOTER ====== -->
+    <div class="footer-container">
+        <div class="signature-section">
+            <div class="signature-box">
+                <div>Purbalingga, {{ \Carbon\Carbon::parse($generatedAt)->locale('id')->translatedFormat('d F Y') }}</div>
+                <div style="margin-top: 3px;"><strong>Kepala Bagian Keuangan</strong></div>
+                <div class="signature-line">
+                    <strong>Yuni Setyowati, S.E</strong><br>
+                    <span style="font-size: 6.5pt;">NIPPAM: ....................</span>
+                </div>
             </div>
-            <div style="margin-bottom:20px;">
-                <strong>Perusahaan Umum Daerah Air Minum<br>Kab. Purbalingga</strong>
-            </div>
-            <div style="margin-bottom:10px;"><strong>Kepala Bagian Keuangan</strong></div>
-            <div style="height:80px;"></div>
-            <div style="border-bottom:1px solid #000; display:inline-block; padding:0 30px; line-height:2;">
-                <strong><u>Yuni Setyowati, S.E</u></strong>
-            </div>
-            <br>NIPPAM : ....................
         </div>
 
-        <div class="system-info">
-            <em>
-                Laporan ini dicetak pada : {{ \Carbon\Carbon::parse($generatedAt)->locale('id')->translatedFormat('d F
-                Y') }}<br>
-                Sistem Akuntansi Air Minum Tirta Perwira
-            </em>
+        <div class="footer-info">
+            Dicetak: {{ \Carbon\Carbon::parse($generatedAt)->locale('id')->translatedFormat('d F Y, H:i') }} WIB<br>
+            <strong>Sistem Akuntansi Air Minum - Perumda Air Minum Tirta Perwira Kabupaten Purbalingga</strong>
         </div>
     </div>
-
 </body>
-
 </html>

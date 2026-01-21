@@ -658,21 +658,18 @@ class JurnalPembelianResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
+                        ->requiresConfirmation(false)
                         ->action(function ($record) {
-                            $record->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek']);
-
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
-                                'jurnal' => $record,
-                                'generatedAt' => now()->format('d M Y H:i'),
-                            ]);
-
-                            // Sanitize filename - remove invalid characters
-                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff);
-
-                            return response()->streamDownload(
-                                fn() => print($pdf->output()),
-                                'jurnal-pembelian-' . $safeFilename . '.pdf'
-                            );
+                            $url = route('jurnal-pembelian.single-pdf', $record->id);
+                            
+                            Notification::make()
+                                ->title('PDF sedang diproses')
+                                ->body('Laporan PDF akan dibuka di tab baru')
+                                ->success()
+                                ->send();
+                            
+                            // Open PDF in new tab
+                            $this->js('window.open("' . $url . '", "_blank")');
                         }),
 
                     Tables\Actions\DeleteAction::make()
