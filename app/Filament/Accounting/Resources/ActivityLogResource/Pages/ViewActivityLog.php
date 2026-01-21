@@ -22,25 +22,25 @@ class ViewActivityLog extends ViewRecord
                             ->label('Modul')
                             ->badge()
                             ->color('primary'),
-                            
+
                         Infolists\Components\TextEntry::make('description')
                             ->label('Deskripsi Aktivitas'),
-                            
+
                         Infolists\Components\TextEntry::make('subject_type')
                             ->label('Tipe Data')
                             ->formatStateUsing(fn($state) => $state ? class_basename($state) : '-')
                             ->badge()
                             ->color('info'),
-                            
+
                         Infolists\Components\TextEntry::make('subject_id')
                             ->label('ID Data'),
-                            
+
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Waktu')
                             ->dateTime('d/m/Y H:i:s'),
                     ])
                     ->columns(2),
-                    
+
                 Infolists\Components\Section::make('Detail Perubahan')
                     ->schema([
                         Infolists\Components\TextEntry::make('properties.attributes')
@@ -52,7 +52,7 @@ class ViewActivityLog extends ViewRecord
                                 })->join("\n");
                             })
                             ->markdown(),
-                            
+
                         Infolists\Components\TextEntry::make('properties.old')
                             ->label('Data Lama')
                             ->formatStateUsing(function ($state) {

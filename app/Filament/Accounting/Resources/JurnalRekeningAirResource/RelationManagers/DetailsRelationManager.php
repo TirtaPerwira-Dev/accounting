@@ -37,7 +37,7 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('rekening_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('rekening_id', null)),
 
                 Forms\Components\Select::make('rekening_id')
                     ->label('Rekening')
@@ -54,7 +54,7 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('nomor_bantu_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('nomor_bantu_id', null)),
 
                 Forms\Components\Select::make('nomor_bantu_id')
                     ->label('Nomor Bantu')
@@ -103,12 +103,12 @@ class DetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('posisi')
                     ->label('Posisi')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'D' => 'success',
                         'K' => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'D' => 'Debit',
                         'K' => 'Kredit',
                         default => $state,

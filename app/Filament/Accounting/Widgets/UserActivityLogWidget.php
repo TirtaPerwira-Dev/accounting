@@ -11,7 +11,7 @@ class UserActivityLogWidget extends BaseWidget
 {
     protected static ?int $sort = 10;
     protected int | string | array $columnSpan = 'full';
-    
+
     public static function canView(): bool
     {
         return auth()->check();
@@ -48,17 +48,17 @@ class UserActivityLogWidget extends BaseWidget
                     ->label('Detail')
                     ->formatStateUsing(function ($state) {
                         if (!$state) return '-';
-                        
+
                         $attributes = $state['attributes'] ?? [];
                         $old = $state['old'] ?? [];
-                        
+
                         if (!empty($attributes)) {
                             $preview = collect($attributes)->take(3)->map(function ($value, $key) {
                                 return "$key: " . (is_array($value) ? json_encode($value) : $value);
                             })->join(', ');
                             return strlen($preview) > 50 ? substr($preview, 0, 50) . '...' : $preview;
                         }
-                        
+
                         return '-';
                     })
                     ->limit(50)

@@ -25,14 +25,14 @@ class DetailsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('nomor_bukti')
                     ->label('Nomor Bukti')
                     ->maxLength(50),
-                
+
                 Forms\Components\Select::make('kelompok_id')
                     ->label('Kelompok')
                     ->options(Kelompok::pluck('nama_kel', 'id'))
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('rekening_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('rekening_id', null)),
 
                 Forms\Components\Select::make('rekening_id')
                     ->label('Rekening')
@@ -49,7 +49,7 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('nomor_bantu_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('nomor_bantu_id', null)),
 
                 Forms\Components\Select::make('nomor_bantu_id')
                     ->label('Nomor Bantu')

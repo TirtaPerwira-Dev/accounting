@@ -25,7 +25,7 @@ class DetailsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('no_voucher')
                     ->label('No. Voucher')
                     ->maxLength(50),
-                
+
                 Forms\Components\TextInput::make('dibayar_kepada')
                     ->label('Dibayar Kepada')
                     ->maxLength(255),
@@ -36,7 +36,7 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('rekening_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('rekening_id', null)),
 
                 Forms\Components\Select::make('rekening_id')
                     ->label('Rekening')
@@ -53,7 +53,7 @@ class DetailsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('nomor_bantu_id', null)),
+                    ->afterStateUpdated(fn(callable $set) => $set('nomor_bantu_id', null)),
 
                 Forms\Components\Select::make('nomor_bantu_id')
                     ->label('Nomor Bantu')

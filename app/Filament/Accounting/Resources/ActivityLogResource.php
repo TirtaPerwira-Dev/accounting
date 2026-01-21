@@ -71,13 +71,13 @@ class ActivityLogResource extends Resource
                     ->label('Detail Perubahan')
                     ->formatStateUsing(function ($state) {
                         if (!$state) return '-';
-                        
+
                         $attributes = $state['attributes'] ?? [];
                         $old = $state['old'] ?? [];
-                        
+
                         if (!empty($attributes) || !empty($old)) {
                             $changes = [];
-                            
+
                             foreach ($attributes as $key => $value) {
                                 if (isset($old[$key]) && $old[$key] != $value) {
                                     $changes[] = "$key: {$old[$key]} → $value";
@@ -85,10 +85,10 @@ class ActivityLogResource extends Resource
                                     $changes[] = "$key: $value";
                                 }
                             }
-                            
+
                             return implode(', ', $changes) ?: '-';
                         }
-                        
+
                         return '-';
                     })
                     ->limit(60)
@@ -110,7 +110,7 @@ class ActivityLogResource extends Resource
                     ->options([
                         'default' => 'Default',
                     ]),
-                    
+
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('dari')

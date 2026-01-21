@@ -27,7 +27,7 @@ class DetailsRelationManager extends RelationManager
                         Forms\Components\TextInput::make('bukti')
                             ->label('No. Bukti')
                             ->maxLength(50),
-                        
+
                         Forms\Components\TextInput::make('beban_bagian')
                             ->label('Beban Bagian')
                             ->maxLength(100),
@@ -42,7 +42,7 @@ class DetailsRelationManager extends RelationManager
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('rekening_debit_id', null)),
+                            ->afterStateUpdated(fn(callable $set) => $set('rekening_debit_id', null)),
 
                         Forms\Components\Select::make('rekening_debit_id')
                             ->label('Rekening Debit')
@@ -59,7 +59,7 @@ class DetailsRelationManager extends RelationManager
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('nomor_bantu_debit_id', null)),
+                            ->afterStateUpdated(fn(callable $set) => $set('nomor_bantu_debit_id', null)),
 
                         Forms\Components\Select::make('nomor_bantu_debit_id')
                             ->label('Nomor Bantu Debit')
@@ -91,7 +91,7 @@ class DetailsRelationManager extends RelationManager
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('rekening_kredit_id', null)),
+                            ->afterStateUpdated(fn(callable $set) => $set('rekening_kredit_id', null)),
 
                         Forms\Components\Select::make('rekening_kredit_id')
                             ->label('Rekening Kredit')
@@ -108,7 +108,7 @@ class DetailsRelationManager extends RelationManager
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('nomor_bantu_kredit_id', null)),
+                            ->afterStateUpdated(fn(callable $set) => $set('nomor_bantu_kredit_id', null)),
 
                         Forms\Components\Select::make('nomor_bantu_kredit_id')
                             ->label('Nomor Bantu Kredit')

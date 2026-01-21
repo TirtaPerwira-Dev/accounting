@@ -15,11 +15,12 @@ return new class extends Migration
         Schema::table('jurnal_pembelians', function (Blueprint $table) {
             // Drop foreign keys first
             $columns = Schema::getColumnListing('jurnal_pembelians');
-            
+
             if (in_array('approved_by', $columns)) {
                 try {
                     $table->dropForeign(['approved_by']);
-                } catch (\Exception $e) {}
+                } catch (\Exception $e) {
+                }
                 $table->dropColumn('approved_by');
             }
             if (in_array('approval_status', $columns)) {
@@ -33,11 +34,12 @@ return new class extends Migration
         // 2. Hapus approval_status, approved_by, approved_at dari jurnal_rekening_air (jika ada)
         Schema::table('jurnal_rekening_air', function (Blueprint $table) {
             $columns = Schema::getColumnListing('jurnal_rekening_air');
-            
+
             if (in_array('approved_by', $columns)) {
                 try {
                     $table->dropForeign(['approved_by']);
-                } catch (\Exception $e) {}
+                } catch (\Exception $e) {
+                }
                 $table->dropColumn('approved_by');
             }
             if (in_array('approval_status', $columns)) {

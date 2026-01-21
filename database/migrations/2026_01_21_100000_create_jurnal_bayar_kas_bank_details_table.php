@@ -28,7 +28,7 @@ return new class extends Migration
             $table->foreignId('kelompok_id')->nullable()->constrained('kelompoks')->onDelete('restrict');
             $table->foreignId('rekening_id')->nullable()->constrained('rekenings')->onDelete('restrict');
             $table->foreignId('nomor_bantu_id')->nullable()->constrained('nomor_bantus')->onDelete('restrict');
-            
+
             // Kode proyek (opsional)
             $table->foreignId('kode_proyek_id')->nullable()->constrained('kode_proyeks')->onDelete('set null');
 
