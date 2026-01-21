@@ -3,6 +3,7 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalMemorialResource\Pages;
+use App\Filament\Accounting\Resources\JurnalMemorialResource\RelationManagers;
 use App\Filament\Widgets\JurnalMemorialStatsWidget;
 use App\Models\JurnalMemorial;
 use App\Models\NomorBantu;
@@ -28,7 +29,7 @@ class JurnalMemorialResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 6;
 
@@ -367,7 +368,7 @@ class JurnalMemorialResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('bukti')
-                    ->label('Bukti')
+                    ->label('No Bukti')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('tanggal')
@@ -376,16 +377,33 @@ class JurnalMemorialResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
-                    ->label('Rekening')
+                    ->label('Nama Rekening')
                     ->limit(30),
+
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->getStateUsing(function ($record) {
+                        if ($record->kode_proyek_id) {
+                            return $record->kodeProyek?->name ?? '-';
+                        }
+                        $kelompok = $record->kelompok?->no_kel ?? '';
+                        $rek = $record->rekening?->no_rek ?? '';
+                        $bantu = $record->nomorBantu?->no_bantu ?? '';
+                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
+                    ->limit(20),
+
+                Tables\Columns\TextColumn::make('kode')
+                    ->label('D/K')
+                    ->formatStateUsing(fn($state) => strtoupper($state))
+                    ->badge()
+                    ->color(fn($state) => $state === 'D' ? 'info' : 'success'),
 
                 Tables\Columns\TextColumn::make('rp')
                     ->label('Jumlah')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight(),
-
-                Tables\Columns\BadgeColumn::make('kode')
-                    ->colors(['success' => 'D', 'danger' => 'K']),
 
                 Tables\Columns\IconColumn::make('is_confirmed')
                     ->label('Status')
@@ -394,8 +412,10 @@ class JurnalMemorialResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('warning'),
+
                 Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No. Reff'),
+                    ->label('No Reff')
+                    ->searchable(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import')
@@ -532,7 +552,9 @@ class JurnalMemorialResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Accounting\Resources\JurnalMemorialResource\RelationManagers\DetailsRelationManager::class,
+        ];
     }
 
     public static function getWidgets(): array

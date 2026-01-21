@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -38,6 +39,7 @@ class JurnalPemakaianBahan extends Model
         'item_sequence',
         'company_id',
         'created_by',
+        'deleted_by',
         'is_confirmed',
         'confirmed_by',
         'confirmed_at'
@@ -107,6 +109,11 @@ class JurnalPemakaianBahan extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function details(): HasMany
+    {
+        return $this->hasMany(JurnalPemakaianBahanDetail::class);
+    }
+
     /**
      * Generate nomor referensi - hanya angka sequential (5, 6, 7, ...)
      */
@@ -141,5 +148,17 @@ class JurnalPemakaianBahan extends Model
                 $model->created_by = auth()->id();
             }
         });
+
+        static::deleting(function ($model) {
+            if (auth()->check()) {
+                $model->deleted_by = auth()->id();
+                $model->saveQuietly();
+            }
+        });
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 }

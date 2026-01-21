@@ -33,7 +33,7 @@ class JurnalPenerimaanKasResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 3;
 
@@ -536,72 +536,34 @@ class JurnalPenerimaanKasResource extends Resource
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('nomor_bukti')
-                    ->label('No. Bukti')
+                    ->label('Bukti')
                     ->searchable()
                     ->limit(20),
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.tanggal')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.kasBank.nm_bantu')
-                    ->label('Kas/Bank (Tujuan)')
-                    ->searchable()
-                    ->formatStateUsing(fn($record) => $record->jurnalPenerimaanKas?->kasBank ?
-                        str_pad($record->jurnalPenerimaanKas->kasBank->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
-                    ->description(fn($record) => $record->jurnalPenerimaanKas?->kasBank ?
-                        $record->jurnalPenerimaanKas->kasBank->nm_bantu : null)
-                    ->weight('bold')
-                    ->size('lg'),
 
-                Tables\Columns\TextColumn::make('rekening.nama_rek')
-                    ->label('Rekening (Sumber)')
+                Tables\Columns\TextColumn::make('keterangan_item')
+                    ->label('Keterangan')
                     ->searchable()
-                    ->formatStateUsing(fn($record) => $record->rekening ?
-                        $record->rekening->kelompok->no_kel . '-' .
-                        $record->rekening->no_rek : '-')
-                    ->description(fn($record) => $record->rekening ?
-                        $record->rekening->nama_rek : null)
-                    ->weight('bold')
-                    ->size('lg')
+                    ->limit(30)
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('nomorBantu.nm_bantu')
-                    ->label('Nomor Bantu')
-                    ->searchable()
-                    ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                        str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
-                    ->description(fn($record) => $record->nomorBantu ?
-                        $record->nomorBantu->nm_bantu : null)
-                    ->weight('bold')
-                    ->size('lg')
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('kodeProyek.name')
-                    ->label('Proyek')
-                    ->searchable()
-                    ->default('-')
-                    ->limit(20)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->getStateUsing(function ($record) {
+                        if ($record->kode_proyek_id) {
+                            return $record->kodeProyek?->name ?? '-';
+                        }
+                        $kelompok = $record->kelompok?->no_kel ?? '';
+                        $rek = $record->rekening?->no_rek ?? '';
+                        $bantu = $record->nomorBantu?->no_bantu ?? '';
+                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
+                    ->limit(20),
 
                 Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')
-                    ->money('IDR')
-                    ->sortable()
-                    ->color('success')
-                    ->weight('bold'),
-
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.keterangan')
-                    ->label('Keterangan')
-                    ->limit(30)
-                    ->tooltip(fn($record) => $record->jurnalPenerimaanKas?->keterangan)
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->alignRight(),
 
                 Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_confirmed')
                     ->label('Status')
@@ -609,15 +571,12 @@ class JurnalPenerimaanKasResource extends Resource
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
-                    ->falseColor('warning')
-                    ->sortable(),
+                    ->falseColor('warning'),
 
                 Tables\Columns\TextColumn::make('jurnalPenerimaanKas.reff')
-                    ->label('Referensi')
+                    ->label('No Reff')
                     ->searchable()
-                    ->copyable()
-                    ->badge()
-                    ->color('primary'),
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -728,7 +687,7 @@ class JurnalPenerimaanKasResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Accounting\Resources\JurnalPenerimaanKasResource\RelationManagers\DetailsRelationManager::class,
         ];
     }
 

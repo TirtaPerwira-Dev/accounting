@@ -25,9 +25,11 @@ class JurnalRekeningAir extends Model
         'rekening_air_items',
         'rp',
         'is_confirmed',
+        'confirmed_by',
         'confirmed_at',
         'company_id',
         'created_by',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -60,6 +62,13 @@ class JurnalRekeningAir extends Model
             }
             if (empty($model->created_by) && auth()->check()) {
                 $model->created_by = auth()->id();
+            }
+        });
+
+        static::deleting(function ($model) {
+            if (auth()->check()) {
+                $model->deleted_by = auth()->id();
+                $model->saveQuietly(); // Save without triggering events
             }
         });
     }
@@ -107,9 +116,9 @@ class JurnalRekeningAir extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
-    public function approvedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function deletedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     // Scopes

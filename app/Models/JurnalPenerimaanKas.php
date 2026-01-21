@@ -29,6 +29,7 @@ class JurnalPenerimaanKas extends Model
         'total_amount',
         'reff',
         'created_by',
+        'deleted_by',
         'is_confirmed',
         'confirmed_by',
         'confirmed_at',
@@ -68,6 +69,13 @@ class JurnalPenerimaanKas extends Model
             }
             if (empty($model->company_id)) {
                 $model->company_id = 1;
+            }
+        });
+
+        static::deleting(function ($model) {
+            if (auth()->check()) {
+                $model->deleted_by = auth()->id();
+                $model->saveQuietly();
             }
         });
     }
@@ -116,6 +124,11 @@ class JurnalPenerimaanKas extends Model
     public function confirmedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**

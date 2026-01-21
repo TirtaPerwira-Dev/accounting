@@ -3,6 +3,7 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalBayarKasBankResource\Pages;
+use App\Filament\Accounting\Resources\JurnalBayarKasBankResource\RelationManagers;
 use App\Filament\Widgets\JurnalBayarKasBankStatsWidget;
 use App\Models\JurnalBayarKasBank;
 use App\Models\Kelompok;
@@ -30,7 +31,7 @@ class JurnalBayarKasBankResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 4;
 
@@ -453,31 +454,39 @@ class JurnalBayarKasBankResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('no_voucher')
-                    ->label('No. Voucher')
+                    ->label('No Voucher')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('tanggal_check')
-                    ->label('Tanggal Check')
+                    ->label('Tanggal')
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('nama_bank')
-                    ->label('Nama Bank')
+                Tables\Columns\TextColumn::make('bankNoCek')
+                    ->label('Nama Bank/No Cek')
+                    ->getStateUsing(fn($record) => ($record->nama_bank ?? '') . ' / ' . ($record->no_cek ?? '-'))
+                    ->searchable(false)
+                    ->limit(30),
+
+                Tables\Columns\TextColumn::make('rekening.nama_rek')
+                    ->label('Nama Rekening')
                     ->limit(25)
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('no_cek')
-                    ->label('No. Cek')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('dibayar_kepada')
-                    ->label('Dibayar Kepada')
-                    ->limit(30)
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('kodeRekening')
+                    ->label('Rekening')
+                    ->getStateUsing(function ($record) {
+                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
+                        $rek = $record->rekeningDebit?->no_rek ?? '';
+                        $bantu = str_pad($record->nomorBantuDebit?->no_bantu ?? '', 2, '0', STR_PAD_LEFT);
+                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
+                    ->limit(20),
 
                 Tables\Columns\TextColumn::make('rp')
-                    ->label('Total')
+                    ->label('Jumlah')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight()
                     ->sortable(),
@@ -491,7 +500,8 @@ class JurnalBayarKasBankResource extends Resource
                     ->falseColor('warning'),
 
                 Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No. Reff'),
+                    ->label('No Reff')
+                    ->searchable(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import')
@@ -628,7 +638,9 @@ class JurnalBayarKasBankResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Accounting\Resources\JurnalBayarKasBankResource\RelationManagers\DetailsRelationManager::class,
+        ];
     }
 
     public static function getWidgets(): array

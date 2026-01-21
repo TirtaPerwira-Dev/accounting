@@ -33,7 +33,7 @@ class JurnalRekeningAirResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 2;
 
@@ -500,62 +500,40 @@ class JurnalRekeningAirResource extends Resource
                     })
             ])
             ->columns([
-
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.bukti')
-                    ->label('Bukti')
+                    ->label('No Bukti')
                     ->searchable()
                     ->limit(20),
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.tanggal')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
-                    ->label('Rekening')
+                    ->label('Nama Rekening')
                     ->searchable()
-                    ->formatStateUsing(fn($record) => $record->rekening ?
-                        $record->rekening->kelompok->no_kel . '-' .
-                        $record->rekening->no_rek . ' ' .
-                        $record->rekening->nama_rek : '-')
-                    ->limit(40)
-                    ->tooltip(fn($record) => $record->rekening ?
-                        $record->rekening->kelompok->no_kel . '-' .
-                        $record->rekening->no_rek . ' ' .
-                        $record->rekening->nama_rek : '-'),
+                    ->limit(30),
 
-                Tables\Columns\TextColumn::make('nomorBantu.no_bantu')
-                    ->label('Nomor Bantu')
-                    ->searchable()
-                    ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                        str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-')
-                    ->description(fn($record) => $record->nomorBantu ?
-                        $record->nomorBantu->nm_bantu : null)
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('kodeProyek.name')
-                    ->label('Proyek')
-                    ->searchable()
-                    ->default('-')
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->getStateUsing(function ($record) {
+                        if ($record->kode_proyek_id) {
+                            return $record->kodeProyek?->name ?? '-';
+                        }
+                        $kelompok = $record->kelompok?->no_kel ?? '';
+                        $rek = $record->rekening?->no_rek ?? '';
+                        $bantu = $record->nomorBantu?->no_bantu ?? '';
+                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
                     ->limit(20),
 
                 Tables\Columns\TextColumn::make('position')
-                    ->label('D/K')
-                    ->badge()
-                    ->color(fn($state) => $state === 'debit' ? 'danger' : 'success')
+                    ->label('K/D')
                     ->formatStateUsing(fn($state) => strtoupper($state))
-                    ->sortable(),
+                    ->badge()
+                    ->color(fn($state) => $state === 'kredit' ? 'success' : 'info'),
 
                 Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')
-                    ->money('IDR')
-                    ->sortable()
-                    ->color(fn($record) => $record->position === 'debit' ? 'danger' : 'success')
-                    ->weight('bold'),
-
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.keterangan')
-                    ->label('Keterangan')
-                    ->limit(30)
-                    ->tooltip(fn($record) => $record->jurnalRekeningAir?->keterangan)
-                    ->toggleable(),
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->alignRight(),
 
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_confirmed')
                     ->label('Status')
@@ -565,16 +543,10 @@ class JurnalRekeningAirResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
-                    ->label('No. Referensi')
+                    ->label('No Reff')
                     ->searchable()
-                    ->sortable()
-                    ->copyable(),
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -744,7 +716,7 @@ class JurnalRekeningAirResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Accounting\Resources\JurnalRekeningAirResource\RelationManagers\DetailsRelationManager::class,
         ];
     }
 

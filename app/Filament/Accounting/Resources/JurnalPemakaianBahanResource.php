@@ -3,6 +3,7 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\Pages;
+use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\RelationManagers;
 use App\Filament\Widgets\JurnalPemakaianBahanStatsWidget;
 use App\Models\JurnalPemakaianBahan;
 use App\Models\NomorBantu;
@@ -28,7 +29,7 @@ class JurnalPemakaianBahanResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 5;
 
@@ -369,29 +370,33 @@ class JurnalPemakaianBahanResource extends Resource
     {
         return $table
             ->columns([
-
                 Tables\Columns\TextColumn::make('bukti')
-                    ->label('Bukti')
+                    ->label('No Bukti')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Tanggal')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('rekening.nama_rek')
+                    ->label('Nama Rekening')
+                    ->limit(30),
 
-                Tables\Columns\TextColumn::make('beban_bagian')
-                    ->label('Beban')
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->getStateUsing(function ($record) {
+                        if ($record->kode_proyek_id) {
+                            return $record->kodeProyek?->name ?? '-';
+                        }
+                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
+                        $rek = $record->rekeningDebit?->no_rek ?? '';
+                        $bantu = $record->nomorBantuDebit?->no_bantu ?? '';
+                        return $kelompok ? "{$kelompok}-{$rek}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
                     ->limit(20),
-                Tables\Columns\TextColumn::make('kodeProyek.name')
-                    ->label('Proyek'),
 
-                Tables\Columns\TextColumn::make('rekeningDebit.nama_rek')
-                    ->label('Rek. Debit')
-                    ->limit(25),
-
-                Tables\Columns\TextColumn::make('rekeningKredit.nama_rek')
-                    ->label('Rek. Kredit')
-                    ->limit(25),
+                Tables\Columns\TextColumn::make('kode')
+                    ->label('D/K')
+                    ->formatStateUsing(fn($state) => strtoupper($state))
+                    ->badge()
+                    ->color(fn($state) => $state === 'd' ? 'info' : 'success'),
 
                 Tables\Columns\TextColumn::make('rp')
                     ->label('Jumlah')
@@ -405,13 +410,10 @@ class JurnalPemakaianBahanResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('warning'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No. Reff'),
+                    ->label('No Reff')
+                    ->searchable(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import')
@@ -548,7 +550,9 @@ class JurnalPemakaianBahanResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\RelationManagers\DetailsRelationManager::class,
+        ];
     }
 
     public static function getWidgets(): array

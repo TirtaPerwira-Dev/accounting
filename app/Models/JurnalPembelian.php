@@ -36,6 +36,7 @@ class JurnalPembelian extends Model
         'confirmed_by',
         'confirmed_at',
         'created_by',
+        'deleted_by',
         // Fields untuk item individual
         'bukti_item',
         'keterangan_item',
@@ -71,6 +72,13 @@ class JurnalPembelian extends Model
             }
             if (empty($model->created_by) && auth()->check()) {
                 $model->created_by = auth()->id();
+            }
+        });
+
+        static::deleting(function ($model) {
+            if (auth()->check()) {
+                $model->deleted_by = auth()->id();
+                $model->saveQuietly(); // Save without triggering events
             }
         });
     }
@@ -137,6 +145,11 @@ class JurnalPembelian extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     // Relasi untuk akun debit item

@@ -14,7 +14,7 @@ class ManualBook extends Page
 
     protected static ?string $navigationGroup = 'Bantuan';
 
-    protected static ?int $navigationGroupSort = 5;
+    protected static ?int $navigationGroupSort = 999;
 
     protected static ?int $navigationSort = 99;
 

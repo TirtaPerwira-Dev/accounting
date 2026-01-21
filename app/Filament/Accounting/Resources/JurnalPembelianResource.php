@@ -30,7 +30,7 @@ class JurnalPembelianResource extends Resource
 
     protected static ?string $navigationGroup = 'Jurnal';
 
-    protected static ?int $navigationGroupSort = 3;
+    protected static ?int $navigationGroupSort = 2;
 
     protected static ?int $navigationSort = 1;
 
@@ -537,8 +537,6 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
-
-
                 Tables\Columns\TextColumn::make('bukti_item')
                     ->label('Bukti')
                     ->searchable()
@@ -549,33 +547,29 @@ class JurnalPembelianResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('kodeProyek.name')
-                    ->label('Proyek'),
-
-                Tables\Columns\TextColumn::make('kodeSakepKredit')
-                    ->label('Akun Hutang')
-                    ->searchable(false)
-                    ->sortable(false)
-                    ->formatStateUsing(function ($record) {
-                        $kode = $record->kode_sakep_kredit;
-                        $nama = $record->nama_akun_kredit;
-                        return "{$kode} - {$nama}";
-                    })
-                    ->tooltip(fn($record) => $record->nama_akun_kredit)
-                    ->limit(40),
-
-                Tables\Columns\TextColumn::make('pembelianSummary')
-                    ->label('Pembelian Barang')
-                    ->getStateUsing(function ($record) {
-                        return $record->keterangan_item ?: ($record->keterangan ?: 'Pembelian barang');
-                    })
-                    ->description(fn($record) => $record->bukti_item ?: $record->bukti)
+                Tables\Columns\TextColumn::make('keterangan_item')
+                    ->label('Keterangan')
                     ->searchable()
-                    ->limit(40)
+                    ->limit(30)
                     ->wrap(),
 
+                Tables\Columns\TextColumn::make('kodeProyekRekening')
+                    ->label('Kode Proyek/Rekening')
+                    ->getStateUsing(function ($record) {
+                        if ($record->kode_proyek_id) {
+                            return $record->kodeProyek?->name ?? '-';
+                        }
+                        // Format: kelompok-rekening-nomor_bantu
+                        $kelompok = $record->kelompokDebit?->no_kel ?? '';
+                        $rekening = $record->rekeningDebit?->no_rek ?? '';
+                        $bantu = $record->nomorBantuDebit?->no_bantu ?? '';
+                        return $kelompok ? "{$kelompok}-{$rekening}-{$bantu}" : '-';
+                    })
+                    ->searchable(false)
+                    ->limit(20),
+
                 Tables\Columns\TextColumn::make('jumlah_item')
-                    ->label('Total Pembelian')
+                    ->label('Jumlah')
                     ->formatStateUsing(function ($state, $record) {
                         $amount = $state ?: $record->rp ?: 0;
                         return 'Rp ' . number_format($amount, 0, ',', '.');
@@ -591,14 +585,8 @@ class JurnalPembelianResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d/m/Y H:i')
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No. Ref')
+                    ->label('No Reff')
                     ->searchable()
                     ->sortable(),
             ])
@@ -738,7 +726,9 @@ class JurnalPembelianResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Accounting\Resources\JurnalPembelianResource\RelationManagers\DetailsRelationManager::class,
+        ];
     }
 
     public static function getWidgets(): array
