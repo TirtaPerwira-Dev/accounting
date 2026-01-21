@@ -9,7 +9,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Cleanup jurnal_pembelians table:
      * 1. Remove redundant columns (bukti_item, keterangan_item, jumlah_item)
      * 2. Remove unused columns (approval_notes, pembelian_items)
@@ -22,7 +22,7 @@ return new class extends Migration
         // Drop foreign keys first (if they exist)
         $foreignKeys = [
             'jurnal_pembelians_kelompok_kredit_id_foreign',
-            'jurnal_pembelians_rekening_kredit_id_foreign', 
+            'jurnal_pembelians_rekening_kredit_id_foreign',
             'jurnal_pembelians_kelompok_debit_id_foreign',
             'jurnal_pembelians_rekening_debit_id_foreign',
         ];
@@ -40,7 +40,7 @@ return new class extends Migration
         // Remove redundant and unused columns
         $columnsToRemove = [
             'bukti_item',
-            'keterangan_item', 
+            'keterangan_item',
             'jumlah_item',
             'pembelian_items',
             'approval_notes',
@@ -81,7 +81,7 @@ return new class extends Migration
             if (!Schema::hasColumn('jurnal_pembelians', 'approval_notes')) {
                 $table->text('approval_notes')->nullable();
             }
-            
+
             // Re-add denormalized columns
             if (!Schema::hasColumn('jurnal_pembelians', 'kelompok_kredit_id')) {
                 $table->unsignedBigInteger('kelompok_kredit_id')->nullable();
