@@ -363,35 +363,35 @@
         @endif
 
         <div class="section-title">PERINCIAN TRANSAKSI DEBIT</div>
-        @if($jurnal->pembelian_items && count($jurnal->pembelian_items) > 0)
+        @php
+            $groupItems = $jurnal->group_transaksi ?
+                \App\Models\JurnalPembelian::where('group_transaksi', $jurnal->group_transaksi)
+                    ->orderBy('item_sequence')
+                    ->get() :
+                collect([$jurnal]);
+        @endphp
+
+        @if($groupItems->count() > 0)
         <table>
             <thead>
                 <tr>
                     <th width="5%">No</th>
                     <th width="15%">No. Bukti</th>
-                    <th width="25%">Keterangan Item</th>
+                    <th width="25%">Keterangan</th>
                     <th width="20%">Akun Debit</th>
                     <th width="20%">Kode Akun</th>
                     <th width="15%">Jumlah (Debit)</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                    $groupItems = $jurnal->group_transaksi ?
-                        \App\Models\JurnalPembelian::where('group_transaksi', $jurnal->group_transaksi)
-                            ->orderBy('item_sequence')
-                            ->get() :
-                        collect([$jurnal]);
-                @endphp
-
                 @foreach($groupItems as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="text-center">
-                        <span style="font-family: 'Courier New', monospace; font-weight: bold;">{{ $item->bukti_item ?? '-' }}</span>
+                        <span style="font-family: 'Courier New', monospace; font-weight: bold;">{{ $item->bukti ?? '-' }}</span>
                     </td>
                     <td>
-                        {{ $item->keterangan_item ?? 'Item pembelian' }}
+                        {{ $item->keterangan ?? 'Item pembelian' }}
                         @if($item->kodeProyek)
                         <br><small style="color: #6c757d;">Proyek: {{ $item->kodeProyek->name }}</small>
                         @endif
@@ -400,14 +400,14 @@
                     <td class="text-center">
                         <span class="kode-sakep">{{ $item->kode_sakep_debit }}</span>
                     </td>
-                    <td class="text-right amount">Rp {{ number_format($item->jumlah_item ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right amount">Rp {{ number_format($item->rp ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="4" class="text-right"><strong>TOTAL DEBIT (HARUS SAMA DENGAN KREDIT):</strong></td>
-                    <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                    <td colspan="5" class="text-right"><strong>TOTAL DEBIT (HARUS SAMA DENGAN KREDIT):</strong></td>
+                    <td class="text-right amount">Rp {{ number_format($jurnal->total_pembelian, 0, ',', '.') }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -429,27 +429,17 @@
                 </tr>
             </thead>
             <tbody>
-                @if($jurnal->pembelian_items)
-                @foreach($jurnal->pembelian_items as $item)
-                @php
-                $nomorBantu = \App\Models\NomorBantu::find($item['nomor_bantu_debit_id'] ?? null);
-                $kodeSakep = $nomorBantu ?
-                $nomorBantu->rekening->kelompok->no_kel .
-                $nomorBantu->rekening->no_rek .
-                str_pad($nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
-                $namaAkun = $nomorBantu?->nm_bantu ?? '-';
-                @endphp
+                @foreach($groupItems as $item)
                 <tr class="debit-row">
-                    <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
+                    <td class="text-center">{{ $item->tanggal->format('d/m/Y') }}</td>
                     <td>
-                        <span class="kode-sakep">{{ $kodeSakep }}</span> - <strong>{{ $namaAkun }}</strong><br>
-                        <small style="color: #6c757d;">{{ $item['keterangan'] ?? 'Item pembelian' }}</small>
+                        <span class="kode-sakep">{{ $item->kode_sakep_debit }}</span> - <strong>{{ $item->nama_akun_debit }}</strong><br>
+                        <small style="color: #6c757d;">{{ $item->keterangan ?? 'Item pembelian' }}</small>
                     </td>
-                    <td class="text-right amount">{{ number_format($item['jumlah'] ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right amount">{{ number_format($item->rp ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right">-</td>
                 </tr>
                 @endforeach
-                @endif
 
                 <tr class="kredit-row">
                     <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
@@ -460,13 +450,13 @@
                             pembelian' }}</small>
                     </td>
                     <td class="text-right">-</td>
-                    <td class="text-right amount">{{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                    <td class="text-right amount">{{ number_format($jurnal->total_pembelian, 0, ',', '.') }}</td>
                 </tr>
 
                 <tr class="total-row">
                     <td colspan="2" class="text-right"><strong>TOTAL AKUN BERIMBANG:</strong></td>
-                    <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
-                    <td class="text-right amount">Rp {{ number_format($jurnal->rp, 0, ',', '.') }}</td>
+                    <td class="text-right amount">Rp {{ number_format($jurnal->total_pembelian, 0, ',', '.') }}</td>
+                    <td class="text-right amount">Rp {{ number_format($jurnal->total_pembelian, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>

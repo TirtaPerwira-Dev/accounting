@@ -145,17 +145,11 @@ class ReportExportController extends Controller
 
         // Clean data untuk UTF-8
         $data->each(function ($item) {
-            if (isset($item->bukti_item)) {
-                $item->bukti_item = mb_convert_encoding($item->bukti_item, 'UTF-8', 'UTF-8');
+            if (isset($item->bukti)) {
+                $item->bukti = mb_convert_encoding($item->bukti, 'UTF-8', 'UTF-8');
             }
             if (isset($item->keterangan)) {
                 $item->keterangan = mb_convert_encoding($item->keterangan, 'UTF-8', 'UTF-8');
-            }
-            if (isset($item->nama_akun_kredit)) {
-                $item->nama_akun_kredit = mb_convert_encoding($item->nama_akun_kredit, 'UTF-8', 'UTF-8');
-            }
-            if (isset($item->nama_akun_debit)) {
-                $item->nama_akun_debit = mb_convert_encoding($item->nama_akun_debit, 'UTF-8', 'UTF-8');
             }
         });
 

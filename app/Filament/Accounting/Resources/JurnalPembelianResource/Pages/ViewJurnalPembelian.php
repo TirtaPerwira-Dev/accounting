@@ -131,7 +131,7 @@ class ViewJurnalPembelian extends ViewRecord
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
-                                Components\TextEntry::make('bukti_item')
+                                Components\TextEntry::make('bukti')
                                     ->label('No. Bukti')
                                     ->placeholder('-')
                                     ->badge()
@@ -151,8 +151,8 @@ class ViewJurnalPembelian extends ViewRecord
 
                         Components\Fieldset::make('Item Details')
                             ->schema([
-                                Components\TextEntry::make('keterangan_item')
-                                    ->label('Keterangan Item')
+                                Components\TextEntry::make('keterangan')
+                                    ->label('Keterangan')
                                     ->size('lg')
                                     ->weight('semibold')
                                     ->columnSpanFull(),
@@ -160,8 +160,8 @@ class ViewJurnalPembelian extends ViewRecord
                                 Components\TextEntry::make('nama_akun_debit')
                                     ->label('Nama Akun Debit'),
 
-                                Components\TextEntry::make('jumlah_item')
-                                    ->label('Nominal Item')
+                                Components\TextEntry::make('rp')
+                                    ->label('Nominal')
                                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
                                     ->size('xl')
                                     ->weight('bold')
@@ -176,8 +176,8 @@ class ViewJurnalPembelian extends ViewRecord
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
-                                Components\TextEntry::make('jumlah_item')
-                                    ->label('Nilai Item')
+                                Components\TextEntry::make('rp')
+                                    ->label('Nilai Transaksi')
                                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
                                     ->size('xl')
                                     ->weight('bold')
