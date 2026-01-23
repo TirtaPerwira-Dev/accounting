@@ -260,4 +260,73 @@ class ReportExportController extends Controller
             ->header('Cache-Control', 'private, max-age=0, must-revalidate')
             ->header('Pragma', 'public');
     }
+
+    /**
+     * Generate PDF for Jurnal Penerimaan Kas report
+     */
+    public function jurnalPenerimaanKasPdf(Request $request)
+    {
+        $filters = [
+            'dari_tanggal' => $request->input('dari_tanggal'),
+            'sampai_tanggal' => $request->input('sampai_tanggal'),
+            'kas_bank_filter' => $request->input('kas_bank_filter'),
+            'status' => $request->input('status', ''),
+        ];
+
+        // Query dari model parent (JurnalPenerimaanKas)
+        $query = \App\Models\JurnalPenerimaanKas::query();
+
+        // Filter by date
+        if ($filters['dari_tanggal']) {
+            $query->whereDate('tanggal', '>=', $filters['dari_tanggal']);
+        }
+
+        if ($filters['sampai_tanggal']) {
+            $query->whereDate('tanggal', '<=', $filters['sampai_tanggal']);
+        }
+
+        // Filter by kas/bank
+        if (!empty($filters['kas_bank_filter'])) {
+            $query->where('kas_bank_id', $filters['kas_bank_filter']);
+        }
+
+        // Filter by confirmation status
+        if ($filters['status'] === 'confirmed') {
+            $query->where('is_confirmed', true);
+        } elseif ($filters['status'] === 'pending') {
+            $query->where('is_confirmed', false);
+        }
+
+        $journals = $query->with([
+            'company',
+            'kasBank.kelompok',
+            'kasBank.rekening',
+            'kelompok',
+            'rekening',
+            'details.kelompok',
+            'details.rekening',
+            'details.nomorBantu',
+            'details.kodeProyek'
+        ])->orderBy('tanggal', 'desc')->get();
+
+        $pdf = Pdf::loadView('reports.jurnal-penerimaan-kas', [
+            'journals' => $journals,
+            'company' => auth()->user()?->company ?? \App\Models\Company::first(),
+            'startDate' => $filters['dari_tanggal'],
+            'endDate' => $filters['sampai_tanggal'],
+            'kasBankFilter' => $filters['kas_bank_filter'],
+            'status' => $filters['status'],
+        ])->setPaper('a4', 'portrait')
+          ->setOption('isHtml5ParserEnabled', true)
+          ->setOption('isRemoteEnabled', true);
+
+        $filename = 'laporan-jurnal-penerimaan-kas-' . now()->format('Y-m-d-His') . '.pdf';
+        
+        // Stream PDF untuk preview di browser (bukan download langsung)
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf; charset=utf-8')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate')
+            ->header('Pragma', 'public');
+    }
 }

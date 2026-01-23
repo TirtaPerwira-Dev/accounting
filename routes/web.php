@@ -22,12 +22,15 @@ Route::get('/nomor-bantu/export/pdf', [NomorBantuExportController::class, 'expor
 Route::get('/jurnal-pembelian/laporan-pdf', [ReportExportController::class, 'jurnalPembelianPdf'])->name('jurnal-pembelian.pdf');
 Route::get('/jurnal-pembelian/{id}/pdf', [ReportExportController::class, 'jurnalPembelianSinglePdf'])->name('jurnal-pembelian.single-pdf');
 
-// Jurnal Penerimaan Kas PDF Routes
+// Jurnal Penerimaan Kas PDF Routes - Single Record
 Route::get('/jurnal-penerimaan-kas/{record}/pdf', function (JurnalPenerimaanKas $record) {
     $record->load(['kasBank.rekening.kelompok']);
     return Pdf::loadView('pdf.jurnal-penerimaan-kas', compact('record'))
         ->download("JPK-{$record->nomor_bukti}.pdf");
-})->name('jurnal-penerimaan-kas.pdf');
+})->name('jurnal-penerimaan-kas.single-pdf');
 
-// Jurnal Rekening Air PDF Routes
+// Jurnal Rekening Air PDF Routes - Report
 Route::get('/jurnal-rekening-air/laporan-pdf', [ReportExportController::class, 'jurnalRekeningAirPdf'])->name('jurnal-rekening-air.pdf');
+
+// Jurnal Penerimaan Kas PDF Routes - Report
+Route::get('/jurnal-penerimaan-kas/laporan-pdf', [ReportExportController::class, 'jurnalPenerimaanKasPdf'])->name('jurnal-penerimaan-kas.pdf');
