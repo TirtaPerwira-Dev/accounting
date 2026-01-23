@@ -42,8 +42,10 @@ class ListJurnalRekeningAir extends ListRecords
                         ->default(''),
                 ])
                 ->action(function (array $data) {
-                    $query = static::$resource::getEloquentQuery();
+                    // Query dari model parent (JurnalRekeningAir), bukan dari detail
+                    $query = \App\Models\JurnalRekeningAir::query();
 
+                    // Filter by date
                     if ($data['start_date']) {
                         $query->whereDate('tanggal', '>=', $data['start_date']);
                     }
@@ -52,6 +54,7 @@ class ListJurnalRekeningAir extends ListRecords
                         $query->whereDate('tanggal', '<=', $data['end_date']);
                     }
 
+                    // Filter by confirmation status
                     if ($data['status'] === 'confirmed') {
                         $query->where('is_confirmed', true);
                     } elseif ($data['status'] === 'pending') {
@@ -60,10 +63,10 @@ class ListJurnalRekeningAir extends ListRecords
 
                     $journals = $query->with([
                         'company',
-                        'kelompokKredit',
-                        'rekeningKredit',
-                        'nomorBantuKredit',
-                        'kodeProyek'
+                        'details.kelompok',
+                        'details.rekening',
+                        'details.nomorBantu',
+                        'details.kodeProyek'
                     ])->orderBy('tanggal', 'desc')->get();
 
                     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air', [

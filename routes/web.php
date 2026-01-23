@@ -28,3 +28,6 @@ Route::get('/jurnal-penerimaan-kas/{record}/pdf', function (JurnalPenerimaanKas 
     return Pdf::loadView('pdf.jurnal-penerimaan-kas', compact('record'))
         ->download("JPK-{$record->nomor_bukti}.pdf");
 })->name('jurnal-penerimaan-kas.pdf');
+
+// Jurnal Rekening Air PDF Routes
+Route::get('/jurnal-rekening-air/laporan-pdf', [ReportExportController::class, 'jurnalRekeningAirPdf'])->name('jurnal-rekening-air.pdf');

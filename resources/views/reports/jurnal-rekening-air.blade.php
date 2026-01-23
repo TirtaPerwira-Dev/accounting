@@ -240,8 +240,12 @@
             <span>{{ $journals->where('is_confirmed', false)->count() }} transaksi</span>
         </div>
         <div class="summary-item summary-total">
-            <span>Total Nilai Transaksi:</span>
-            <span>Rp {{ number_format($journals->sum('rp'), 0, ',', '.') }}</span>
+            <span>Total Nilai Transaksi (Debit):</span>
+            <span>Rp {{ number_format($journals->sum(function($j) { return $j->details->where('position', 'debit')->sum('jumlah'); }), 0, ',', '.') }}</span>
+        </div>
+        <div class="summary-item summary-total">
+            <span>Total Nilai Transaksi (Kredit):</span>
+            <span>Rp {{ number_format($journals->sum(function($j) { return $j->details->where('position', 'kredit')->sum('jumlah'); }), 0, ',', '.') }}</span>
         </div>
     </div>
 
@@ -264,21 +268,22 @@
                     <div class="info-label">Informasi Dasar</div>
                     <div><strong>No. Bukti:</strong> {{ $journal->bukti ?: '-' }}</div>
                     <div><strong>Tanggal:</strong> {{ $journal->tanggal->format('d/m/Y') }}</div>
-                    <div><strong>Total:</strong> Rp {{ number_format($journal->rp, 0, ',', '.') }}</div>
+                    <div><strong>Total Debit:</strong> Rp {{ number_format($journal->details->where('position', 'debit')->sum('jumlah'), 0, ',', '.') }}</div>
+                    <div><strong>Total Kredit:</strong> Rp {{ number_format($journal->details->where('position', 'kredit')->sum('jumlah'), 0, ',', '.') }}</div>
                 </div>
 
                 <div class="info-group">
-                    <div class="info-label">Akun Kredit (Pendapatan)</div>
-                    <div class="account-code">
-                        {{ $journal->kelompokKredit->no_kel ?? '' }} -
-                        {{ $journal->rekeningKredit->no_rek ?? '' }} -
-                        {{ $journal->nomorBantuKredit->no_bantu ?? '' }}
+                    <div class="info-label">Status</div>
+                    <div><strong>Status:</strong> 
+                        @if($journal->is_confirmed)
+                            <span style="color: green;">✅ Dikonfirmasi</span>
+                        @else
+                            <span style="color: orange;">⏳ Belum Dikonfirmasi</span>
+                        @endif
                     </div>
-                    <div><strong>Nama:</strong> {{ $journal->kelompokKredit->nama_kel ?? '' }}</div>
-                    <div><strong>Rekening:</strong> {{ $journal->rekeningKredit->nama_rek ?? '' }}</div>
-                    <div><strong>Nomor Bantu:</strong>
-                        {{ $journal->nomorBantuKredit->nm_bantu ?? $journal->nama_nomor_bantu_kredit ?? '' }}
-                    </div>
+                    @if($journal->confirmed_at)
+                        <div><strong>Dikonfirmasi pada:</strong> {{ $journal->confirmed_at->format('d/m/Y H:i') }}</div>
+                    @endif
                 </div>
             </div>
 
@@ -290,60 +295,64 @@
             </div>
             @endif
 
-            {{-- Items Table --}}
-            @if($journal->rekening_air_items && count($journal->rekening_air_items) > 0)
+            {{-- Items Table - From Details Relation --}}
+            @if($journal->details && $journal->details->count() > 0)
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th style="width: 8%">No</th>
-                        <th style="width: 20%">Kode Akun</th>
-                        <th style="width: 25%">Nama Akun</th>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 15%">Kode Akun</th>
+                        <th style="width: 30%">Nama Akun</th>
+                        <th style="width: 10%">Posisi</th>
                         <th style="width: 15%">Jumlah</th>
-                        <th style="width: 32%">Keterangan</th>
+                        <th style="width: 25%">Proyek</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($journal->rekening_air_items as $index => $item)
-                    @php
-                        $kelompok = \App\Models\Kelompok::find($item['kelompok_debit_id'] ?? null);
-                        $rekening = \App\Models\Rekening::find($item['rekening_debit_id'] ?? null);
-                        $nomorBantu = \App\Models\NomorBantu::find($item['nomor_bantu_debit_id'] ?? null);
-                    @endphp
+                    @foreach($journal->details as $index => $detail)
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
                         <td class="account-code text-center">
-                            {{ $kelompok->no_kel ?? '' }}-{{ $rekening->no_rek ?? '' }}-{{ $nomorBantu->no_bantu ?? '' }}
+                            {{ $detail->kelompok->no_kel ?? '' }}-{{ $detail->rekening->no_rek ?? '' }}@if($detail->nomorBantu)-{{ $detail->nomorBantu->no_bantu }}@endif
                         </td>
                         <td>
-                            <div><strong>{{ $kelompok->nama_kel ?? '' }}</strong></div>
-                            <div>{{ $rekening->nama_rek ?? '' }}</div>
-                            <div><small>{{ $nomorBantu->nm_bantu ?? '' }}</small></div>
+                            <div><strong>{{ $detail->kelompok->nama_kel ?? '' }}</strong></div>
+                            <div>{{ $detail->rekening->nama_rek ?? '' }}</div>
+                            @if($detail->nomorBantu)
+                                <div><small>{{ $detail->nomorBantu->nm_bantu }}</small></div>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($detail->position === 'debit')
+                                <span style="color: red; font-weight: bold;">DEBIT</span>
+                            @else
+                                <span style="color: green; font-weight: bold;">KREDIT</span>
+                            @endif
                         </td>
                         <td class="text-right">
-                            Rp {{ number_format($item['rp'] ?? 0, 0, ',', '.') }}
+                            Rp {{ number_format($detail->jumlah ?? 0, 0, ',', '.') }}
                         </td>
-                        <td>{{ $item['keterangan'] ?? '-' }}</td>
+                        <td>{{ $detail->kodeProyek->name ?? '-' }}</td>
                     </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
-                    <tr style="background-color: #f0f8f0; font-weight: bold;">
-                        <td colspan="3" class="text-center">TOTAL</td>
-                        <td class="text-right">
-                            Rp {{ number_format(collect($journal->rekening_air_items)->sum('rp'), 0, ',', '.') }}
+                    <tr style="background-color: #ffebee;">
+                        <td colspan="4" class="text-center" style="font-weight: bold; color: red;">TOTAL DEBIT</td>
+                        <td class="text-right" style="font-weight: bold; color: red;">
+                            Rp {{ number_format($journal->details->where('position', 'debit')->sum('jumlah'), 0, ',', '.') }}
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr style="background-color: #e8f5e9;">
+                        <td colspan="4" class="text-center" style="font-weight: bold; color: green;">TOTAL KREDIT</td>
+                        <td class="text-right" style="font-weight: bold; color: green;">
+                            Rp {{ number_format($journal->details->where('position', 'kredit')->sum('jumlah'), 0, ',', '.') }}
                         </td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
-            @endif
-
-            {{-- Project Info --}}
-            @if($journal->kodeProyek)
-            <div class="info-group">
-                <div class="info-label">Kode Proyek</div>
-                <div>{{ $journal->kodeProyek->kode }} - {{ $journal->kodeProyek->nama_proyek }}</div>
-            </div>
             @endif
         </div>
     </div>
