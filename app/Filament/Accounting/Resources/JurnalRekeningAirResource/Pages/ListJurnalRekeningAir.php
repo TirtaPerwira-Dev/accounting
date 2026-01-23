@@ -25,13 +25,21 @@ class ListJurnalRekeningAir extends ListRecords
                 ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
+                ->modalHeading('Filter Laporan PDF')
+                ->modalDescription('Pilih filter untuk laporan yang akan di-generate')
+                ->modalSubmitActionLabel('Generate PDF')
+                ->modalWidth('md')
                 ->form([
                     Forms\Components\DatePicker::make('start_date')
                         ->label('Dari Tanggal')
-                        ->native(false),
+                        ->native(false)
+                        ->default(now()->startOfMonth())
+                        ->required(),
                     Forms\Components\DatePicker::make('end_date')
                         ->label('Sampai Tanggal')
-                        ->native(false),
+                        ->native(false)
+                        ->default(now()->endOfMonth())
+                        ->required(),
                     Forms\Components\Select::make('status')
                         ->label('Status')
                         ->options([
@@ -39,49 +47,21 @@ class ListJurnalRekeningAir extends ListRecords
                             'confirmed' => 'Sudah Dikonfirmasi',
                             'pending' => 'Belum Dikonfirmasi',
                         ])
-                        ->default(''),
+                        ->default('')
+                        ->native(false),
                 ])
                 ->action(function (array $data) {
-                    // Query dari model parent (JurnalRekeningAir), bukan dari detail
-                    $query = \App\Models\JurnalRekeningAir::query();
-
-                    // Filter by date
-                    if ($data['start_date']) {
-                        $query->whereDate('tanggal', '>=', $data['start_date']);
-                    }
-
-                    if ($data['end_date']) {
-                        $query->whereDate('tanggal', '<=', $data['end_date']);
-                    }
-
-                    // Filter by confirmation status
-                    if ($data['status'] === 'confirmed') {
-                        $query->where('is_confirmed', true);
-                    } elseif ($data['status'] === 'pending') {
-                        $query->where('is_confirmed', false);
-                    }
-
-                    $journals = $query->with([
-                        'company',
-                        'details.kelompok',
-                        'details.rekening',
-                        'details.nomorBantu',
-                        'details.kodeProyek'
-                    ])->orderBy('tanggal', 'desc')->get();
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air', [
-                        'journals' => $journals,
-                        'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-                        'startDate' => $data['start_date'],
-                        'endDate' => $data['end_date'],
-                        'status' => $data['status'],
+                    // Build URL with query parameters
+                    $params = array_filter([
+                        'start_date' => $data['start_date'] ?? null,
+                        'end_date' => $data['end_date'] ?? null,
+                        'status' => $data['status'] ?? '',
                     ]);
-
-                    $filename = 'jurnal-rekening-air-' . now()->format('Y-m-d-His') . '.pdf';
-
-                    return response()->streamDownload(function () use ($pdf) {
-                        echo $pdf->output();
-                    }, $filename);
+                    
+                    $url = route('jurnal-rekening-air.pdf', $params);
+                    
+                    // Redirect to open in new window using JavaScript
+                    $this->js("window.open('$url', '_blank');");
                 }),
         ];
     }

@@ -202,4 +202,62 @@ class ReportExportController extends Controller
             ->header('Cache-Control', 'private, max-age=0, must-revalidate')
             ->header('Pragma', 'public');
     }
+
+    /**
+     * Generate PDF for Jurnal Rekening Air report
+     */
+    public function jurnalRekeningAirPdf(Request $request)
+    {
+        $filters = [
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+            'status' => $request->input('status', ''),
+        ];
+
+        // Query dari model parent (JurnalRekeningAir)
+        $query = \App\Models\JurnalRekeningAir::query();
+
+        // Filter by date
+        if ($filters['start_date']) {
+            $query->whereDate('tanggal', '>=', $filters['start_date']);
+        }
+
+        if ($filters['end_date']) {
+            $query->whereDate('tanggal', '<=', $filters['end_date']);
+        }
+
+        // Filter by confirmation status
+        if ($filters['status'] === 'confirmed') {
+            $query->where('is_confirmed', true);
+        } elseif ($filters['status'] === 'pending') {
+            $query->where('is_confirmed', false);
+        }
+
+        $journals = $query->with([
+            'company',
+            'details.kelompok',
+            'details.rekening',
+            'details.nomorBantu',
+            'details.kodeProyek'
+        ])->orderBy('tanggal', 'desc')->get();
+
+        $pdf = Pdf::loadView('reports.jurnal-rekening-air', [
+            'journals' => $journals,
+            'company' => auth()->user()?->company ?? \App\Models\Company::first(),
+            'startDate' => $filters['start_date'],
+            'endDate' => $filters['end_date'],
+            'status' => $filters['status'],
+        ])->setPaper('a4', 'portrait')
+          ->setOption('isHtml5ParserEnabled', true)
+          ->setOption('isRemoteEnabled', true);
+
+        $filename = 'laporan-jurnal-rekening-air-' . now()->format('Y-m-d-His') . '.pdf';
+        
+        // Stream PDF untuk preview di browser (bukan download langsung)
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf; charset=utf-8')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate')
+            ->header('Pragma', 'public');
+    }
 }
