@@ -282,7 +282,7 @@
                 @foreach($groupedData as $groupKey => $groupItems)
                     @php
                         $jurnal = $groupItems->first();
-                        $totalGroupAmount = $groupItems->sum('rp');
+                        $totalGroupAmount = $groupItems->sum('jumlah_item');
                         $loopNum = $loop->iteration;
                     @endphp
 
@@ -314,12 +314,12 @@
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->bukti ?: '-' }}</td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->bukti_item ?: '-' }}</td>
                             <td class="text-center">{{ $item->kode_sakep_debit }}</td>
                             <td style="padding-left: 10px;">{{ $item->nama_akun_debit }}</td>
-                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->keterangan ?: '-' }}</td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->keterangan_item ?: '-' }}</td>
                             <td></td>
-                            <td class="text-right amount">{{ number_format($item->rp, 0, ',', '.') }}</td>
+                            <td class="text-right amount">{{ number_format($item->jumlah_item, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
 
