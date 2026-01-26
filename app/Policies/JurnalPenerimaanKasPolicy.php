@@ -105,4 +105,20 @@ class JurnalPenerimaanKasPolicy
     {
         return $user->can('reorder_jurnal::penerimaan::kas');
     }
+
+    /**
+     * Determine whether the user can confirm.
+     */
+    public function confirm(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    {
+        return $user->can('confirm_jurnal::penerimaan::kas');
+    }
+
+    /**
+     * Determine whether the user can unconfirm.
+     */
+    public function unconfirm(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    {
+        return $user->can('unconfirm_jurnal::penerimaan::kas');
+    }
 }

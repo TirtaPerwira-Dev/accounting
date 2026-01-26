@@ -53,33 +53,6 @@ class JurnalRekeningAirResource extends Resource
     }
 
     // Authorization helpers
-    public static function canViewAny(): bool
-    {
-        return auth()->check();
-    }
-
-    public static function canCreate(): bool
-    {
-        return auth()->check();
-    }
-
-    public static function canEdit($record): bool
-    {
-        // Check if parent jurnal is confirmed
-        if ($record && $record->jurnalRekeningAir && $record->jurnalRekeningAir->is_confirmed) {
-            return false;
-        }
-        return auth()->check();
-    }
-
-    public static function canDelete($record): bool
-    {
-        // Check if parent jurnal is confirmed
-        if ($record && $record->jurnalRekeningAir && $record->jurnalRekeningAir->is_confirmed) {
-            return false;
-        }
-        return auth()->check();
-    }
 
     public static function form(Form $form): Form
     {
@@ -418,7 +391,9 @@ class JurnalRekeningAirResource extends Resource
                     ->collapsed(),
 
                 // === HIDDEN FIELDS ===
-                Forms\Components\Hidden::make('no_reff'),
+                Forms\Components\Hidden::make('no_reff')->default('2'),
+                Forms\Components\Hidden::make('company_id')->default(1),
+                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
     }
 
@@ -633,8 +608,7 @@ class JurnalRekeningAirResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
-                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('Batal Konfirmasi')
@@ -652,12 +626,31 @@ class JurnalRekeningAirResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Batal Konfirmasi Jurnal')
                         ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
-                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
 
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail')
                         ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $parent = $record->jurnalRekeningAir;
+                            $parent->load(['details.rekening.kelompok', 'details.nomorBantu', 'company']);
+                            
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air-single', [
+                                'jurnal' => $parent,
+                            ]);
+
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->no_reff ?? $parent->id);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                'jurnal-rekening-air-' . $safeFilename . '.pdf'
+                            );
+                        }),
 
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus Item')

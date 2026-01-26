@@ -105,4 +105,20 @@ class JurnalPemakaianBahanPolicy
     {
         return $user->can('reorder_jurnal::pemakaian::bahan');
     }
+
+    /**
+     * Determine whether the user can confirm.
+     */
+    public function confirm(User $user, JurnalPemakaianBahan $jurnalPemakaianBahan): bool
+    {
+        return $user->can('confirm_jurnal::pemakaian::bahan');
+    }
+
+    /**
+     * Determine whether the user can unconfirm.
+     */
+    public function unconfirm(User $user, JurnalPemakaianBahan $jurnalPemakaianBahan): bool
+    {
+        return $user->can('unconfirm_jurnal::pemakaian::bahan');
+    }
 }

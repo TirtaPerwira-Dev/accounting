@@ -50,22 +50,6 @@ class JurnalPemakaianBahanResource extends Resource
         ]);
     }
 
-    public static function canViewAny(): bool
-    {
-        return auth()->check();
-    }
-    public static function canCreate(): bool
-    {
-        return auth()->check();
-    }
-    public static function canEdit($record): bool
-    {
-        return auth()->check() && !$record->is_confirmed;
-    }
-    public static function canDelete($record): bool
-    {
-        return auth()->check() && !$record->is_confirmed;
-    }
 
     public static function form(Form $form): Form
     {
@@ -357,7 +341,7 @@ class JurnalPemakaianBahanResource extends Resource
                     ->collapsed(),
 
                 // Hidden Fields
-                Forms\Components\Hidden::make('ref')->default('5'),
+                Forms\Components\Hidden::make('no_reff')->default('5'),
                 Forms\Components\Hidden::make('company_id')->default(1),
                 Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
@@ -525,8 +509,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
                         ->requiresConfirmation()
                         ->action(fn($record) => $record->confirm())
                         ->successNotification(
@@ -539,8 +522,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn($record) => $record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
                         ->requiresConfirmation()
                         ->action(fn($record) => $record->unconfirm())
                         ->successNotification(
@@ -550,7 +532,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('exportPdf')
-                        ->label('Export PDF')
+                        ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
                         ->action(function ($record) {
@@ -559,7 +541,7 @@ class JurnalPemakaianBahanResource extends Resource
                             ]);
                             return response()->streamDownload(
                                 fn() => print($pdf->output()),
-                                "jurnal-pemakaian-bahan-{$record->no_bukti}.pdf"
+                                "jurnal-pemakaian-bahan-{$record->no_reff}.pdf"
                             );
                         }),
 
@@ -577,7 +559,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Konfirmasi Terpilih')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn() => auth()->user()->can('confirm_any_jurnal::pemakaian::bahan'))
                         ->requiresConfirmation()
                         ->action(fn($records) => $records->each->confirm())
                         ->successNotification(
@@ -591,7 +573,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Batal Konfirmasi Terpilih')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn() => auth()->user()->can('unconfirm_any_jurnal::pemakaian::bahan'))
                         ->requiresConfirmation()
                         ->action(fn($records) => $records->each->unconfirm())
                         ->successNotification(

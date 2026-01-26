@@ -47,22 +47,6 @@ class JurnalMemorialResource extends Resource
         ]);
     }
 
-    public static function canViewAny(): bool
-    {
-        return auth()->check();
-    }
-    public static function canCreate(): bool
-    {
-        return auth()->check();
-    }
-    public static function canEdit($record): bool
-    {
-        return auth()->check() && !$record->is_confirmed;
-    }
-    public static function canDelete($record): bool
-    {
-        return auth()->check() && !$record->is_confirmed;
-    }
 
     public static function form(Form $form): Form
     {
@@ -355,7 +339,7 @@ class JurnalMemorialResource extends Resource
                     ->collapsed(),
 
                 // Hidden Fields
-                Forms\Components\Hidden::make('ref')->default('6'),
+                Forms\Components\Hidden::make('no_reff')->default('6'),
                 Forms\Components\Hidden::make('company_id')->default(1),
                 Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
@@ -513,8 +497,7 @@ class JurnalMemorialResource extends Resource
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
@@ -529,8 +512,7 @@ class JurnalMemorialResource extends Resource
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
@@ -546,7 +528,7 @@ class JurnalMemorialResource extends Resource
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
                         ->action(function ($record) {
-                            $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek']);
+                            $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
 
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-memorial-single', [
                                 'jurnal' => $record,

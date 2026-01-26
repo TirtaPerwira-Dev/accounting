@@ -30,8 +30,6 @@ class JurnalBayarKasBank extends Model
         'keterangan',
         'ref',
         'kode_proyek_id',
-        'data',
-        'group_transaksi',
         'item_sequence',
         'company_id',
         'created_by',
@@ -99,7 +97,7 @@ class JurnalBayarKasBank extends Model
     }
 
     /**
-     * Generate nomor referensi - hanya angka sequential (4, 5, 6, ...)
+     * Generate nomor referensi - tetap '4' untuk Jurnal Bayar Kas/Bank
      */
     public function generateNoReff(): string
     {

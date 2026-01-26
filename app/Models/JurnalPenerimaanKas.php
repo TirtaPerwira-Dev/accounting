@@ -27,7 +27,7 @@ class JurnalPenerimaanKas extends Model
         'keterangan',
         'detail_penerimaan',
         'total_amount',
-        'reff',
+        'no_reff',
         'created_by',
         'deleted_by',
         'is_confirmed',
@@ -61,8 +61,8 @@ class JurnalPenerimaanKas extends Model
             if (empty($model->tanggal)) {
                 $model->tanggal = now()->toDateString();
             }
-            if (empty($model->reff)) {
-                $model->reff = $model->generateReff();
+            if (empty($model->no_reff)) {
+                $model->no_reff = $model->generateNoReff();
             }
             if (empty($model->created_by) && auth()->check()) {
                 $model->created_by = auth()->id();
@@ -127,17 +127,11 @@ class JurnalPenerimaanKas extends Model
     }
 
     /**
-     * Generate nomor referensi - hanya angka sequential (3, 4, 5, ...)
+     * Generate nomor referensi - tetap '3' untuk Jurnal Penerimaan Kas
      */
-    public function generateReff(): string
+    public function generateNoReff(): string
     {
-        $lastJurnal = self::orderBy('id', 'desc')->first();
-
-        if ($lastJurnal && is_numeric($lastJurnal->reff)) {
-            return (string)((int)$lastJurnal->reff + 1);
-        }
-
-        return '3'; // Start from 3
+        return '3';
     }
 
     // Scopes
@@ -186,9 +180,6 @@ class JurnalPenerimaanKas extends Model
         return $this->total_from_items;
     }
 
-    /**
-     * Generate journal entries untuk integrasi dengan sistem jurnal umum
-     */
     public function generateJournalEntries(): array
     {
         $entries = [];
@@ -209,7 +200,7 @@ class JurnalPenerimaanKas extends Model
                 'kredit' => 0,
                 'keterangan' => $this->keterangan,
                 'kode_proyek_id' => null,
-                'reff' => $this->reff,
+                'no_reff' => $this->no_reff,
             ];
         }
 
@@ -226,7 +217,7 @@ class JurnalPenerimaanKas extends Model
                 'kredit' => $jumlah, // Sumber penerimaan (kredit)
                 'keterangan' => $item['keterangan_item'] ?? $this->keterangan,
                 'kode_proyek_id' => $item['kode_proyek'] ?? null,
-                'reff' => $this->reff,
+                'no_reff' => $this->no_reff,
             ];
         }
 

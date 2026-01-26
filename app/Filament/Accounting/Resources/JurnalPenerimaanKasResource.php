@@ -55,35 +55,6 @@ class JurnalPenerimaanKasResource extends Resource
     }
 
     // Authorization helpers
-    public static function canViewAny(): bool
-    {
-        return auth()->check();
-    }
-
-    public static function canCreate(): bool
-    {
-        return auth()->check();
-    }
-
-    public static function canEdit($record): bool
-    {
-        // Check if parent jurnal is confirmed (if exists)
-        if ($record && $record->jurnalPenerimaanKas) {
-            // Add your confirmation check here if needed
-            // For now, allow edit
-        }
-        return auth()->check();
-    }
-
-    public static function canDelete($record): bool
-    {
-        // Check if parent jurnal is confirmed (if exists)
-        if ($record && $record->jurnalPenerimaanKas) {
-            // Add your confirmation check here if needed
-            // For now, allow delete
-        }
-        return auth()->check();
-    }
 
     public static function form(Form $form): Form
     {
@@ -453,7 +424,7 @@ class JurnalPenerimaanKasResource extends Resource
                     ->collapsed(),
 
                 // === HIDDEN FIELDS ===
-                Forms\Components\Hidden::make('reff')->default('3'),
+                Forms\Components\Hidden::make('no_reff')->default('3'),
             ]);
     }
 
@@ -577,7 +548,7 @@ class JurnalPenerimaanKasResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.reff')
+                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.no_reff')
                     ->label('No Reff')
                     ->searchable()
                     ->sortable(),
@@ -622,15 +593,14 @@ class JurnalPenerimaanKasResource extends Resource
                             $record->jurnalPenerimaanKas->confirm();
                             Notification::make()
                                 ->title('Jurnal berhasil dikonfirmasi')
-                                ->body("No. Reff: {$record->jurnalPenerimaanKas->reff}")
+                                ->body("No. Reff: {$record->jurnalPenerimaanKas->no_reff}")
                                 ->success()
                                 ->send();
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
-                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalPenerimaanKas->reff}?")
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalPenerimaanKas->no_reff}?")
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('confirm', $record->jurnalPenerimaanKas)),
 
                     Tables\Actions\Action::make('unconfirm')
                         ->label('↶ Batal Konfirmasi')
@@ -640,24 +610,43 @@ class JurnalPenerimaanKasResource extends Resource
                             $record->jurnalPenerimaanKas->unconfirm();
                             Notification::make()
                                 ->title('Konfirmasi jurnal dibatalkan')
-                                ->body("No. Reff: {$record->jurnalPenerimaanKas->reff}")
+                                ->body("No. Reff: {$record->jurnalPenerimaanKas->no_reff}")
                                 ->success()
                                 ->send();
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Batal Konfirmasi Jurnal')
-                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalPenerimaanKas->reff}?")
-                        ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff')),
+                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalPenerimaanKas->no_reff}?")
+                        ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('unconfirm', $record->jurnalPenerimaanKas)),
 
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail')
                         ->icon('heroicon-o-eye'),
 
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $parent = $record->jurnalPenerimaanKas;
+                            $parent->load(['kasBank.rekening.kelompok']);
+                            
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas', [
+                                'record' => $parent,
+                            ]);
+
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->nomor_bukti ?? $parent->id);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                'jurnal-penerimaan-kas-' . $safeFilename . '.pdf'
+                            );
+                        }),
+
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus Item')
                         ->modalHeading('Hapus Item Transaksi')
-                        ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->reff}")
+                        ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->no_reff}")
                         ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed)
                         ->after(function ($record) {
                             // Check if parent jurnal still has details

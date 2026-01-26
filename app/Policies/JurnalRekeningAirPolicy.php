@@ -105,4 +105,20 @@ class JurnalRekeningAirPolicy
     {
         return $user->can('reorder_jurnal::rekening::air');
     }
+
+    /**
+     * Determine whether the user can confirm.
+     */
+    public function confirm(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
+    {
+        return $user->can('confirm_jurnal::rekening::air');
+    }
+
+    /**
+     * Determine whether the user can unconfirm.
+     */
+    public function unconfirm(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
+    {
+        return $user->can('unconfirm_jurnal::rekening::air');
+    }
 }

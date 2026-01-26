@@ -49,33 +49,6 @@ class JurnalPembelianResource extends Resource
     }
 
     // Authorization helpers (Allow all authenticated users to access jurnal pembelian)
-    public static function canViewAny(): bool
-    {
-        return auth()->check(); // Semua user yang sudah login bisa lihat
-    }
-
-    public static function canCreate(): bool
-    {
-        return auth()->check(); // Semua user yang sudah login bisa buat
-    }
-
-    public static function canEdit($record): bool
-    {
-        // Bisa edit jika belum dikonfirmasi dan user sudah login
-        if ($record && $record->is_confirmed) {
-            return false; // Tidak bisa edit jika sudah dikonfirmasi
-        }
-        return auth()->check();
-    }
-
-    public static function canDelete($record): bool
-    {
-        // Bisa hapus jika belum dikonfirmasi dan user sudah login
-        if ($record && $record->is_confirmed) {
-            return false; // Tidak bisa hapus jika sudah dikonfirmasi
-        }
-        return auth()->check();
-    }
 
     public static function form(Form $form): Form
     {
@@ -169,6 +142,7 @@ class JurnalPembelianResource extends Resource
                                 }
                                 return null; // Kosong jika tidak ada rekening AT
                             }),
+                        Forms\Components\Hidden::make('no_reff')->default('1'),
                         Forms\Components\Hidden::make('company_id')->default(1),
                     ]),
 
@@ -596,8 +570,7 @@ class JurnalPembelianResource extends Resource
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
@@ -612,8 +585,7 @@ class JurnalPembelianResource extends Resource
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed)
-                        ->hidden(fn() => auth()->user()->hasRole('staff'))
+                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
@@ -628,18 +600,20 @@ class JurnalPembelianResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->requiresConfirmation(false)
                         ->action(function ($record) {
-                            $url = route('jurnal-pembelian.single-pdf', $record->id);
+                            $record->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
                             
-                            Notification::make()
-                                ->title('PDF sedang diproses')
-                                ->body('Laporan PDF akan dibuka di tab baru')
-                                ->success()
-                                ->send();
-                            
-                            // Open PDF in new tab
-                            $this->js('window.open("' . $url . '", "_blank")');
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
+                                'jurnal' => $record,
+                                'generatedAt' => now()->format('d M Y H:i'),
+                            ])->setPaper('a4', 'portrait');
+
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff ?? $record->id);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->output()),
+                                'jurnal-pembelian-' . $safeFilename . '.pdf'
+                            );
                         }),
 
                     Tables\Actions\DeleteAction::make()

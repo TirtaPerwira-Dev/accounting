@@ -105,4 +105,20 @@ class JurnalMemorialPolicy
     {
         return $user->can('reorder_jurnal::memorial');
     }
+
+    /**
+     * Determine whether the user can confirm.
+     */
+    public function confirm(User $user, JurnalMemorial $jurnalMemorial): bool
+    {
+        return $user->can('confirm_jurnal::memorial');
+    }
+
+    /**
+     * Determine whether the user can unconfirm.
+     */
+    public function unconfirm(User $user, JurnalMemorial $jurnalMemorial): bool
+    {
+        return $user->can('unconfirm_jurnal::memorial');
+    }
 }
