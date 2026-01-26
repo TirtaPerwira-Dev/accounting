@@ -106,6 +106,10 @@ class AccountingPanelProvider extends PanelProvider
                         'default' => 1,
                         'sm' => 2,
                     ]),
-            ]);
+            ])
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('@livewire(\'notification-bell\')'),
+            );
     }
 }

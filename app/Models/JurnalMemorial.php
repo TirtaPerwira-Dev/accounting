@@ -32,7 +32,11 @@ class JurnalMemorial extends Model
         'deleted_by',
         'is_confirmed',
         'confirmed_by',
-        'confirmed_at'
+        'confirmed_at',
+        'is_posted',
+        'posted_at',
+        'posted_by',
+        'journal_id',
     ];
 
     protected $casts = [
@@ -80,6 +84,16 @@ class JurnalMemorial extends Model
     public function confirmedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
     }
 
     public function details(): HasMany
@@ -151,5 +165,45 @@ class JurnalMemorial extends Model
             'confirmed_by' => null,
             'confirmed_at' => null,
         ]);
+    }
+
+    /**
+     * Generate journal entries for posting to General Ledger
+     */
+    public function generateJournalEntries(): array
+    {
+        $entries = [];
+
+        // 1. Entry dari Header
+        $isHeaderDebit = strtoupper($this->kode) === 'D';
+        $entries[] = [
+            'tanggal' => $this->tanggal,
+            'bukti' => $this->bukti,
+            'rekening_id' => $this->rekening_id,
+            'nomor_bantu_id' => $this->nomor_bantu_id,
+            'debit' => $isHeaderDebit ? $this->rp : 0,
+            'kredit' => !$isHeaderDebit ? $this->rp : 0,
+            'keterangan' => $this->keterangan,
+            'kode_proyek_id' => $this->kode_proyek_id,
+            'no_reff' => $this->no_reff,
+        ];
+
+        // 2. Entries dari Details
+        foreach ($this->details as $detail) {
+            $isDetailDebit = strtolower($detail->posisi) === 'debit';
+            $entries[] = [
+                'tanggal' => $this->tanggal,
+                'bukti' => $detail->bukti ?? $this->bukti,
+                'rekening_id' => $detail->rekening_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_id,
+                'debit' => $isDetailDebit ? $detail->jumlah : 0,
+                'kredit' => !$isDetailDebit ? $detail->jumlah : 0,
+                'keterangan' => $detail->keterangan ?? $this->keterangan,
+                'kode_proyek_id' => $detail->kode_proyek_id ?? $this->kode_proyek_id,
+                'no_reff' => $this->no_reff,
+            ];
+        }
+
+        return $entries;
     }
 }

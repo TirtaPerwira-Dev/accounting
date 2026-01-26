@@ -35,6 +35,10 @@ class JurnalPembelian extends Model
         'deleted_by',
         'group_transaksi',
         'item_sequence',
+        'is_posted',
+        'posted_at',
+        'posted_by',
+        'journal_id',
     ];
 
     protected $casts = [
@@ -131,6 +135,16 @@ class JurnalPembelian extends Model
     public function confirmedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
     }
 
     public function createdBy(): BelongsTo
@@ -286,6 +300,45 @@ class JurnalPembelian extends Model
             'confirmed_by' => null,
             'confirmed_at' => null,
         ]);
+    }
+
+    /**
+     * Generate journal entries for posting to General Ledger
+     */
+    public function generateJournalEntries(): array
+    {
+        $entries = [];
+
+        // 1. Entry untuk Hutang (Kredit)
+        $rekeningKredit = $this->nomorBantuKredit?->rekening;
+        $entries[] = [
+            'tanggal' => $this->tanggal,
+            'bukti' => $this->bukti,
+            'rekening_id' => $rekeningKredit?->id,
+            'nomor_bantu_id' => $this->nomor_bantu_kredit_id,
+            'debit' => 0,
+            'kredit' => $this->rp,
+            'keterangan' => $this->keterangan,
+            'kode_proyek_id' => $this->kode_proyek_id,
+            'no_reff' => $this->no_reff,
+        ];
+
+        // 2. Entries untuk setiap detail (Debit)
+        foreach ($this->details as $detail) {
+            $entries[] = [
+                'tanggal' => $this->tanggal,
+                'bukti' => $this->bukti,
+                'rekening_id' => $detail->rekening_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_id,
+                'debit' => $detail->debit > 0 ? $detail->debit : $detail->jumlah,
+                'kredit' => $detail->credit,
+                'keterangan' => $detail->keterangan ?? $this->keterangan,
+                'kode_proyek_id' => $detail->kode_proyek_id ?? $this->kode_proyek_id,
+                'no_reff' => $this->no_reff,
+            ];
+        }
+
+        return $entries;
     }
 
     /**

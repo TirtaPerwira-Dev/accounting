@@ -18,6 +18,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Collection;
 
 class JurnalBayarKasBankResource extends Resource
 {
@@ -36,6 +37,16 @@ class JurnalBayarKasBankResource extends Resource
     protected static ?string $pluralModelLabel = 'Jurnal Bayar Kas/Bank';
 
     protected static ?string $slug = 'jurnal-bayar-kas-bank';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::where('is_confirmed', 0)->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getNavigationBadge() > 0 ? 'warning' : 'success';
+    }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
@@ -480,6 +491,15 @@ class JurnalBayarKasBankResource extends Resource
                     ->alignRight()
                     ->sortable(),
 
+                Tables\Columns\IconColumn::make('is_posted')
+                    ->label('Posted')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-clock')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->sortable(),
+
                 Tables\Columns\IconColumn::make('is_confirmed')
                     ->label('Status')
                     ->boolean()
@@ -564,6 +584,12 @@ class JurnalBayarKasBankResource extends Resource
                     ->label('Status')
                     ->options([1 => 'Dikonfirmasi', 0 => 'Pending']),
 
+                Tables\Filters\TernaryFilter::make('is_posted')
+                    ->label('Status Posting')
+                    ->placeholder('Semua Status')
+                    ->trueLabel('Sudah Diposting')
+                    ->falseLabel('Belum Diposting'),
+
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('from')->label('Dari'),
@@ -630,6 +656,28 @@ class JurnalBayarKasBankResource extends Resource
                             );
                         }),
 
+                    Tables\Actions\Action::make('post_to_ledger')
+                        ->label('Post ke Buku Besar')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function ($record, \App\Services\JournalPostingService $service) {
+                            try {
+                                $service->post($record);
+                                Notification::make()
+                                    ->title('Jurnal berhasil diposting ke Buku Besar')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Gagal posting')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
+
                     Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
                 ])
                     ->label('Action')
@@ -638,6 +686,29 @@ class JurnalBayarKasBankResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('bulk_post_to_ledger')
+                        ->label('Post Terpilih ke Buku Besar')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
+                            $validRecords = $records->filter(fn($record) => $record->is_confirmed && !$record->is_posted);
+
+                            if ($validRecords->isEmpty()) {
+                                Notification::make()
+                                    ->title('Tidak ada jurnal yang valid untuk diposting')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            $count = $service->postBulk($validRecords);
+                            
+                            Notification::make()
+                                ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\DeleteBulkAction::make(),
 
                     Tables\Actions\BulkAction::make('confirm_selected')

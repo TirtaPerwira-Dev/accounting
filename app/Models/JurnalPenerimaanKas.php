@@ -34,6 +34,10 @@ class JurnalPenerimaanKas extends Model
         'confirmed_by',
         'confirmed_at',
         'company_id',
+        'is_posted',
+        'posted_at',
+        'posted_by',
+        'journal_id',
     ];
 
     protected $casts = [
@@ -104,6 +108,16 @@ class JurnalPenerimaanKas extends Model
     public function details(): HasMany
     {
         return $this->hasMany(JurnalPenerimaanKasDetail::class, 'jurnal_penerimaan_kas_id');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
     }
 
     public function company(): BelongsTo

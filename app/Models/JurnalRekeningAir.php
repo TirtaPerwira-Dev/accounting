@@ -29,6 +29,10 @@ class JurnalRekeningAir extends Model
         'company_id',
         'created_by',
         'deleted_by',
+        'is_posted',
+        'posted_at',
+        'posted_by',
+        'journal_id',
     ];
 
     protected $casts = [
@@ -106,6 +110,16 @@ class JurnalRekeningAir extends Model
     public function confirmedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function journal(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    public function postedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
     }
 
     public function deletedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -212,7 +226,7 @@ class JurnalRekeningAir extends Model
                 'kredit' => $position === 'K' ? $jumlah : 0,
                 'keterangan' => $this->keterangan,
                 'kode_proyek_id' => $item['kode_proyek'] ?? null,
-                'reff' => 2, // Untuk Jurnal Rekening Air
+                'no_reff' => $this->no_reff,
             ];
         }
 

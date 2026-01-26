@@ -124,17 +124,21 @@ class AdminPanelProvider extends PanelProvider
                     ]),
                 BreezyCore::make()
                     ->myProfile(
-                        shouldRegisterUserMenu: true, // Sets the 'account' link in the panel User Menu (default = true)
-                        shouldRegisterNavigation: false, // Adds a main navigation item for the My Profile page (default = false)
-                        hasAvatars: true, // Enables the avatar upload form component (default = false)
-                        slug: 'my-profile' // Sets the slug for the profile page (default = 'my-profile')
+                        shouldRegisterUserMenu: true,
+                        shouldRegisterNavigation: false,
+                        hasAvatars: true,
+                        slug: 'my-profile'
                     )
                     ->enableTwoFactorAuthentication(
-                        force: false, // force the user to enable 2FA before they can use the application (default = false)
+                        force: false,
                     )
                     ->enableSanctumTokens(
-                        permissions: ['create', 'view', 'update', 'delete'] // optional, customize the permissions (default = ['create', 'view', 'update', 'delete'])
+                        permissions: ['create', 'view', 'update', 'delete']
                     ),
-            ]);
+            ])
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('@livewire(\'notification-bell\')'),
+            );
     }
 }

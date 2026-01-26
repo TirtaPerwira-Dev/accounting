@@ -3,7 +3,9 @@
 namespace App\Filament\Accounting\Resources\JurnalRekeningAirResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalRekeningAirResource;
+use App\Services\JournalPostingService;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -20,6 +22,56 @@ class ViewJurnalRekeningAir extends ViewRecord
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->url(fn() => static::getResource()::getUrl('index')),
+
+            Actions\Action::make('confirm')
+                ->label('✓ Konfirmasi')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->action(function ($record) {
+                    $record->jurnalRekeningAir->confirm();
+                    Notification::make()
+                        ->title('Jurnal berhasil dikonfirmasi')
+                        ->success()
+                        ->send();
+                })
+                ->requiresConfirmation()
+                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
+
+            Actions\Action::make('unconfirm')
+                ->label('↶ Batal Konfirmasi')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->action(function ($record) {
+                    $record->jurnalRekeningAir->unconfirm();
+                    Notification::make()
+                        ->title('Konfirmasi jurnal dibatalkan')
+                        ->success()
+                        ->send();
+                })
+                ->requiresConfirmation()
+                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
+
+            Actions\Action::make('post_to_ledger')
+                ->label('Post ke Buku Besar')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('success')
+                ->requiresConfirmation()
+                ->action(function ($record, JournalPostingService $service) {
+                    try {
+                        $service->post($record->jurnalRekeningAir);
+                        Notification::make()
+                            ->title('Jurnal berhasil diposting ke Buku Besar')
+                            ->success()
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Gagal posting')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                })
+                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
         ];
     }
 
