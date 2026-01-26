@@ -23,10 +23,6 @@ class ListJurnalPenerimaanKas extends ListRecords
                 ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
-                ->modalHeading('Filter Laporan PDF')
-                ->modalDescription('Pilih filter untuk laporan yang akan di-generate')
-                ->modalSubmitActionLabel('Generate PDF')
-                ->modalWidth('md')
                 ->form([
                     \Filament\Forms\Components\DatePicker::make('dari_tanggal')
                         ->label('Dari Tanggal')
@@ -40,7 +36,7 @@ class ListJurnalPenerimaanKas extends ListRecords
                         ->native(false)
                         ->afterOrEqual('dari_tanggal'),
                     \Filament\Forms\Components\Select::make('kas_bank_filter')
-                        ->label('Filter Kas/Bank')
+                        ->label('Filter Kas/Bank (Opsional)')
                         ->options(function () {
                             return \App\Models\NomorBantu::whereHas('rekening', function ($query) {
                                 $query->whereHas('kelompok', function ($q) {
@@ -58,31 +54,28 @@ class ListJurnalPenerimaanKas extends ListRecords
                                 ]);
                         })
                         ->searchable()
-                        ->placeholder('Semua Kas/Bank')
-                        ->native(false),
-                    \Filament\Forms\Components\Select::make('status')
-                        ->label('Status')
-                        ->options([
-                            '' => 'Semua',
-                            'confirmed' => 'Sudah Dikonfirmasi',
-                            'pending' => 'Belum Dikonfirmasi',
-                        ])
-                        ->default('')
-                        ->native(false),
+                        ->placeholder('Semua Kas/Bank'),
                 ])
                 ->action(function (array $data) {
-                    // Build URL with query parameters
-                    $params = array_filter([
-                        'dari_tanggal' => $data['dari_tanggal'] ?? null,
-                        'sampai_tanggal' => $data['sampai_tanggal'] ?? null,
-                        'kas_bank_filter' => $data['kas_bank_filter'] ?? null,
-                        'status' => $data['status'] ?? '',
-                    ]);
-                    
-                    $url = route('jurnal-penerimaan-kas.pdf', $params);
-                    
-                    // Redirect to open in new window using JavaScript
-                    $this->js("window.open('$url', '_blank');");
+                    $query = \App\Models\JurnalPenerimaanKas::with(['kasBank.rekening.kelompok'])
+                        ->whereDate('tanggal', '>=', $data['dari_tanggal'])
+                        ->whereDate('tanggal', '<=', $data['sampai_tanggal']);
+
+                    if (!empty($data['kas_bank_filter'])) {
+                        $query->where('kas_bank_id', $data['kas_bank_filter']);
+                    }
+
+                    $records = $query->get();
+                    $title = 'Laporan JPK ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y') .
+                        ' - ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
+
+                    return response()->streamDownload(function () use ($records, $title) {
+                        echo \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas-bulk', [
+                            'records' => $records,
+                            'title' => $title
+                        ])->stream();
+                    }, 'JPK-' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d') .
+                        '_' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d') . '.pdf');
                 }),
         ];
     }

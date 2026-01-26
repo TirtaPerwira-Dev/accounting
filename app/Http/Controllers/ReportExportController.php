@@ -145,11 +145,17 @@ class ReportExportController extends Controller
 
         // Clean data untuk UTF-8
         $data->each(function ($item) {
-            if (isset($item->bukti)) {
-                $item->bukti = mb_convert_encoding($item->bukti, 'UTF-8', 'UTF-8');
+            if (isset($item->bukti_item)) {
+                $item->bukti_item = mb_convert_encoding($item->bukti_item, 'UTF-8', 'UTF-8');
             }
             if (isset($item->keterangan)) {
                 $item->keterangan = mb_convert_encoding($item->keterangan, 'UTF-8', 'UTF-8');
+            }
+            if (isset($item->nama_akun_kredit)) {
+                $item->nama_akun_kredit = mb_convert_encoding($item->nama_akun_kredit, 'UTF-8', 'UTF-8');
+            }
+            if (isset($item->nama_akun_debit)) {
+                $item->nama_akun_debit = mb_convert_encoding($item->nama_akun_debit, 'UTF-8', 'UTF-8');
             }
         });
 
@@ -196,133 +202,6 @@ class ReportExportController extends Controller
         $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff);
         $filename = 'jurnal-pembelian-' . $safeFilename . '.pdf';
 
-        return response($pdf->output(), 200)
-            ->header('Content-Type', 'application/pdf; charset=utf-8')
-            ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
-            ->header('Cache-Control', 'private, max-age=0, must-revalidate')
-            ->header('Pragma', 'public');
-    }
-
-    /**
-     * Generate PDF for Jurnal Rekening Air report
-     */
-    public function jurnalRekeningAirPdf(Request $request)
-    {
-        $filters = [
-            'start_date' => $request->input('start_date'),
-            'end_date' => $request->input('end_date'),
-            'status' => $request->input('status', ''),
-        ];
-
-        // Query dari model parent (JurnalRekeningAir)
-        $query = \App\Models\JurnalRekeningAir::query();
-
-        // Filter by date
-        if ($filters['start_date']) {
-            $query->whereDate('tanggal', '>=', $filters['start_date']);
-        }
-
-        if ($filters['end_date']) {
-            $query->whereDate('tanggal', '<=', $filters['end_date']);
-        }
-
-        // Filter by confirmation status
-        if ($filters['status'] === 'confirmed') {
-            $query->where('is_confirmed', true);
-        } elseif ($filters['status'] === 'pending') {
-            $query->where('is_confirmed', false);
-        }
-
-        $journals = $query->with([
-            'company',
-            'details.kelompok',
-            'details.rekening',
-            'details.nomorBantu',
-            'details.kodeProyek'
-        ])->orderBy('tanggal', 'desc')->get();
-
-        $pdf = Pdf::loadView('reports.jurnal-rekening-air', [
-            'journals' => $journals,
-            'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-            'startDate' => $filters['start_date'],
-            'endDate' => $filters['end_date'],
-            'status' => $filters['status'],
-        ])->setPaper('a4', 'portrait')
-          ->setOption('isHtml5ParserEnabled', true)
-          ->setOption('isRemoteEnabled', true);
-
-        $filename = 'laporan-jurnal-rekening-air-' . now()->format('Y-m-d-His') . '.pdf';
-        
-        // Stream PDF untuk preview di browser (bukan download langsung)
-        return response($pdf->output(), 200)
-            ->header('Content-Type', 'application/pdf; charset=utf-8')
-            ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
-            ->header('Cache-Control', 'private, max-age=0, must-revalidate')
-            ->header('Pragma', 'public');
-    }
-
-    /**
-     * Generate PDF for Jurnal Penerimaan Kas report
-     */
-    public function jurnalPenerimaanKasPdf(Request $request)
-    {
-        $filters = [
-            'dari_tanggal' => $request->input('dari_tanggal'),
-            'sampai_tanggal' => $request->input('sampai_tanggal'),
-            'kas_bank_filter' => $request->input('kas_bank_filter'),
-            'status' => $request->input('status', ''),
-        ];
-
-        // Query dari model parent (JurnalPenerimaanKas)
-        $query = \App\Models\JurnalPenerimaanKas::query();
-
-        // Filter by date
-        if ($filters['dari_tanggal']) {
-            $query->whereDate('tanggal', '>=', $filters['dari_tanggal']);
-        }
-
-        if ($filters['sampai_tanggal']) {
-            $query->whereDate('tanggal', '<=', $filters['sampai_tanggal']);
-        }
-
-        // Filter by kas/bank
-        if (!empty($filters['kas_bank_filter'])) {
-            $query->where('kas_bank_id', $filters['kas_bank_filter']);
-        }
-
-        // Filter by confirmation status
-        if ($filters['status'] === 'confirmed') {
-            $query->where('is_confirmed', true);
-        } elseif ($filters['status'] === 'pending') {
-            $query->where('is_confirmed', false);
-        }
-
-        $journals = $query->with([
-            'company',
-            'kasBank.kelompok',
-            'kasBank.rekening',
-            'kelompok',
-            'rekening',
-            'details.kelompok',
-            'details.rekening',
-            'details.nomorBantu',
-            'details.kodeProyek'
-        ])->orderBy('tanggal', 'desc')->get();
-
-        $pdf = Pdf::loadView('reports.jurnal-penerimaan-kas', [
-            'journals' => $journals,
-            'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-            'startDate' => $filters['dari_tanggal'],
-            'endDate' => $filters['sampai_tanggal'],
-            'kasBankFilter' => $filters['kas_bank_filter'],
-            'status' => $filters['status'],
-        ])->setPaper('a4', 'portrait')
-          ->setOption('isHtml5ParserEnabled', true)
-          ->setOption('isRemoteEnabled', true);
-
-        $filename = 'laporan-jurnal-penerimaan-kas-' . now()->format('Y-m-d-His') . '.pdf';
-        
-        // Stream PDF untuk preview di browser (bukan download langsung)
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf; charset=utf-8')
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
