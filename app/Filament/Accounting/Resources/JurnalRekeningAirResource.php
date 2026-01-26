@@ -665,16 +665,25 @@ class JurnalRekeningAirResource extends Resource
                         ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalRekeningAir->no_reff}")
                         ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed)
                         ->after(function ($record) {
-                            // Check if parent jurnal still has details
-                            $parent = $record->jurnalRekeningAir;
-                            if ($parent && $parent->details()->count() === 0) {
+                            // Get the parent jurnal ID before deletion
+                            $parentJurnalId = $record->jurnal_rekening_air_id;
+                            
+                            // Check if parent jurnal still has other details after this deletion
+                            $remainingDetails = JurnalRekeningAirDetail::where('jurnal_rekening_air_id', $parentJurnalId)
+                                ->where('id', '!=', $record->id)
+                                ->count();
+                            
+                            if ($remainingDetails === 0) {
                                 // Delete parent if no more details
-                                $parent->delete();
-                                Notification::make()
-                                    ->title('Jurnal dihapus')
-                                    ->body('Jurnal header juga dihapus karena tidak memiliki item lagi')
-                                    ->warning()
-                                    ->send();
+                                $parent = JurnalRekeningAir::find($parentJurnalId);
+                                if ($parent) {
+                                    $parent->delete();
+                                    Notification::make()
+                                        ->title('Jurnal dihapus')
+                                        ->body('Jurnal header juga dihapus karena tidak memiliki item lagi')
+                                        ->warning()
+                                        ->send();
+                                }
                             }
                         }),
                 ])
@@ -720,7 +729,8 @@ class JurnalRekeningAirResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalRekeningAirResource\RelationManagers\DetailsRelationManager::class,
+            // RelationManager tidak digunakan karena resource model adalah Detail, bukan Parent
+            // Details sudah ditampilkan di infolist ViewJurnalRekeningAir
         ];
     }
 

@@ -501,6 +501,13 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
+                Tables\Columns\TextColumn::make('no_reff')
+                    ->label('No Reff')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('primary'),
+
                 Tables\Columns\TextColumn::make('bukti')
                     ->label('Bukti')
                     ->searchable()
@@ -514,25 +521,32 @@ class JurnalPembelianResource extends Resource
                 Tables\Columns\TextColumn::make('keterangan')
                     ->label('Keterangan')
                     ->searchable()
-                    ->limit(30)
-                    ->wrap(),
+                    ->limit(50)
+                    ->wrap()
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
                     ->html()
                     ->getStateUsing(function ($record) {
-                        // Format 2 baris: AA BBBB + Nama
+                        // Tampilkan kode proyek dan rekening dari record ini
                         $kodeProyek = $record->kodeProyek?->kode ?? '';
                         $namaProyek = $record->kodeProyek?->name ?? '';
                         $nomorBantu = $record->nomorBantuDebit;
                         $rekening = $nomorBantu?->rekening?->no_rek ?? '';
                         $namaRekening = $nomorBantu?->rekening?->nama_rek ?? '';
 
+                        // Format: AA BBBB (jika ada proyek dan rekening)
                         $kode = ($kodeProyek && $rekening)
                             ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
                             : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
 
+                        // Nama: Proyek - Rekening
                         $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
+
+                        if (!$nama) {
+                            $nama = '-';
+                        }
 
                         return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
@@ -554,11 +568,6 @@ class JurnalPembelianResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('warning'),
-
-                Tables\Columns\TextColumn::make('no_reff')
-                    ->label('No Reff')
-                    ->searchable()
-                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('is_confirmed')
@@ -628,19 +637,8 @@ class JurnalPembelianResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->requiresConfirmation(false)
-                        ->action(function ($record) {
-                            $url = route('jurnal-pembelian.single-pdf', $record->id);
-                            
-                            Notification::make()
-                                ->title('PDF sedang diproses')
-                                ->body('Laporan PDF akan dibuka di tab baru')
-                                ->success()
-                                ->send();
-                            
-                            // Open PDF in new tab
-                            $this->js('window.open("' . $url . '", "_blank")');
-                        }),
+                        ->url(fn($record) => route('jurnal-pembelian.single-pdf', $record->id))
+                        ->openUrlInNewTab(),
 
                     Tables\Actions\DeleteAction::make()
                         ->visible(fn($record) => !$record->is_confirmed),
