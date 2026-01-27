@@ -279,6 +279,24 @@ class JurnalPembelian extends Model
     }
 
     /**
+     * Accessor fallback for table and view page
+     */
+    public function getBuktiItemAttribute(): ?string
+    {
+        return $this->bukti ?: ($this->details->first()?->bukti);
+    }
+
+    public function getKeteranganItemAttribute(): ?string
+    {
+        return $this->keterangan ?: ($this->details->first()?->keterangan);
+    }
+
+    public function getJumlahItemAttribute(): float
+    {
+        return (float) ($this->rp ?: ($this->details->first()?->jumlah ?? 0));
+    }
+
+    /**
      * Konfirmasi jurnal
      */
     public function confirm(): void

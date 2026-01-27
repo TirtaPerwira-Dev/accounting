@@ -55,7 +55,9 @@ class JurnalPembelianResource extends Resource
                 'nomorBantuKredit.rekening.kelompok',
                 'nomorBantuDebit.rekening.kelompok',
                 'kodeProyek',
-                'confirmedBy'
+                'confirmedBy',
+                'details.nomorBantuDebit.rekening.kelompok',
+                'details.kodeProyek'
             ]);
     }
 
@@ -486,9 +488,10 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('bukti')
+                Tables\Columns\TextColumn::make('bukti_item')
                     ->label('Bukti')
-                    ->searchable()
+                    ->searchable(['bukti'])
+                    ->sortable()
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('tanggal')
@@ -507,18 +510,22 @@ class JurnalPembelianResource extends Resource
                     ->html()
                     ->getStateUsing(function ($record) {
                         // Format 2 baris: AA BBBB + Nama
-                        $kodeProyek = $record->kodeProyek?->kode ?? '';
-                        $namaProyek = $record->kodeProyek?->name ?? '';
-                        $nomorBantu = $record->nomorBantuDebit;
+                        // Ambil dari header dulu, kalau kosong ambil dari item pertama
+                        $firstDetail = $record->details->first();
+                        
+                        $kodeProyek = $record->kodeProyek?->kode ?? ($firstDetail?->kodeProyek?->kode ?? '');
+                        $namaProyek = $record->kodeProyek?->name ?? ($firstDetail?->kodeProyek?->name ?? '');
+                        
+                        $nomorBantu = $record->nomorBantuDebit ?: ($firstDetail?->nomorBantuDebit);
                         $rekening = $nomorBantu?->rekening?->no_rek ?? '';
                         $namaRekening = $nomorBantu?->rekening?->nama_rek ?? '';
-
+ 
                         $kode = ($kodeProyek && $rekening)
                             ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
-                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
-
+                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : ($kodeProyek ?: '-'));
+ 
                         $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
-
+ 
                         return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)

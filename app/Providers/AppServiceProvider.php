@@ -27,5 +27,13 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        // Register Observers for Notifications
+        \App\Models\JurnalPenerimaanKas::observe(\App\Observers\JournalObserver::class);
+        \App\Models\JurnalBayarKasBank::observe(\App\Observers\JournalObserver::class);
+        \App\Models\JurnalPembelian::observe(\App\Observers\JournalObserver::class);
+        \App\Models\JurnalMemorial::observe(\App\Observers\JournalObserver::class);
+        \App\Models\JurnalPemakaianBahan::observe(\App\Observers\JournalObserver::class);
+        \App\Models\JurnalRekeningAir::observe(\App\Observers\JournalObserver::class);
     }
 }

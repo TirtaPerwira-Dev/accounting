@@ -21,11 +21,12 @@ class ViewJurnalPembelian extends ViewRecord
         $this->record->load([
             'kelompokKredit',
             'rekeningKredit',
-            'nomorBantuKredit',
-            'kelompokDebit',
-            'rekeningDebit',
             'nomorBantuDebit',
-            'kodeProyek'
+            'kodeProyek',
+            'details.kelompokDebit',
+            'details.rekeningDebit',
+            'details.nomorBantuDebit',
+            'details.kodeProyek',
         ]);
 
         return $data;
@@ -164,77 +165,58 @@ class ViewJurnalPembelian extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Detail Pembelian')
-                    ->description('Informasi detail item pembelian')
+                Components\Section::make('Daftar Item Pembelian')
+                    ->description('Detail item barang/jasa yang dibeli')
                     ->schema([
-                        Components\Grid::make(3)
+                        Components\RepeatableEntry::make('details')
+                            ->hiddenLabel()
                             ->schema([
-                                Components\TextEntry::make('bukti_item')
-                                    ->label('No. Bukti')
-                                    ->placeholder('-')
-                                    ->badge()
-                                    ->color('gray'),
+                                Components\Grid::make(3)
+                                    ->schema([
+                                        Components\TextEntry::make('nama_akun_debit')
+                                            ->label('Kode/Nama Rekening')
+                                            ->formatStateUsing(fn ($state, $record) => "[$record->kode_sakep_debit] $state")
+                                            ->weight('medium'),
 
-                                Components\TextEntry::make('kodeProyek.name')
-                                    ->label('Kode Proyek')
-                                    ->placeholder('-')
-                                    ->badge()
-                                    ->color('info'),
+                                        Components\TextEntry::make('kodeProyek.name')
+                                            ->label('Proyek')
+                                            ->placeholder('-')
+                                            ->weight('medium'),
 
-                                Components\TextEntry::make('kode_sakep_debit')
-                                    ->label('Kode SAKEP Debit')
-                                    ->badge()
-                                    ->color('warning'),
-                            ]),
+                                        Components\TextEntry::make('jumlah')
+                                            ->label('Nominal')
+                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                                            ->alignRight()
+                                            ->weight('bold')
+                                            ->color('success'),
 
-                        Components\Fieldset::make('Item Details')
-                            ->schema([
-                                Components\TextEntry::make('keterangan_item')
-                                    ->label('Keterangan Item')
-                                    ->size('lg')
-                                    ->weight('semibold')
-                                    ->columnSpanFull(),
-
-                                Components\TextEntry::make('nama_akun_debit')
-                                    ->label('Nama Akun Debit'),
-
-                                Components\TextEntry::make('jumlah_item')
-                                    ->label('Nominal Item')
-                                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
-                                    ->size('xl')
-                                    ->weight('bold')
-                                    ->color('success'),
+                                        Components\TextEntry::make('keterangan')
+                                            ->label('Keterangan')
+                                            ->columnSpanFull(),
+                                    ]),
                             ])
-                            ->columns(2),
+                            ->grid(1)
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Nilai Transaksi')
-                    ->description('Informasi nilai dan status item pembelian ini')
+                Components\Section::make('Total Transaksi')
                     ->schema([
-                        Components\Grid::make(3)
+                        Components\Grid::make(2)
                             ->schema([
-                                Components\TextEntry::make('jumlah_item')
-                                    ->label('Nilai Item')
+                                Components\TextEntry::make('rp')
+                                    ->label('Total Nilai Pembelian')
                                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
                                     ->size('xl')
                                     ->weight('bold')
-                                    ->color('success'),
-
-                                Components\TextEntry::make('is_confirmed')
-                                    ->label('Status Konfirmasi')
-                                    ->formatStateUsing(fn($state) => $state ? 'Dikonfirmasi' : 'Pending')
-                                    ->badge()
-                                    ->color(fn($state) => $state ? 'success' : 'warning'),
+                                    ->color('primary'),
 
                                 Components\TextEntry::make('created_at')
                                     ->label('Dibuat Pada')
-                                    ->dateTime('d/m/Y H:i')
-                                    ->badge()
-                                    ->color('info'),
+                                    ->dateTime('d/m/Y H:i'),
                             ]),
                     ])
-                    ->collapsible(),
+                    ->compact(),
             ]);
     }
 }
