@@ -87,7 +87,7 @@
                                 </div>
                             </div>
                         @endforeach
-                        <a href="{{ \App\Filament\Accounting\Resources\ActivityLogResource::getUrl() }}" class="block p-2 text-center text-xs font-semibold text-primary-600 hover:underline">
+                        <a href="{{ \App\Filament\Accounting\Resources\ActivityLogResource::getUrl(panel: 'accounting') }}" class="block p-2 text-center text-xs font-semibold text-primary-600 hover:underline">
                             View all activity
                         </a>
                     </div>

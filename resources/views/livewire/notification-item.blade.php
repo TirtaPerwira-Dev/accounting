@@ -50,7 +50,7 @@
                 
                 $indexUrl = $resource ? $resource::getUrl('index', [
                     'tableFilters[is_confirmed][value]' => ($action === 'confirm' ? '0' : '1'),
-                ]) : '#';
+                ], panel: 'accounting') : '#';
             @endphp
 
             <x-filament::link
