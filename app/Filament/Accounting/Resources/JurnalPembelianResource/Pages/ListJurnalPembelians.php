@@ -17,8 +17,27 @@ class ListJurnalPembelians extends ListRecords
 
     protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
     {
-        // Tampilkan semua records (tidak di-group)
-        return parent::getTableQuery();
+        // Tampilkan per detail item, bukan per header
+        return \App\Models\JurnalPembelianDetail::query()
+            ->select([
+                'jurnal_pembelian_details.*',
+                'jurnal_pembelians.tanggal',
+                'jurnal_pembelians.no_reff',
+                'jurnal_pembelians.is_confirmed',
+                'jurnal_pembelians.is_posted',
+                'jurnal_pembelians.confirmed_at',
+                'jurnal_pembelians.confirmed_by',
+                'jurnal_pembelians.nomor_bantu_kredit_id as header_nomor_bantu_kredit_id',
+            ])
+            ->join('jurnal_pembelians', 'jurnal_pembelian_details.jurnal_pembelian_id', '=', 'jurnal_pembelians.id')
+            ->with([
+                'jurnalPembelian.nomorBantuKredit.rekening.kelompok',
+                'kelompokDebit',
+                'rekeningDebit',
+                'nomorBantuDebit.rekening.kelompok',
+                'kodeProyek',
+            ])
+            ->whereNull('jurnal_pembelians.deleted_at');
     }
 
     protected function getHeaderWidgets(): array

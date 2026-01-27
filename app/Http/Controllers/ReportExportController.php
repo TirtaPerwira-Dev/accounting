@@ -118,48 +118,49 @@ class ReportExportController extends Controller
             'status' => $request->input('status', 'all'),
         ];
 
-        // Get data
-        $query = \App\Models\JurnalPembelian::query();
-        
-        // Filter tanggal
-        $query->whereBetween('tanggal', [
-            $filters['dari_tanggal'],
-            $filters['sampai_tanggal']
-        ]);
+        // Get data dari JurnalPembelianDetail dengan join ke header
+        $query = \App\Models\JurnalPembelianDetail::query()
+            ->select('jurnal_pembelian_details.*')
+            ->join('jurnal_pembelians', 'jurnal_pembelian_details.jurnal_pembelian_id', '=', 'jurnal_pembelians.id')
+            ->whereBetween('jurnal_pembelians.tanggal', [
+                $filters['dari_tanggal'],
+                $filters['sampai_tanggal']
+            ]);
 
         // Filter kode hutang
         if (!empty($filters['kode_hutang'])) {
-            $query->where('nomor_bantu_kredit_id', $filters['kode_hutang']);
+            $query->where('jurnal_pembelians.nomor_bantu_kredit_id', $filters['kode_hutang']);
         }
 
         // Filter status
         if ($filters['status'] === 'confirmed') {
-            $query->where('is_confirmed', true);
+            $query->where('jurnal_pembelians.is_confirmed', true);
         } elseif ($filters['status'] === 'pending') {
-            $query->where('is_confirmed', false);
+            $query->where('jurnal_pembelians.is_confirmed', false);
         }
 
-        $data = $query->with(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek'])
-            ->orderBy('tanggal', 'desc')
+        $data = $query->with([
+                'jurnalPembelian.nomorBantuKredit.rekening.kelompok',
+                'jurnalPembelian.kodeProyek',
+                'nomorBantuDebit.rekening.kelompok',
+                'kodeProyek'
+            ])
+            ->orderBy('jurnal_pembelians.tanggal', 'desc')
+            ->orderBy('jurnal_pembelians.id', 'asc')
+            ->orderBy('jurnal_pembelian_details.id', 'asc')
             ->get();
 
         // Clean data untuk UTF-8
         $data->each(function ($item) {
-            if (isset($item->bukti_item)) {
-                $item->bukti_item = mb_convert_encoding($item->bukti_item, 'UTF-8', 'UTF-8');
+            if (isset($item->bukti)) {
+                $item->bukti = mb_convert_encoding($item->bukti, 'UTF-8', 'UTF-8');
             }
             if (isset($item->keterangan)) {
                 $item->keterangan = mb_convert_encoding($item->keterangan, 'UTF-8', 'UTF-8');
             }
-            if (isset($item->nama_akun_kredit)) {
-                $item->nama_akun_kredit = mb_convert_encoding($item->nama_akun_kredit, 'UTF-8', 'UTF-8');
-            }
-            if (isset($item->nama_akun_debit)) {
-                $item->nama_akun_debit = mb_convert_encoding($item->nama_akun_debit, 'UTF-8', 'UTF-8');
-            }
         });
 
-        $totalAmount = $data->sum('rp');
+        $totalAmount = $data->sum('jumlah');
         $period = Carbon::parse($filters['dari_tanggal'])->format('d M Y') . ' - ' .
             Carbon::parse($filters['sampai_tanggal'])->format('d M Y');
 
@@ -188,7 +189,13 @@ class ReportExportController extends Controller
      */
     public function jurnalPembelianSinglePdf($id)
     {
-        $record = \App\Models\JurnalPembelian::with(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek'])
+        $record = \App\Models\JurnalPembelian::with([
+                'nomorBantuKredit.rekening.kelompok',
+                'kodeProyek',
+                'details.nomorBantuDebit.rekening.kelompok',
+                'details.kodeProyek',
+                'confirmedBy'
+            ])
             ->findOrFail($id);
 
         $pdf = Pdf::loadView('reports.jurnal-pembelian-single', [

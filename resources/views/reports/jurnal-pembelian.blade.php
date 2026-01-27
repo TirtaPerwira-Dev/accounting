@@ -256,11 +256,11 @@
 
     @if($data->count() > 0)
         @php
-            $groupedData = $data->groupBy(function ($item) {
-                return $item->group_transaksi ?? 'single_' . $item->id;
-            });
+            // Group by jurnal_pembelian_id (header)
+            $groupedData = $data->groupBy('jurnal_pembelian_id');
             $grandTotalDebit = 0;
             $grandTotalCredit = 0;
+            $rowNum = 0;
         @endphp
 
         <!-- ====== MAIN TABLE ====== -->
@@ -279,20 +279,29 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($groupedData as $groupKey => $groupItems)
+                @foreach($groupedData as $jurnalId => $details)
                     @php
-                        $jurnal = $groupItems->first();
-                        $totalGroupAmount = $groupItems->sum('jumlah_item');
-                        $loopNum = $loop->iteration;
+                        $firstDetail = $details->first();
+                        $jurnal = $firstDetail->jurnalPembelian;
+                        $totalGroupAmount = $details->sum('jumlah');
+                        $rowNum++;
+                        
+                        // Get kode SAKEP kredit
+                        $nomorBantuKredit = $jurnal->nomorBantuKredit;
+                        $kodeSakepKredit = $nomorBantuKredit ? 
+                            $nomorBantuKredit->rekening->kelompok->no_kel . 
+                            $nomorBantuKredit->rekening->no_rek . 
+                            str_pad($nomorBantuKredit->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
+                        $namaAkunKredit = $nomorBantuKredit?->nm_bantu ?? '-';
                     @endphp
 
                     <!-- Group Header Row (Akun Kredit) -->
                     <tr class="group-row">
-                        <td class="text-center">{{ $loopNum }}</td>
+                        <td class="text-center">{{ $rowNum }}</td>
                         <td class="text-center">{{ $jurnal->no_reff }}</td>
                         <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
                         <td colspan="3" style="padding-left: 6px;">
-                            <strong>KREDIT:</strong> {{ $jurnal->kode_sakep_kredit }} - {{ $jurnal->nama_akun_kredit }}
+                            <strong>KREDIT:</strong> {{ $kodeSakepKredit }} - {{ $namaAkunKredit }}
                             @if($jurnal->kodeProyek)
                                 <br><span style="font-size: 6pt; font-weight: normal;">Proyek : {{ $jurnal->kodeProyek->name }}</span>
                             @endif
@@ -309,17 +318,25 @@
                     </tr>
 
                     <!-- Detail Rows (Akun Debit) -->
-                    @foreach($groupItems as $item)
+                    @foreach($details as $detail)
+                        @php
+                            $nomorBantuDebit = $detail->nomorBantuDebit;
+                            $kodeSakepDebit = $nomorBantuDebit ? 
+                                $nomorBantuDebit->rekening->kelompok->no_kel . 
+                                $nomorBantuDebit->rekening->no_rek . 
+                                str_pad($nomorBantuDebit->no_bantu, 2, '0', STR_PAD_LEFT) : '-';
+                            $namaAkunDebit = $nomorBantuDebit?->nm_bantu ?? '-';
+                        @endphp
                         <tr>
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->bukti_item ?: '-' }}</td>
-                            <td class="text-center">{{ $item->kode_sakep_debit }}</td>
-                            <td style="padding-left: 10px;">{{ $item->nama_akun_debit }}</td>
-                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $item->keterangan_item ?: '-' }}</td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $detail->bukti ?: '-' }}</td>
+                            <td class="text-center">{{ $kodeSakepDebit }}</td>
+                            <td style="padding-left: 10px;">{{ $namaAkunDebit }}</td>
+                            <td style="font-size: 6.5pt; padding-left: 4px;">{{ $detail->keterangan ?: '-' }}</td>
                             <td></td>
-                            <td class="text-right amount">{{ number_format($item->jumlah_item, 0, ',', '.') }}</td>
+                            <td class="text-right amount">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
 
