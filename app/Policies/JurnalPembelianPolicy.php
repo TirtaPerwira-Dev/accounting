@@ -105,20 +105,4 @@ class JurnalPembelianPolicy
     {
         return $user->can('reorder_jurnal::pembelian');
     }
-
-    /**
-     * Determine whether the user can confirm.
-     */
-    public function confirm(User $user, JurnalPembelian $jurnalPembelian): bool
-    {
-        return $user->can('confirm_jurnal::pembelian');
-    }
-
-    /**
-     * Determine whether the user can unconfirm.
-     */
-    public function unconfirm(User $user, JurnalPembelian $jurnalPembelian): bool
-    {
-        return $user->can('unconfirm_jurnal::pembelian');
-    }
 }

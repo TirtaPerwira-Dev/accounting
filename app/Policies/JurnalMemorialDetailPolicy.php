@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\JurnalBayarKasBank;
+use App\Models\JurnalMemorialDetail;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class JurnalBayarKasBankPolicy
+class JurnalMemorialDetailPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class JurnalBayarKasBankPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_jurnal::bayar::kas::bank');
+        return $user->can('view_any_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function view(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('view_jurnal::bayar::kas::bank');
+        return $user->can('view_jurnal::memorial');
     }
 
     /**
@@ -31,23 +31,23 @@ class JurnalBayarKasBankPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_jurnal::bayar::kas::bank');
+        return $user->can('create_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function update(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('update_jurnal::bayar::kas::bank');
+        return $user->can('update_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function delete(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('delete_jurnal::bayar::kas::bank');
+        return $user->can('delete_jurnal::memorial');
     }
 
     /**
@@ -55,15 +55,15 @@ class JurnalBayarKasBankPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_jurnal::bayar::kas::bank');
+        return $user->can('delete_any_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function forceDelete(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('force_delete_jurnal::bayar::kas::bank');
+        return $user->can('force_delete_jurnal::memorial');
     }
 
     /**
@@ -71,15 +71,15 @@ class JurnalBayarKasBankPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_jurnal::bayar::kas::bank');
+        return $user->can('force_delete_any_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function restore(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('restore_jurnal::bayar::kas::bank');
+        return $user->can('restore_jurnal::memorial');
     }
 
     /**
@@ -87,15 +87,15 @@ class JurnalBayarKasBankPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_jurnal::bayar::kas::bank');
+        return $user->can('restore_any_jurnal::memorial');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    public function replicate(User $user, JurnalMemorialDetail $jurnalMemorialDetail): bool
     {
-        return $user->can('replicate_jurnal::bayar::kas::bank');
+        return $user->can('replicate_jurnal::memorial');
     }
 
     /**
@@ -103,6 +103,6 @@ class JurnalBayarKasBankPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_jurnal::bayar::kas::bank');
+        return $user->can('reorder_jurnal::memorial');
     }
 }
