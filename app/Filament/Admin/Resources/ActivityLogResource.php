@@ -20,6 +20,8 @@ class ActivityLogResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
+    protected static ?string $slug = 'activity-log';
+
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?string $navigationLabel = 'Activity Logs';
