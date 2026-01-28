@@ -483,38 +483,49 @@ class JurnalRekeningAirResource extends Resource
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.bukti')
-                    ->label('Bukti & Tanggal')
+                    ->label('Bukti')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold')
-                    ->description(fn($record) => $record->jurnalRekeningAir?->tanggal?->format('d/m/Y'))
-                    ->icon('heroicon-m-document-text')
-                    ->copyable(),
+                    ->weight('semibold')
+                    ->copyable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
-                Tables\Columns\TextColumn::make('rekening.nama_rek')
-                    ->label('Rekening')
-                    ->searchable()
-                    ->wrap()
-                    ->description(function ($record) {
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.tanggal')
+                    ->label('Tanggal')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
+
+                Tables\Columns\TextColumn::make('rekening_info')
+                    ->label('Kode & Rekening')
+                    ->html()
+                    ->searchable(['rekenings.nama_rek', 'nomor_bantus.nm_bantu'])
+                    ->getStateUsing(function ($record) {
                         if (!$record->rekening) return '-';
+                        
                         $kel = str_pad($record->rekening->no_kel, 2, '0', STR_PAD_LEFT);
                         $rek = str_pad($record->rekening->no_rek, 4, '0', STR_PAD_LEFT);
                         $bantu = $record->nomorBantu ? str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '00';
-                        $kode = "{$kel}.{$rek}.{$bantu}";
+                        $kode = "<span class='font-mono text-xs text-gray-500'>{$kel}.{$rek}.{$bantu}</span>";
                         
-                        $proyek = $record->kodeProyek ? " | Proyek: {$record->kodeProyek->kode}" : '';
+                        $namaRek = "<div class='font-medium'>" . \Illuminate\Support\Str::limit($record->rekening->nama_rek, 35) . "</div>";
                         
-                        return $kode . $proyek;
+                        $namaBantu = '';
+                        if ($record->nomorBantu) {
+                            $namaBantu = "<div class='text-xs text-gray-600 mt-0.5'>" . \Illuminate\Support\Str::limit($record->nomorBantu->nm_bantu, 40) . "</div>";
+                        }
+                        
+                        return $kode . ' ' . $namaRek . $namaBantu;
                     })
-                    ->tooltip(fn($record) => $record->rekening?->nama_rek),
+                    ->tooltip(fn($record) => $record->nomorBantu ? $record->rekening?->nama_rek . ' - ' . $record->nomorBantu->nm_bantu : $record->rekening?->nama_rek),
 
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.keterangan')
-                    ->label('Keterangan')
-                    ->searchable()
-                    ->limit(40)
-                    ->wrap()
-                    ->tooltip(fn($record) => $record->jurnalRekeningAir?->keterangan)
-                    ->toggleable(),
+                Tables\Columns\TextColumn::make('kodeProyek.kode')
+                    ->label('Proyek')
+                    ->badge()
+                    ->color('info')
+                    ->default('-')
+                    ->toggleable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
                 Tables\Columns\TextColumn::make('debit')
                     ->label('Debit')
@@ -522,7 +533,8 @@ class JurnalRekeningAirResource extends Resource
                     ->money('IDR')
                     ->alignRight()
                     ->color('danger')
-                    ->weight('semibold'),
+                    ->weight('medium')
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
                 Tables\Columns\TextColumn::make('kredit')
                     ->label('Kredit')
@@ -530,17 +542,18 @@ class JurnalRekeningAirResource extends Resource
                     ->money('IDR')
                     ->alignRight()
                     ->color('success')
-                    ->weight('semibold'),
+                    ->weight('medium')
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_confirmed')
-                    ->label('Status')
+                    ->label('Konfirmasi')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('warning')
                     ->sortable()
-                    ->tooltip(fn($record) => $record->jurnalRekeningAir?->is_confirmed ? 'Sudah Dikonfirmasi' : 'Belum Dikonfirmasi'),
+                    ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_posted')
                     ->label('Posted')
@@ -550,7 +563,7 @@ class JurnalRekeningAirResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable()
-                    ->tooltip(fn($record) => $record->jurnalRekeningAir?->is_posted ? 'Sudah Diposting' : 'Belum Diposting')
+                    ->alignCenter()
                     ->toggleable(),
             ])
             ->filters([
@@ -680,16 +693,8 @@ class JurnalRekeningAirResource extends Resource
                         ->label('Export PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->action(function ($record) {
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air-single', [
-                                'journal' => $record->jurnalRekeningAir,
-                                'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-                            ]);
-                            $filename = 'jurnal-rekening-air-' . $record->jurnalRekeningAir->bukti . '.pdf';
-                            return response()->streamDownload(function () use ($pdf) {
-                                echo $pdf->output();
-                            }, $filename);
-                        }),
+                        ->url(fn ($record) => route('jurnal-rekening-air.single-pdf', $record->id))
+                        ->openUrlInNewTab(),
                 ])
                     ->button()
                     ->label('Action')
