@@ -698,7 +698,8 @@ class JurnalRekeningAirResource extends Resource
                 ])
                     ->button()
                     ->label('Action')
-                    ->color('primary'),
+                    ->color('primary')
+                    ->icon('heroicon-o-ellipsis-vertical'),
 
             ])
             ->bulkActions([
