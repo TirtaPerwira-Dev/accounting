@@ -54,14 +54,21 @@ class JurnalPenerimaanKasResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
-                'jurnalPenerimaanKas.kasBank',
-                'jurnalPenerimaanKas.confirmedBy',
-                'jurnalPenerimaanKas.createdBy',
+                'jurnalPenerimaanKas' => function ($query) {
+                    $query->with([
+                        'kasBank.rekening.kelompok',
+                        'confirmedBy',
+                        'createdBy',
+                        'details.kelompok',
+                        'details.rekening.kelompok',
+                        'details.nomorBantu',
+                        'details.kodeProyek'
+                    ]);
+                },
                 'kelompok',
                 'rekening.kelompok',
                 'nomorBantu',
                 'kodeProyek'
-                // Note: Detail tables don't have created_by/confirmed_by columns
             ]);
     }
 
@@ -756,7 +763,7 @@ class JurnalPenerimaanKasResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalPenerimaanKasResource\RelationManagers\DetailsRelationManager::class,
+            // Tidak perlu DetailsRelationManager karena details sudah ditampilkan di infolist
         ];
     }
 
