@@ -664,7 +664,15 @@ class JurnalPenerimaanKasResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $parent = $record->jurnalPenerimaanKas;
-                            $parent->load(['kasBank.rekening.kelompok']);
+                            $parent->load([
+                                'kasBank.rekening.kelompok',
+                                'details.rekening.kelompok',
+                                'details.nomorBantu',
+                                'details.kodeProyek',
+                                'createdBy',
+                                'confirmedBy',
+                                'postedBy'
+                            ]);
                             
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas', [
                                 'record' => $parent,
