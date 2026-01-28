@@ -144,7 +144,12 @@
                 <td style="border: none;">{{ auth()->user()->name ?? 'System' }}</td>
                 <td style="border: none; font-weight: bold;">Total Nilai:</td>
                 <td style="border: none; font-weight: bold; color: #007bff;">
-                    Rp {{ number_format($records->sum('jumlah'), 0, ',', '.') }}
+                    @php
+                        $grandTotal = $records->sum(function($record) {
+                            return $record->details->sum('jumlah');
+                        });
+                    @endphp
+                    Rp {{ number_format($grandTotal, 0, ',', '.') }}
                 </td>
             </tr>
         </table>
@@ -162,57 +167,146 @@
         <thead>
             <tr>
                 <th style="width: 5%">No</th>
-                <th style="width: 10%">Tanggal</th>
-                <th style="width: 15%">No. Bukti</th>
-                <th style="width: 20%">Kas/Bank</th>
+                <th style="width: 12%">Tanggal</th>
+                <th style="width: 12%">No. Bukti</th>
                 <th style="width: 25%">Keterangan</th>
-                <th style="width: 15%">Jumlah</th>
-                <th style="width: 10%">Reff</th>
+                <th style="width: 20%">Rekening</th>
+                <th style="width: 8%">Proyek</th>
+                <th style="width: 10%">Debit</th>
+                <th style="width: 10%">Kredit</th>
             </tr>
         </thead>
         <tbody>
-            @php $totalAmount = 0; @endphp
+            @php 
+                $totalDebit = 0;
+                $totalKredit = 0;
+                $no = 1;
+            @endphp
+            
             @foreach($records as $index => $record)
-                @php $totalAmount += $record->jumlah; @endphp
-                @if($index > 0 && $index % 25 == 0)
-                <tr class="page-break">
-                    <td colspan="7" style="border: none; height: 0; padding: 0;"></td>
-                </tr>
-                @endif
-                <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td class="text-center">{{ $record->formatted_tanggal }}</td>
-                    <td class="text-center">
-                        <strong>{{ $record->nomor_bukti }}</strong>
-                    </td>
-                    <td>
-                        <strong>{{ $record->kasBank->nm_bantu ?? 'N/A' }}</strong><br>
-                        <small style="color: #666;">
-                            @if($record->kasBank && $record->kasBank->rekening)
-                                {{ $record->kasBank->rekening->kelompok->no_kel ?? '' }}-{{ $record->kasBank->rekening->no_rek ?? '' }}-{{ $record->kasBank->no_bantu ?? '' }}
-                            @endif
-                        </small>
-                    </td>
-                    <td>
-                        {{ Str::limit($record->keterangan, 80) }}
-                        @if($record->kodeProyek)
-                            <br><small style="color: #007bff;">Proyek: {{ $record->kodeProyek->kode }}</small>
+                @php
+                    $recordTotal = $record->details->sum('jumlah');
+                @endphp
+                
+                {{-- Header Jurnal --}}
+                <tr style="background-color: #e9ecef; font-weight: bold;">
+                    <td colspan="8" style="padding: 8px 10px;">
+                        <strong>Jurnal #{{ $index + 1 }}</strong> - 
+                        {{ $record->tanggal ? $record->tanggal->format('d/m/Y') : '-' }} | 
+                        {{ $record->nomor_bukti ?? '-' }} | 
+                        No. Reff: {{ $record->no_reff ?? '-' }} |
+                        @if($record->is_posted)
+                            <span class="badge" style="background-color: #d4edda; color: #155724;">POSTED</span>
+                        @elseif($record->is_confirmed)
+                            <span class="badge" style="background-color: #d1ecf1; color: #0c5460;">CONFIRMED</span>
+                        @else
+                            <span class="badge" style="background-color: #fff3cd; color: #856404;">DRAFT</span>
                         @endif
                     </td>
-                    <td class="amount">{{ number_format($record->jumlah, 0, ',', '.') }}</td>
-                    <td class="text-center">
-                        <span class="badge badge-primary">{{ $record->reff }}</span>
-                    </td>
                 </tr>
+                
+                {{-- Entry Debit (Kas/Bank) --}}
+                <tr>
+                    <td class="text-center">{{ $no++ }}</td>
+                    <td class="text-center">{{ $record->tanggal ? $record->tanggal->format('d/m/Y') : '-' }}</td>
+                    <td class="text-center">{{ $record->nomor_bukti ?? '-' }}</td>
+                    <td>
+                        <strong>{{ $record->kasBank->nm_bantu ?? 'N/A' }}</strong>
+                        @if($record->keterangan)
+                            <br><small style="color: #666; font-style: italic;">{{ Str::limit($record->keterangan, 80) }}</small>
+                        @endif
+                    </td>
+                    <td style="font-size: 10px;">
+                        @if($record->kasBank && $record->kasBank->rekening)
+                            {{ $record->kasBank->rekening->kelompok->no_kel ?? '' }}-{{ $record->kasBank->rekening->no_rek ?? '' }}-{{ $record->kasBank->no_bantu ?? '' }}
+                            <br><small>{{ $record->kasBank->rekening->nama_rek ?? '' }}</small>
+                        @endif
+                    </td>
+                    <td class="text-center">-</td>
+                    <td class="amount" style="font-weight: bold;">
+                        @php $totalDebit += $recordTotal; @endphp
+                        {{ number_format($recordTotal, 0, ',', '.') }}
+                    </td>
+                    <td class="amount">-</td>
+                </tr>
+                
+                {{-- Detail Items (Kredit) --}}
+                @if($record->details && $record->details->count() > 0)
+                    @foreach($record->details as $detail)
+                        <tr>
+                            <td class="text-center">{{ $no++ }}</td>
+                            <td class="text-center">{{ $record->tanggal ? $record->tanggal->format('d/m/Y') : '-' }}</td>
+                            <td class="text-center">{{ $detail->nomor_bukti ?? '-' }}</td>
+                            <td>
+                                @if($detail->rekening)
+                                    <strong>{{ $detail->rekening->nama_rek }}</strong>
+                                @endif
+                                @if($detail->nomorBantu)
+                                    <br><small style="color: #666;">{{ $detail->nomorBantu->nm_bantu }}</small>
+                                @endif
+                                @if($detail->keterangan_item)
+                                    <br><small style="color: #888; font-style: italic;">{{ Str::limit($detail->keterangan_item, 60) }}</small>
+                                @endif
+                            </td>
+                            <td style="font-size: 10px;">
+                                @if($detail->rekening)
+                                    {{ $detail->rekening->kelompok->no_kel ?? '' }}-{{ $detail->rekening->no_rek ?? '' }}
+                                    @if($detail->nomorBantu)
+                                        -{{ $detail->nomorBantu->no_bantu }}
+                                    @endif
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="text-center" style="font-size: 10px;">
+                                {{ $detail->kodeProyek ? $detail->kodeProyek->kode : '-' }}
+                            </td>
+                            <td class="amount">-</td>
+                            <td class="amount" style="font-weight: bold;">
+                                @php $totalKredit += $detail->jumlah; @endphp
+                                {{ number_format($detail->jumlah, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
+                
+                {{-- Subtotal per Jurnal --}}
+                <tr style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #333;">
+                    <td colspan="6" class="text-right" style="padding-right: 10px;">
+                        <strong>Subtotal Jurnal #{{ $index + 1 }}:</strong>
+                    </td>
+                    <td class="amount" style="color: #007bff;">{{ number_format($recordTotal, 0, ',', '.') }}</td>
+                    <td class="amount" style="color: #dc3545;">{{ number_format($recordTotal, 0, ',', '.') }}</td>
+                </tr>
+                
+                {{-- Spacing antar jurnal --}}
+                @if($index < $records->count() - 1)
+                <tr style="height: 10px; border: none;">
+                    <td colspan="8" style="border: none; background-color: #fff;"></td>
+                </tr>
+                @endif
             @endforeach
         </tbody>
         <tfoot>
-            <tr style="background-color: #f8f9fa; font-weight: bold;">
-                <td colspan="5" class="text-right"><strong>TOTAL KESELURUHAN:</strong></td>
-                <td class="amount" style="font-size: 12px; color: #007bff;">
-                    <strong>{{ number_format($totalAmount, 0, ',', '.') }}</strong>
+            <tr style="background-color: #333; color: white; font-weight: bold; font-size: 12px;">
+                <td colspan="6" class="text-right" style="padding: 12px;"><strong>TOTAL KESELURUHAN:</strong></td>
+                <td class="amount" style="color: #fff;">
+                    <strong>{{ number_format($totalDebit, 0, ',', '.') }}</strong>
                 </td>
-                <td></td>
+                <td class="amount" style="color: #fff;">
+                    <strong>{{ number_format($totalKredit, 0, ',', '.') }}</strong>
+                </td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td colspan="6" class="text-right" style="padding: 10px;"><strong>BALANCE CHECK:</strong></td>
+                <td colspan="2" class="text-center">
+                    @php $balance = $totalDebit - $totalKredit; @endphp
+                    @if($balance == 0)
+                        <span class="badge" style="background-color: #d4edda; color: #155724; padding: 5px 10px;">✓ BALANCED</span>
+                    @else
+                        <span style="color: red; font-weight: bold;">SELISIH: Rp {{ number_format(abs($balance), 0, ',', '.') }}</span>
+                    @endif
+                </td>
             </tr>
         </tfoot>
     </table>
@@ -240,7 +334,14 @@
                 <tr>
                     <td class="text-center">{{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('F Y') }}</td>
                     <td class="text-center">{{ $monthRecords->count() }} transaksi</td>
-                    <td class="amount">{{ number_format($monthRecords->sum('jumlah'), 0, ',', '.') }}</td>
+                    <td class="amount">
+                        @php
+                            $monthTotal = $monthRecords->sum(function($record) {
+                                return $record->details->sum('jumlah');
+                            });
+                        @endphp
+                        {{ number_format($monthTotal, 0, ',', '.') }}
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

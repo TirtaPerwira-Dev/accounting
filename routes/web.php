@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReportExportController;
 use App\Http\Controllers\NomorBantuExportController;
+use App\Http\Controllers\PdfPreviewController;
 use App\Models\JurnalPenerimaanKas;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -28,6 +29,10 @@ Route::get('/jurnal-penerimaan-kas/{record}/pdf', function (JurnalPenerimaanKas 
     return Pdf::loadView('pdf.jurnal-penerimaan-kas', compact('record'))
         ->download("JPK-{$record->nomor_bukti}.pdf");
 })->name('jurnal-penerimaan-kas.pdf');
+
+// Jurnal Penerimaan Kas Bulk PDF Preview Route
+Route::get('/jurnal-penerimaan-kas/pdf/preview', [PdfPreviewController::class, 'jurnalPenerimaanKasBulk'])
+    ->name('jurnal-penerimaan-kas.pdf.preview');
 
 // Jurnal Rekening Air PDF Routes
 Route::get('/jurnal-rekening-air/laporan-pdf', function () {

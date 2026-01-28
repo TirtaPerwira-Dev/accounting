@@ -56,27 +56,31 @@ class ListJurnalPenerimaanKas extends ListRecords
                         ->searchable()
                         ->placeholder('Semua Kas/Bank'),
                 ])
-                ->action(function (array $data) {
-                    $query = \App\Models\JurnalPenerimaanKas::with(['kasBank.rekening.kelompok'])
-                        ->whereDate('tanggal', '>=', $data['dari_tanggal'])
-                        ->whereDate('tanggal', '<=', $data['sampai_tanggal']);
-
-                    if (!empty($data['kas_bank_filter'])) {
-                        $query->where('kas_bank_id', $data['kas_bank_filter']);
-                    }
-
-                    $records = $query->get();
-                    $title = 'Laporan JPK ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y') .
-                        ' - ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
-
-                    return response()->streamDownload(function () use ($records, $title) {
-                        echo \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas-bulk', [
-                            'records' => $records,
-                            'title' => $title
-                        ])->stream();
-                    }, 'JPK-' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d') .
-                        '_' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d') . '.pdf');
-                }),
+                ->action(function (array $data, Actions\Action $action) {
+                    $fromDate = \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d');
+                    $toDate = \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d');
+                    $kasBank = $data['kas_bank_filter'] ?? '';
+                    
+                    // Build URL untuk preview PDF
+                    $url = route('jurnal-penerimaan-kas.pdf.preview', [
+                        'from' => $fromDate,
+                        'to' => $toDate,
+                        'kas_bank' => $kasBank
+                    ]);
+                    
+                    // Inject JavaScript untuk membuka tab baru
+                    \Filament\Notifications\Notification::make()
+                        ->title('Preview PDF')
+                        ->body('Laporan PDF sedang dibuka di tab baru')
+                        ->success()
+                        ->send();
+                    
+                    // Redirect ke URL dengan openUrlInNewTab
+                    $action->url($url)->openUrlInNewTab();
+                })
+                ->modalWidth('xl')
+                ->modalSubmitActionLabel('Submit')
+                ->modalCancelActionLabel('Batal'),
         ];
     }
 
