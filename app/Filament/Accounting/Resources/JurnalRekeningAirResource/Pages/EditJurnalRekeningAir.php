@@ -24,28 +24,28 @@ class EditJurnalRekeningAir extends EditRecord
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->action(function ($record) {
-                    $record->jurnalRekeningAir->confirm();
+                    $record->confirm();
                     Notification::make()
                         ->title('Jurnal berhasil dikonfirmasi')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
+                ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record)),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->action(function ($record) {
-                    $record->jurnalRekeningAir->unconfirm();
+                    $record->unconfirm();
                     Notification::make()
                         ->title('Konfirmasi jurnal dibatalkan')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
+                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm', $record)),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -54,7 +54,7 @@ class EditJurnalRekeningAir extends EditRecord
                 ->requiresConfirmation()
                 ->action(function ($record, JournalPostingService $service) {
                     try {
-                        $service->post($record->jurnalRekeningAir);
+                        $service->post($record);
                         Notification::make()
                             ->title('Jurnal berhasil diposting ke Buku Besar')
                             ->success()
@@ -67,7 +67,7 @@ class EditJurnalRekeningAir extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
+                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
         ];
     }
 
