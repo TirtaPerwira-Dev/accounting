@@ -566,10 +566,6 @@ class JurnalPenerimaanKasResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
-                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.no_reff')
-                    ->label('No Reff')
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_posted')
                     ->label('Posted')
                     ->boolean()
@@ -577,6 +573,11 @@ class JurnalPenerimaanKasResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('gray')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('jurnalPenerimaanKas.no_reff')
+                    ->label('No Reff')
+                    ->searchable()
                     ->sortable(),
             ])
             ->filters([
@@ -673,7 +674,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 'confirmedBy',
                                 'postedBy'
                             ]);
-                            
+
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas', [
                                 'record' => $parent,
                             ]);
@@ -753,7 +754,7 @@ class JurnalPenerimaanKasResource extends Resource
                             }
 
                             $count = $service->postBulk($parents);
-                            
+
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
                                 ->success()

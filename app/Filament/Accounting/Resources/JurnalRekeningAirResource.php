@@ -502,19 +502,19 @@ class JurnalRekeningAirResource extends Resource
                     ->searchable(['rekenings.nama_rek', 'nomor_bantus.nm_bantu'])
                     ->getStateUsing(function ($record) {
                         if (!$record->rekening) return '-';
-                        
+
                         $kel = str_pad($record->rekening->no_kel, 2, '0', STR_PAD_LEFT);
                         $rek = str_pad($record->rekening->no_rek, 4, '0', STR_PAD_LEFT);
                         $bantu = $record->nomorBantu ? str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '00';
                         $kode = "<span class='font-mono text-xs text-gray-500'>{$kel}.{$rek}.{$bantu}</span>";
-                        
+
                         $namaRek = "<div class='font-medium'>" . \Illuminate\Support\Str::limit($record->rekening->nama_rek, 35) . "</div>";
-                        
+
                         $namaBantu = '';
                         if ($record->nomorBantu) {
                             $namaBantu = "<div class='text-xs text-gray-600 mt-0.5'>" . \Illuminate\Support\Str::limit($record->nomorBantu->nm_bantu, 40) . "</div>";
                         }
-                        
+
                         return $kode . ' ' . $namaRek . $namaBantu;
                     })
                     ->tooltip(fn($record) => $record->nomorBantu ? $record->rekening?->nama_rek . ' - ' . $record->nomorBantu->nm_bantu : $record->rekening?->nama_rek),
@@ -565,6 +565,10 @@ class JurnalRekeningAirResource extends Resource
                     ->sortable()
                     ->alignCenter()
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
+                    ->label('No Reff')
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
@@ -579,7 +583,7 @@ class JurnalRekeningAirResource extends Resource
                     ->query(function ($query, array $data) {
                         return $query->whereHas('jurnalRekeningAir', function ($q) use ($data) {
                             $q->when($data['dari_tanggal'], fn($query, $date) => $query->whereDate('tanggal', '>=', $date))
-                              ->when($data['sampai_tanggal'], fn($query, $date) => $query->whereDate('tanggal', '<=', $date));
+                                ->when($data['sampai_tanggal'], fn($query, $date) => $query->whereDate('tanggal', '<=', $date));
                         });
                     })
                     ->indicateUsing(function (array $data): array {
@@ -693,7 +697,7 @@ class JurnalRekeningAirResource extends Resource
                         ->label('Export PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->url(fn ($record) => route('jurnal-rekening-air.single-pdf', $record->id))
+                        ->url(fn($record) => route('jurnal-rekening-air.single-pdf', $record->id))
                         ->openUrlInNewTab(),
                 ])
                     ->button()
@@ -714,11 +718,11 @@ class JurnalRekeningAirResource extends Resource
                             $journals = \App\Models\JurnalRekeningAir::whereIn('id', $parentIds)
                                 ->where('is_confirmed', false)
                                 ->get();
-                            
+
                             foreach ($journals as $journal) {
                                 $journal->confirm();
                             }
-                            
+
                             Notification::make()
                                 ->title("{$journals->count()} jurnal berhasil dikonfirmasi")
                                 ->success()
@@ -736,7 +740,7 @@ class JurnalRekeningAirResource extends Resource
                                 ->where('is_confirmed', true)
                                 ->where('is_posted', false)
                                 ->get();
-                            
+
                             $success = 0;
                             $failed = 0;
                             foreach ($journals as $journal) {
@@ -747,7 +751,7 @@ class JurnalRekeningAirResource extends Resource
                                     $failed++;
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->title("Berhasil: {$success}, Gagal: {$failed}")
                                 ->success()
