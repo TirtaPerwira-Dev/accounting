@@ -39,7 +39,8 @@ class JurnalPembelianResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::where('is_confirmed', 0)->count();
+        // Count dari header (jurnal_pembelians) yang belum dikonfirmasi
+        return (string) JurnalPembelian::where('is_confirmed', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -488,35 +489,34 @@ class JurnalPembelianResource extends Resource
                     })
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('bukti_item')
+                Tables\Columns\TextColumn::make('bukti')
                     ->label('Bukti')
-                    ->searchable(['bukti'])
+                    ->searchable()
                     ->sortable()
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
                     ->date('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(fn($record) => $record->jurnalPembelian->tanggal ?? $record->tanggal),
 
                 Tables\Columns\TextColumn::make('keterangan')
                     ->label('Keterangan')
                     ->searchable()
-                    ->limit(30)
-                    ->wrap(),
+                    ->limit(40)
+                    ->wrap()
+                    ->tooltip(fn($record) => $record->keterangan),
 
                 Tables\Columns\TextColumn::make('kodeProyekRekening')
                     ->label('Kode Proyek/Rekening')
                     ->html()
                     ->getStateUsing(function ($record) {
-                        // Format 2 baris: AA BBBB + Nama
-                        // Ambil dari header dulu, kalau kosong ambil dari item pertama
-                        $firstDetail = $record->details->first();
+                        // Detail item - ambil dari record detail
+                        $kodeProyek = $record->kodeProyek?->kode ?? '';
+                        $namaProyek = $record->kodeProyek?->name ?? '';
                         
-                        $kodeProyek = $record->kodeProyek?->kode ?? ($firstDetail?->kodeProyek?->kode ?? '');
-                        $namaProyek = $record->kodeProyek?->name ?? ($firstDetail?->kodeProyek?->name ?? '');
-                        
-                        $nomorBantu = $record->nomorBantuDebit ?: ($firstDetail?->nomorBantuDebit);
+                        $nomorBantu = $record->nomorBantuDebit;
                         $rekening = $nomorBantu?->rekening?->no_rek ?? '';
                         $namaRekening = $nomorBantu?->rekening?->nama_rek ?? '';
  
@@ -531,7 +531,7 @@ class JurnalPembelianResource extends Resource
                     ->searchable(false)
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('rp')
+                Tables\Columns\TextColumn::make('jumlah')
                     ->label('Jumlah')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?: 0, 0, ',', '.'))
                     ->alignRight()
@@ -544,7 +544,8 @@ class JurnalPembelianResource extends Resource
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(fn($record) => $record->jurnalPembelian->is_posted ?? $record->is_posted),
 
                 Tables\Columns\IconColumn::make('is_confirmed')
                     ->label('Status')
@@ -552,12 +553,14 @@ class JurnalPembelianResource extends Resource
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
-                    ->falseColor('warning'),
+                    ->falseColor('warning')
+                    ->getStateUsing(fn($record) => $record->jurnalPembelian->is_confirmed ?? $record->is_confirmed),
 
                 Tables\Columns\TextColumn::make('no_reff')
                     ->label('No Reff')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(fn($record) => $record->jurnalPembelian->no_reff ?? $record->no_reff),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('is_confirmed')
@@ -565,11 +568,23 @@ class JurnalPembelianResource extends Resource
                     ->options([
                         1 => 'Dikonfirmasi',
                         0 => 'Pending',
-                    ]),
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (isset($data['value'])) {
+                            return $query->where('jurnal_pembelians.is_confirmed', $data['value']);
+                        }
+                        return $query;
+                    }),
 
                 Tables\Filters\SelectFilter::make('kode_proyek_id')
                     ->label('Proyek')
-                    ->options(KodeProyek::pluck('name', 'id')),
+                    ->options(KodeProyek::pluck('name', 'id'))
+                    ->query(function ($query, array $data) {
+                        if (isset($data['value'])) {
+                            return $query->where('jurnal_pembelian_details.kode_proyek_id', $data['value']);
+                        }
+                        return $query;
+                    }),
 
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
@@ -580,32 +595,49 @@ class JurnalPembelianResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['from'], fn($q, $date) => $q->whereDate('tanggal', '>=', $date))
-                            ->when($data['until'], fn($q, $date) => $q->whereDate('tanggal', '<=', $date));
+                            ->when($data['from'], fn($q, $date) => $q->whereDate('jurnal_pembelians.tanggal', '>=', $date))
+                            ->when($data['until'], fn($q, $date) => $q->whereDate('jurnal_pembelians.tanggal', '<=', $date));
                     }),
 
                 Tables\Filters\TernaryFilter::make('is_posted')
                     ->label('Status Posting')
                     ->placeholder('Semua Status')
                     ->trueLabel('Sudah Diposting')
-                    ->falseLabel('Belum Diposting'),
+                    ->falseLabel('Belum Diposting')
+                    ->queries(
+                        true: fn($query) => $query->where('jurnal_pembelians.is_posted', true),
+                        false: fn($query) => $query->where('jurnal_pembelians.is_posted', false),
+                    ),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\Action::make('view_header')
+                        ->label('Lihat Jurnal')
+                        ->icon('heroicon-o-eye')
+                        ->url(fn($record) => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->openUrlInNewTab(false),
 
-                    Tables\Actions\EditAction::make()
-                        ->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\Action::make('edit_header')
+                        ->label('Edit Jurnal')
+                        ->icon('heroicon-o-pencil')
+                        ->url(fn($record) => Pages\EditJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->visible(fn($record) => !($record->jurnalPembelian ?? $record)->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
+                        ->visible(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return !$header->is_confirmed && auth()->user()->can('confirm', $header);
+                        })
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(fn($record) => $record->confirm())
+                        ->action(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            $header->confirm();
+                        })
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -616,11 +648,17 @@ class JurnalPembelianResource extends Resource
                         ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
+                        ->visible(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return $header->is_confirmed && auth()->user()->can('unconfirm', $header);
+                        })
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(fn($record) => $record->unconfirm())
+                        ->action(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            $header->unconfirm();
+                        })
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -632,14 +670,15 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
                         ->action(function ($record) {
-                            $record->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+                            $header = $record->jurnalPembelian ?? $record;
+                            $header->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekeningDebit.kelompok', 'details.nomorBantuDebit']);
                             
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
-                                'jurnal' => $record,
+                                'jurnal' => $header,
                                 'generatedAt' => now()->format('d M Y H:i'),
                             ])->setPaper('a4', 'portrait');
 
-                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff ?? $record->id);
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->no_reff ?? $header->id);
 
                             return response()->streamDownload(
                                 fn() => print($pdf->output()),
@@ -654,7 +693,8 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->action(function ($record, \App\Services\JournalPostingService $service) {
                             try {
-                                $service->post($record);
+                                $header = $record->jurnalPembelian ?? $record;
+                                $service->post($header);
                                 Notification::make()
                                     ->title('Jurnal berhasil diposting ke Buku Besar')
                                     ->success()
@@ -667,15 +707,29 @@ class JurnalPembelianResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
+                        ->visible(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return $header->is_confirmed && !$header->is_posted;
+                        }),
 
-                    Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\Action::make('delete_header')
+                        ->label('Hapus Jurnal')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            $header->delete();
+                        })
+                        ->visible(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return !$header->is_confirmed;
+                        }),
                 ])
                     ->label('Actions')
-                    ->color('warning')          // warna kuning/orange
+                    ->color('warning')
                     ->icon('heroicon-o-ellipsis-horizontal')
-                    ->button()                  // optional: jadi tombol dropdown bukan icon saja
+                    ->button()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -685,7 +739,9 @@ class JurnalPembelianResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
-                            $validRecords = $records->filter(fn($record) => $record->is_confirmed && !$record->is_posted);
+                            // Get unique headers from details
+                            $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
+                            $validRecords = $headers->filter(fn($header) => $header->is_confirmed && !$header->is_posted);
 
                             if ($validRecords->isEmpty()) {
                                 Notification::make()
@@ -702,16 +758,17 @@ class JurnalPembelianResource extends Resource
                                 ->success()
                                 ->send();
                         }),
-                    Tables\Actions\DeleteBulkAction::make(),
 
                     Tables\Actions\BulkAction::make('confirm_selected')
                         ->label('✓ Konfirmasi Terpilih')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                if (!$record->is_confirmed) {
-                                    $record->confirm();
+                            // Get unique headers
+                            $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
+                            foreach ($headers as $header) {
+                                if (!$header->is_confirmed) {
+                                    $header->confirm();
                                 }
                             }
                         })
@@ -723,21 +780,39 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                if ($record->is_confirmed) {
-                                    $record->unconfirm();
+                            // Get unique headers
+                            $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
+                            foreach ($headers as $header) {
+                                if ($header->is_confirmed) {
+                                    $header->unconfirm();
                                 }
                             }
                         })
                         ->requiresConfirmation()
                         ->successNotificationTitle('Konfirmasi dibatalkan'),
+                        
+                    Tables\Actions\BulkAction::make('delete_selected')
+                        ->label('Hapus Terpilih')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->action(function ($records) {
+                            // Get unique headers
+                            $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
+                            foreach ($headers as $header) {
+                                if (!$header->is_confirmed) {
+                                    $header->delete();
+                                }
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->successNotificationTitle('Jurnal terpilih berhasil dihapus'),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('jurnal_pembelians.tanggal', 'desc')
             ->defaultPaginationPageOption(25)
             ->paginated([10, 25, 50, 100])
             ->recordUrl(
-                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([$record->id])
+                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id])
             );
     }
 

@@ -85,7 +85,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                     ->icon("heroicon-o-document-text")
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
-                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.reff")
+                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.no_reff")
                                 ->label("Referensi")
                                 ->copyable()
                                 ->badge()
@@ -97,9 +97,9 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                                 ->date("d F Y")
                                 ->icon("heroicon-m-calendar-days"),
 
-                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.kasBank.nm_bantu")
+                            Infolists\Components\TextEntry::make("kasBank")
                                 ->label("Kas/Bank (Tujuan)")
-                                ->formatStateUsing(fn($record) => $record->jurnalPenerimaanKas?->kasBank ? 
+                                ->state(fn($record) => $record->jurnalPenerimaanKas?->kasBank ? 
                                     $record->jurnalPenerimaanKas->kasBank->no_bantu . " - " . 
                                     $record->jurnalPenerimaanKas->kasBank->nm_bantu : "-")
                                 ->icon("heroicon-m-banknotes"),
@@ -127,26 +127,26 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                                         Infolists\Components\Grid::make(4)->schema([
                                             Infolists\Components\TextEntry::make("nomor_bukti")
                                                 ->label("Nomor Bukti")
-                                                ->default("-"),
+                                                ->placeholder("-"),
 
-                                            Infolists\Components\TextEntry::make("kodeProyek.name")
+                                            Infolists\Components\TextEntry::make("kodeProyek")
                                                 ->label("Proyek")
-                                                ->default("-")
-                                                ->formatStateUsing(fn($record) => $record->kodeProyek ? 
+                                                ->placeholder("-")
+                                                ->state(fn($record) => $record->kodeProyek ? 
                                                     $record->kodeProyek->kode . " - " . $record->kodeProyek->name : "-"),
 
-                                            Infolists\Components\TextEntry::make("rekening.nama_rek")
+                                            Infolists\Components\TextEntry::make("rekening")
                                                 ->label("Rekening (Sumber)")
-                                                ->formatStateUsing(fn($record) => $record->rekening ?
+                                                ->state(fn($record) => $record->rekening ?
                                                     $record->rekening->kelompok->no_kel . "-" .
                                                     $record->rekening->no_rek . " " .
                                                     $record->rekening->nama_rek : "-")
                                                 ->columnSpan(2),
 
-                                            Infolists\Components\TextEntry::make("nomorBantu.nm_bantu")
+                                            Infolists\Components\TextEntry::make("nomorBantu")
                                                 ->label("Nomor Bantu")
-                                                ->default("-")
-                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
+                                                ->placeholder("-")
+                                                ->state(fn($record) => $record->nomorBantu ?
                                                     $record->nomorBantu->no_bantu . " - " .
                                                     $record->nomorBantu->nm_bantu : "-"),
 
@@ -160,7 +160,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
 
                                             Infolists\Components\TextEntry::make("keterangan_item")
                                                 ->label("Keterangan")
-                                                ->default("-")
+                                                ->placeholder("-")
                                                 ->columnSpanFull(),
                                         ]),
                                     ])

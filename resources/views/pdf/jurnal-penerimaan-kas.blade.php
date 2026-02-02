@@ -176,24 +176,53 @@
         <table>
             <tr>
                 <td class="label">Nomor Bukti:</td>
-                <td><strong>{{ $record->nomor_bukti }}</strong></td>
+                <td><strong>{{ $record->nomor_bukti ?? '-' }}</strong></td>
                 <td class="label">Tanggal:</td>
-                <td><strong>{{ $record->formatted_tanggal }}</strong></td>
+                <td><strong>{{ $record->tanggal ? $record->tanggal->format('d/m/Y') : '-' }}</strong></td>
             </tr>
             <tr>
                 <td class="label">Kas/Bank:</td>
                 <td>
-                    <strong>{{ $record->kasBank->nm_bantu }}</strong><br>
+                    <strong>{{ $record->kasBank->nm_bantu ?? '-' }}</strong><br>
                     <small style="color: #666;">
-                        {{ $record->kasBank->rekening->kelompok->no_kel }}-{{ $record->kasBank->rekening->no_rek }}-{{ $record->kasBank->no_bantu }}
+                        {{ $record->kasBank->rekening->kelompok->no_kel ?? '' }}-{{ $record->kasBank->rekening->no_rek ?? '' }}-{{ $record->kasBank->no_bantu ?? '' }}
                     </small>
                 </td>
                 <td class="label">Referensi:</td>
-                <td><span class="badge badge-debit">{{ $record->reff }}</span></td>
+                <td><span class="badge badge-debit">{{ $record->no_reff ?? '-' }}</span></td>
             </tr>
             <tr>
                 <td class="label">Keterangan:</td>
-                <td colspan="3">{{ $record->keterangan }}</td>
+                <td colspan="3">{{ $record->keterangan ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Status:</td>
+                <td>
+                    @if($record->is_confirmed)
+                        <span class="badge badge-debit">✓ Dikonfirmasi</span>
+                        @if($record->confirmed_by)
+                            <small style="display: block; margin-top: 5px;">
+                                oleh {{ $record->confirmedBy->name ?? '-' }}<br>
+                                pada {{ $record->confirmed_at ? $record->confirmed_at->format('d/m/Y H:i') : '-' }}
+                            </small>
+                        @endif
+                    @else
+                        <span class="badge" style="background-color: #fff3cd; color: #856404;">⏳ Belum Konfirmasi</span>
+                    @endif
+                </td>
+                <td class="label">Posting:</td>
+                <td>
+                    @if($record->is_posted)
+                        <span class="badge badge-debit">✓ Sudah Posting</span>
+                        @if($record->posted_at)
+                            <small style="display: block; margin-top: 5px;">
+                                pada {{ $record->posted_at->format('d/m/Y H:i') }}
+                            </small>
+                        @endif
+                    @else
+                        <span class="badge" style="background-color: #d1ecf1; color: #0c5460;">Belum Posting</span>
+                    @endif
+                </td>
             </tr>
         </table>
     </div>
@@ -204,71 +233,83 @@
             <thead>
                 <tr>
                     <th style="width: 8%">No</th>
-                    <th style="width: 35%">Keterangan</th>
+                    <th style="width: 15%">No. Bukti</th>
+                    <th style="width: 30%">Keterangan</th>
                     <th style="width: 15%">Debit (Rp)</th>
                     <th style="width: 15%">Kredit (Rp)</th>
                     <th style="width: 17%">Kode Akun</th>
-                    <th style="width: 10%">Proyek</th>
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $totalDebit = 0;
+                    $totalKredit = 0;
+                    // Relasi sudah di-load dari controller, tidak perlu load lagi
+                    $totalPenerimaan = $record->details->sum('jumlah');
+                @endphp
+                
                 <!-- Entry Debit (Kas/Bank) -->
                 <tr>
                     <td class="text-center">1</td>
+                    <td class="text-center">
+                        <strong>{{ $record->nomor_bukti ?? '-' }}</strong>
+                    </td>
                     <td>
-                        <strong>{{ $record->kasBank->nm_bantu }}</strong><br>
-                        <small style="color: #666;">{{ $record->kasBank->rekening->nama_rek }}</small>
+                        <strong>{{ $record->kasBank->nm_bantu ?? '-' }}</strong><br>
+                        <small style="color: #666;">{{ $record->kasBank->rekening->nama_rek ?? '-' }}</small><br>
+                        <small style="color: #888; font-style: italic;">{{ $record->keterangan ?? '-' }}</small>
                     </td>
                     <td class="amount">
-                        @php
-                            $totalPenerimaan = collect($record->detail_penerimaan ?? [])->sum('jumlah');
-                        @endphp
+                        @php $totalDebit += $totalPenerimaan; @endphp
                         {{ number_format($totalPenerimaan, 0, ',', '.') }}
                     </td>
                     <td class="amount">-</td>
                     <td class="text-center">
-                        {{ $record->kasBank->rekening->kelompok->no_kel }}-{{ $record->kasBank->rekening->no_rek }}-{{ $record->kasBank->no_bantu }}
+                        {{ $record->kasBank->rekening->kelompok->no_kel ?? '' }}-{{ $record->kasBank->rekening->no_rek ?? '' }}-{{ $record->kasBank->no_bantu ?? '' }}
                     </td>
-                    <td class="text-center">-</td>
                 </tr>
 
                 <!-- Entry Kredit dari Detail Penerimaan -->
-                @if($record->detail_penerimaan && count($record->detail_penerimaan) > 0)
-                    @php $totalKredit = 0; @endphp
-                    @foreach($record->detail_penerimaan as $index => $item)
+                @if($record->details && $record->details->count() > 0)
+                    @foreach($record->details as $index => $detail)
                         @php
-                            $rekening = \App\Models\Rekening::with('kelompok')->find($item['rekening'] ?? null);
-                            $nomorBantu = \App\Models\NomorBantu::find($item['nomor_bantu'] ?? null);
-                            $kodeProyek = \App\Models\KodeProyek::find($item['kode_proyek'] ?? null);
-                            $jumlah = $item['jumlah'] ?? 0;
-                            $totalKredit += $jumlah;
+                            $totalKredit += $detail->jumlah;
                         @endphp
                         <tr>
                             <td class="text-center">{{ $index + 2 }}</td>
+                            <td class="text-center">{{ $detail->nomor_bukti ?? '-' }}</td>
                             <td>
-                                @if($rekening)
-                                    <strong>{{ $rekening->nama_rek }}</strong><br>
+                                @if($detail->rekening)
+                                    <strong>{{ $detail->rekening->nama_rek }}</strong><br>
                                 @endif
-                                @if($nomorBantu)
-                                    <small style="color: #666;">{{ $nomorBantu->nm_bantu }}</small><br>
+                                @if($detail->nomorBantu)
+                                    <small style="color: #666;">{{ $detail->nomorBantu->nm_bantu }}</small><br>
                                 @endif
-                                <small style="color: #888;">{{ $item['keterangan_item'] ?? '-' }}</small>
+                                @if($detail->kodeProyek)
+                                    <small style="color: #007bff;">[{{ $detail->kodeProyek->kode }}] {{ $detail->kodeProyek->name }}</small><br>
+                                @endif
+                                <small style="color: #888; font-style: italic;">{{ $detail->keterangan_item ?? '-' }}</small>
                             </td>
                             <td class="amount">-</td>
-                            <td class="amount">{{ number_format($jumlah, 0, ',', '.') }}</td>
+                            <td class="amount">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                             <td class="text-center">
-                                @if($rekening)
-                                    {{ $rekening->kelompok->no_kel }}-{{ $rekening->no_rek }}
-                                    @if($nomorBantu)
-                                        -{{ $nomorBantu->no_bantu }}
+                                @if($detail->rekening)
+                                    {{ $detail->rekening->kelompok->no_kel ?? '' }}-{{ $detail->rekening->no_rek ?? '' }}
+                                    @if($detail->nomorBantu)
+                                        -{{ $detail->nomorBantu->no_bantu }}
                                     @endif
+                                @else
+                                    -
                                 @endif
-                            </td>
-                            <td class="text-center">
-                                {{ $kodeProyek->kode ?? '-' }}
                             </td>
                         </tr>
                     @endforeach
+                @else
+                    <tr>
+                        <td colspan="6" class="text-center" style="color: #999; padding: 20px;">
+                            Tidak ada detail transaksi
+                        </td>
+                    </tr>
                 @endif
             </tbody>
         </table>
@@ -276,21 +317,23 @@
 
     <div class="total-section">
         <table style="width: 50%; margin-left: auto;">
-            @php
-                $totalPenerimaan = collect($record->detail_penerimaan ?? [])->sum('jumlah');
-            @endphp
             <tr>
                 <td style="border: none; font-weight: bold;">Total Debit:</td>
-                <td style="border: none;" class="amount">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
+                <td style="border: none;" class="amount">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
             </tr>
             <tr>
                 <td style="border: none; font-weight: bold;">Total Kredit:</td>
-                <td style="border: none;" class="amount">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
+                <td style="border: none;" class="amount">Rp {{ number_format($totalKredit, 0, ',', '.') }}</td>
             </tr>
             <tr style="border-top: 2px solid #333;">
-                <td style="border: none; font-weight: bold;">Balance:</td>
+                <td style="border: none; font-weight: bold;">Selisih:</td>
                 <td style="border: none;" class="amount">
-                    <span class="badge badge-debit">✓ Balance</span>
+                    @php $selisih = $totalDebit - $totalKredit; @endphp
+                    @if($selisih == 0)
+                        <span class="badge badge-debit">✓ Balance</span>
+                    @else
+                        <span style="color: red; font-weight: bold;">Rp {{ number_format(abs($selisih), 0, ',', '.') }}</span>
+                    @endif
                 </td>
             </tr>
         </table>
@@ -300,12 +343,26 @@
         <div class="signature-box">
             <div style="font-weight: bold; margin-bottom: 10px;">Dibuat Oleh</div>
             <div class="signature-line"></div>
-            <div style="margin-top: 5px;">Staff Akuntansi</div>
+            <div style="margin-top: 5px;">
+                @if($record->createdBy)
+                    <strong>{{ $record->createdBy->name }}</strong><br>
+                    <small style="color: #666;">{{ $record->created_at ? $record->created_at->format('d/m/Y') : '' }}</small>
+                @else
+                    Staff Akuntansi
+                @endif
+            </div>
         </div>
         <div class="signature-box">
-            <div style="font-weight: bold; margin-bottom: 10px;">Diperiksa Oleh</div>
+            <div style="font-weight: bold; margin-bottom: 10px;">Dikonfirmasi Oleh</div>
             <div class="signature-line"></div>
-            <div style="margin-top: 5px;">Supervisor</div>
+            <div style="margin-top: 5px;">
+                @if($record->is_confirmed && $record->confirmedBy)
+                    <strong>{{ $record->confirmedBy->name }}</strong><br>
+                    <small style="color: #666;">{{ $record->confirmed_at ? $record->confirmed_at->format('d/m/Y') : '' }}</small>
+                @else
+                    Supervisor
+                @endif
+            </div>
         </div>
         <div class="signature-box">
             <div style="font-weight: bold; margin-bottom: 10px;">Disetujui Oleh</div>

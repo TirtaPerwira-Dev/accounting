@@ -54,12 +54,11 @@ class JurnalRekeningAirResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
-                'jurnalRekeningAir',
+                'jurnalRekeningAir.company',
                 'kelompok',
                 'rekening.kelompok',
                 'nomorBantu',
-                'kodeProyek'
-                // Note: Detail tables don't have created_by column
+                'kodeProyek',
             ]);
     }
 
@@ -484,97 +483,114 @@ class JurnalRekeningAirResource extends Resource
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.bukti')
-                    ->label('No Bukti')
+                    ->label('Bukti')
                     ->searchable()
-                    ->limit(20),
+                    ->sortable()
+                    ->weight('semibold')
+                    ->copyable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
-                Tables\Columns\TextColumn::make('rekening.nama_rek')
-                    ->label('Nama Rekening')
-                    ->searchable()
-                    ->limit(30),
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.tanggal')
+                    ->label('Tanggal')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
-                Tables\Columns\TextColumn::make('kodeProyekRekening')
-                    ->label('Kode Proyek/Rekening')
+                Tables\Columns\TextColumn::make('rekening_info')
+                    ->label('Kode & Rekening')
                     ->html()
+                    ->searchable(['rekenings.nama_rek', 'nomor_bantus.nm_bantu'])
                     ->getStateUsing(function ($record) {
-                        // Format 2 baris: AA BBBB + Nama
-                        $kodeProyek = $record->kodeProyek?->kode ?? '';
-                        $namaProyek = $record->kodeProyek?->name ?? '';
-                        $rekening = $record->rekening?->no_rek ?? '';
-                        $namaRekening = $record->rekening?->nama_rek ?? '';
-
-                        $kode = ($kodeProyek && $rekening)
-                            ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
-                            : ($rekening ? sprintf('-- %04d', intval($rekening)) : '-');
-
-                        $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
-
-                        return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
+                        if (!$record->rekening) return '-';
+                        
+                        $kel = str_pad($record->rekening->no_kel, 2, '0', STR_PAD_LEFT);
+                        $rek = str_pad($record->rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                        $bantu = $record->nomorBantu ? str_pad($record->nomorBantu->no_bantu, 2, '0', STR_PAD_LEFT) : '00';
+                        $kode = "<span class='font-mono text-xs text-gray-500'>{$kel}.{$rek}.{$bantu}</span>";
+                        
+                        $namaRek = "<div class='font-medium'>" . \Illuminate\Support\Str::limit($record->rekening->nama_rek, 35) . "</div>";
+                        
+                        $namaBantu = '';
+                        if ($record->nomorBantu) {
+                            $namaBantu = "<div class='text-xs text-gray-600 mt-0.5'>" . \Illuminate\Support\Str::limit($record->nomorBantu->nm_bantu, 40) . "</div>";
+                        }
+                        
+                        return $kode . ' ' . $namaRek . $namaBantu;
                     })
-                    ->searchable(false)
-                    ->wrap(),
+                    ->tooltip(fn($record) => $record->nomorBantu ? $record->rekening?->nama_rek . ' - ' . $record->nomorBantu->nm_bantu : $record->rekening?->nama_rek),
 
-                Tables\Columns\TextColumn::make('position')
-                    ->label('K/D')
-                    ->formatStateUsing(fn($state) => strtoupper($state))
+                Tables\Columns\TextColumn::make('kodeProyek.kode')
+                    ->label('Proyek')
                     ->badge()
-                    ->color(fn($state) => $state === 'kredit' ? 'success' : 'info'),
+                    ->color('info')
+                    ->default('-')
+                    ->toggleable()
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
-                Tables\Columns\TextColumn::make('jumlah')
-                    ->label('Jumlah')
-                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
-                    ->alignRight(),
+                Tables\Columns\TextColumn::make('debit')
+                    ->label('Debit')
+                    ->getStateUsing(fn($record) => $record->position === 'debit' ? $record->jumlah : null)
+                    ->money('IDR')
+                    ->alignRight()
+                    ->color('danger')
+                    ->weight('medium')
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
+
+                Tables\Columns\TextColumn::make('kredit')
+                    ->label('Kredit')
+                    ->getStateUsing(fn($record) => $record->position === 'kredit' ? $record->jumlah : null)
+                    ->money('IDR')
+                    ->alignRight()
+                    ->color('success')
+                    ->weight('medium')
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_confirmed')
-                    ->label('Status')
+                    ->label('Konfirmasi')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
                     ->trueColor('success')
-                    ->falseColor('warning'),
-
-                Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
-                    ->label('No Reff')
-                    ->searchable()
-                    ->sortable(),
+                    ->falseColor('warning')
+                    ->sortable()
+                    ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_posted')
                     ->label('Posted')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-clock')
+                    ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->sortable(),
+                    ->sortable()
+                    ->alignCenter()
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('dari_tanggal')
-                            ->label('Dari Tanggal'),
+                            ->label('Dari Tanggal')
+                            ->native(false),
                         Forms\Components\DatePicker::make('sampai_tanggal')
-                            ->label('Sampai Tanggal'),
+                            ->label('Sampai Tanggal')
+                            ->native(false),
                     ])
                     ->query(function ($query, array $data) {
-                        return $query
-                            ->when(
-                                $data['dari_tanggal'],
-                                fn($q) =>
-                                $q->whereHas(
-                                    'jurnalRekeningAir',
-                                    fn($query) =>
-                                    $query->whereDate('tanggal', '>=', $data['dari_tanggal'])
-                                )
-                            )
-                            ->when(
-                                $data['sampai_tanggal'],
-                                fn($q) =>
-                                $q->whereHas(
-                                    'jurnalRekeningAir',
-                                    fn($query) =>
-                                    $query->whereDate('tanggal', '<=', $data['sampai_tanggal'])
-                                )
-                            );
+                        return $query->whereHas('jurnalRekeningAir', function ($q) use ($data) {
+                            $q->when($data['dari_tanggal'], fn($query, $date) => $query->whereDate('tanggal', '>=', $date))
+                              ->when($data['sampai_tanggal'], fn($query, $date) => $query->whereDate('tanggal', '<=', $date));
+                        });
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['dari_tanggal'] ?? null) {
+                            $indicators[] = 'Dari: ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y');
+                        }
+                        if ($data['sampai_tanggal'] ?? null) {
+                            $indicators[] = 'Sampai: ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
+                        }
+                        return $indicators;
                     }),
 
                 Tables\Filters\TernaryFilter::make('is_confirmed')
@@ -585,6 +601,16 @@ class JurnalRekeningAirResource extends Resource
                     ->queries(
                         true: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_confirmed', true)),
                         false: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_confirmed', false)),
+                    ),
+
+                Tables\Filters\TernaryFilter::make('is_posted')
+                    ->label('Status Posting')
+                    ->placeholder('Semua')
+                    ->trueLabel('Sudah Diposting')
+                    ->falseLabel('Belum Diposting')
+                    ->queries(
+                        true: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_posted', true)),
+                        false: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_posted', false)),
                     ),
 
                 Tables\Filters\SelectFilter::make('position')
@@ -600,88 +626,46 @@ class JurnalRekeningAirResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('nomor_bantu_id')
-                    ->label('Nomor Bantu')
-                    ->relationship('nomorBantu', 'nm_bantu')
+                Tables\Filters\SelectFilter::make('kode_proyek_id')
+                    ->label('Kode Proyek')
+                    ->relationship('kodeProyek', 'name')
                     ->searchable()
-                    ->preload()
-                    ->getOptionLabelFromRecordUsing(
-                        fn($record) =>
-                        str_pad($record->no_bantu, 2, '0', STR_PAD_LEFT) . ' - ' . $record->nm_bantu
-                    ),
-
-                Tables\Filters\TernaryFilter::make('is_posted')
-                    ->label('Status Posting')
-                    ->placeholder('Semua')
-                    ->trueLabel('Sudah Diposting')
-                    ->falseLabel('Belum Diposting')
-                    ->queries(
-                        true: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_posted', true)),
-                        false: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_posted', false)),
-                    ),
+                    ->preload(),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye')
+                        ->color('info'),
+
                     Tables\Actions\Action::make('confirm')
-                        ->label('Konfirmasi Jurnal')
+                        ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($record) {
-                            // Confirm parent jurnal
                             $record->jurnalRekeningAir->confirm();
                             Notification::make()
                                 ->title('Jurnal berhasil dikonfirmasi')
-                                ->body("No. Reff: {$record->jurnalRekeningAir->no_reff}")
                                 ->success()
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->modalHeading('Konfirmasi Jurnal')
-                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin mengkonfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
                         ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('Batal Konfirmasi')
+                        ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->action(function ($record) {
-                            // Unconfirm parent jurnal
                             $record->jurnalRekeningAir->unconfirm();
                             Notification::make()
                                 ->title('Konfirmasi jurnal dibatalkan')
-                                ->body("No. Reff: {$record->jurnalRekeningAir->no_reff}")
                                 ->success()
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->modalHeading('Batal Konfirmasi Jurnal')
-                        ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalRekeningAir->no_reff}?")
-                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
-
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye'),
-
-                    Tables\Actions\Action::make('exportPdf')
-                        ->label('PDF')
-                        ->icon('heroicon-o-document-arrow-down')
-                        ->color('info')
-                        ->action(function ($record) {
-                            $parent = $record->jurnalRekeningAir;
-                            $parent->load(['details.rekening.kelompok', 'details.nomorBantu', 'company']);
-                            
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air-single', [
-                                'jurnal' => $parent,
-                            ]);
-
-                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->no_reff ?? $parent->id);
-
-                            return response()->streamDownload(
-                                fn() => print($pdf->output()),
-                                'jurnal-rekening-air-' . $safeFilename . '.pdf'
-                            );
-                        }),
-
+                        ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
 
                     Tables\Actions\Action::make('post_to_ledger')
                         ->label('Post ke Buku Besar')
@@ -705,75 +689,69 @@ class JurnalRekeningAirResource extends Resource
                         })
                         ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
 
-
-                    Tables\Actions\DeleteAction::make()
-                        ->label('Hapus Item')
-                        ->modalHeading('Hapus Item Transaksi')
-                        ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalRekeningAir->no_reff}")
-                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed)
-                        ->after(function ($record) {
-                            // Check if parent jurnal still has details
-                            $parent = $record->jurnalRekeningAir;
-                            if ($parent && $parent->details()->count() === 0) {
-                                // Delete parent if no more details
-                                $parent->delete();
-                                Notification::make()
-                                    ->title('Jurnal dihapus')
-                                    ->body('Jurnal header juga dihapus karena tidak memiliki item lagi')
-                                    ->warning()
-                                    ->send();
-                            }
-                        }),
+                    Tables\Actions\Action::make('exportPdf')
+                        ->label('Export PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->url(fn ($record) => route('jurnal-rekening-air.single-pdf', $record->id))
+                        ->openUrlInNewTab(),
                 ])
                     ->button()
                     ->label('Action')
-                    ->color('primary'),
+                    ->color('primary')
+                    ->icon('heroicon-o-ellipsis-vertical'),
 
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('bulk_confirm')
+                        ->label('Konfirmasi Terpilih')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records) {
+                            $parentIds = $records->pluck('jurnal_rekening_air_id')->unique();
+                            $journals = \App\Models\JurnalRekeningAir::whereIn('id', $parentIds)
+                                ->where('is_confirmed', false)
+                                ->get();
+                            
+                            foreach ($journals as $journal) {
+                                $journal->confirm();
+                            }
+                            
+                            Notification::make()
+                                ->title("{$journals->count()} jurnal berhasil dikonfirmasi")
+                                ->success()
+                                ->send();
+                        }),
+
                     Tables\Actions\BulkAction::make('bulk_post_to_ledger')
-                        ->label('Post Terpilih ke Buku Besar')
+                        ->label('Post ke Buku Besar')
                         ->icon('heroicon-o-arrow-up-tray')
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
-                            $parents = $records->map(fn($record) => $record->jurnalRekeningAir)
-                                ->filter(fn($parent) => $parent && $parent->is_confirmed && !$parent->is_posted)
-                                ->unique('id');
-
-                            if ($parents->isEmpty()) {
-                                Notification::make()
-                                    ->title('Tidak ada jurnal yang valid untuk diposting')
-                                    ->warning()
-                                    ->send();
-                                return;
+                            $parentIds = $records->pluck('jurnal_rekening_air_id')->unique();
+                            $journals = \App\Models\JurnalRekeningAir::whereIn('id', $parentIds)
+                                ->where('is_confirmed', true)
+                                ->where('is_posted', false)
+                                ->get();
+                            
+                            $success = 0;
+                            $failed = 0;
+                            foreach ($journals as $journal) {
+                                try {
+                                    $service->post($journal);
+                                    $success++;
+                                } catch (\Exception $e) {
+                                    $failed++;
+                                }
                             }
-
-                            $count = $service->postBulk($parents);
                             
                             Notification::make()
-                                ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
+                                ->title("Berhasil: {$success}, Gagal: {$failed}")
                                 ->success()
                                 ->send();
-                        }),
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->before(function ($records) {
-                            // Check if any of the records are confirmed
-                            $confirmedCount = $records->filter(
-                                fn($record) =>
-                                $record->jurnalRekeningAir->is_confirmed
-                            )->count();
-
-                            if ($confirmedCount > 0) {
-                                Notification::make()
-                                    ->title('Tidak dapat menghapus')
-                                    ->body("Terdapat {$confirmedCount} item dari jurnal yang sudah dikonfirmasi")
-                                    ->danger()
-                                    ->send();
-
-                                return false;
-                            }
                         }),
                 ]),
             ])
@@ -792,7 +770,7 @@ class JurnalRekeningAirResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalRekeningAirResource\RelationManagers\DetailsRelationManager::class,
+            // RelationManager tidak diperlukan karena kita sudah menampilkan per baris detail
         ];
     }
 

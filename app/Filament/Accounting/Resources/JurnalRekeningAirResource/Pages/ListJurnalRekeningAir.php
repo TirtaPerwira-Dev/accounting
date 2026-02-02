@@ -7,6 +7,10 @@ use App\Filament\Widgets\JurnalRekeningAirStatsWidget;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Facades\FilamentView;
+use Illuminate\Contracts\View\View;
+
+use function Filament\Support\is_app_url;
 
 class ListJurnalRekeningAir extends ListRecords
 {
@@ -28,10 +32,17 @@ class ListJurnalRekeningAir extends ListRecords
                 ->form([
                     Forms\Components\DatePicker::make('start_date')
                         ->label('Dari Tanggal')
-                        ->native(false),
+                        ->native(false)
+                        ->default(now()->startOfMonth())
+                        ->required()
+                        ->maxDate(now()),
                     Forms\Components\DatePicker::make('end_date')
                         ->label('Sampai Tanggal')
-                        ->native(false),
+                        ->native(false)
+                        ->default(now())
+                        ->required()
+                        ->maxDate(now())
+                        ->afterOrEqual('start_date'),
                     Forms\Components\Select::make('status')
                         ->label('Status')
                         ->options([
@@ -42,43 +53,14 @@ class ListJurnalRekeningAir extends ListRecords
                         ->default(''),
                 ])
                 ->action(function (array $data) {
-                    $query = static::$resource::getEloquentQuery();
-
-                    if ($data['start_date']) {
-                        $query->whereDate('tanggal', '>=', $data['start_date']);
-                    }
-
-                    if ($data['end_date']) {
-                        $query->whereDate('tanggal', '<=', $data['end_date']);
-                    }
-
-                    if ($data['status'] === 'confirmed') {
-                        $query->where('is_confirmed', true);
-                    } elseif ($data['status'] === 'pending') {
-                        $query->where('is_confirmed', false);
-                    }
-
-                    $journals = $query->with([
-                        'company',
-                        'kelompokKredit',
-                        'rekeningKredit',
-                        'nomorBantuKredit',
-                        'kodeProyek'
-                    ])->orderBy('tanggal', 'desc')->get();
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-rekening-air', [
-                        'journals' => $journals,
-                        'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-                        'startDate' => $data['start_date'],
-                        'endDate' => $data['end_date'],
-                        'status' => $data['status'],
+                    $url = route('jurnal-rekening-air.pdf', [
+                        'start_date' => $data['start_date'],
+                        'end_date' => $data['end_date'],
+                        'status' => $data['status'] ?? '',
                     ]);
-
-                    $filename = 'jurnal-rekening-air-' . now()->format('Y-m-d-His') . '.pdf';
-
-                    return response()->streamDownload(function () use ($pdf) {
-                        echo $pdf->output();
-                    }, $filename);
+                    
+                    // Dispatch browser event to open URL in new tab
+                    $this->dispatch('open-url-in-new-tab', url: $url);
                 }),
         ];
     }
@@ -93,5 +75,10 @@ class ListJurnalRekeningAir extends ListRecords
         return [
             JurnalRekeningAirStatsWidget::class,
         ];
+    }
+
+    public function getFooter(): ?View
+    {
+        return view('filament.pages.list-footer-script');
     }
 }

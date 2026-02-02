@@ -77,9 +77,6 @@ class ViewJurnalRekeningAir extends ViewRecord
 
     public function infolist(Infolist $infolist): Infolist
     {
-        // Get parent jurnal from detail record
-        $parentJurnal = $this->record->jurnalRekeningAir;
-        
         return $infolist
             ->schema([
 
@@ -96,6 +93,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.bukti')
                                 ->label('No. Bukti')
                                 ->weight('bold')
+                                ->copyable()
                                 ->icon('heroicon-m-document-magnifying-glass'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.tanggal')
@@ -113,7 +111,8 @@ class ViewJurnalRekeningAir extends ViewRecord
                 // ===================== DETAIL TRANSAKSI =====================
                 Infolists\Components\Section::make('Detail Transaksi')
                     ->icon('heroicon-o-table-cells')
-                    ->description(function () use ($parentJurnal) {
+                    ->description(function ($record) {
+                        $parentJurnal = $record->jurnalRekeningAir;
                         $parentJurnal->loadMissing('details');
                         return 'Total baris: ' . $parentJurnal->details->count();
                     })
@@ -192,7 +191,8 @@ class ViewJurnalRekeningAir extends ViewRecord
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make('total_debit')
                                 ->label('Total Debit')
-                                ->state(function () use ($parentJurnal) {
+                                ->state(function ($record) {
+                                    $parentJurnal = $record->jurnalRekeningAir;
                                     $parentJurnal->loadMissing('details');
                                     return $parentJurnal->details->where('position', 'debit')->sum('jumlah');
                                 })
@@ -203,7 +203,8 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('total_kredit')
                                 ->label('Total Kredit')
-                                ->state(function () use ($parentJurnal) {
+                                ->state(function ($record) {
+                                    $parentJurnal = $record->jurnalRekeningAir;
                                     $parentJurnal->loadMissing('details');
                                     return $parentJurnal->details->where('position', 'kredit')->sum('jumlah');
                                 })
@@ -214,7 +215,8 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('balance_status')
                                 ->label('Status Jurnal')
-                                ->state(function () use ($parentJurnal) {
+                                ->state(function ($record) {
+                                    $parentJurnal = $record->jurnalRekeningAir;
                                     $parentJurnal->loadMissing('details');
                                     $debit = $parentJurnal->details->where('position', 'debit')->sum('jumlah');
                                     $kredit = $parentJurnal->details->where('position', 'kredit')->sum('jumlah');
@@ -230,7 +232,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                 Infolists\Components\Section::make('Status & Audit')
                     ->icon('heroicon-o-shield-check')
                     ->schema([
-                        Infolists\Components\Grid::make(3)->schema([
+                        Infolists\Components\Grid::make(4)->schema([
                             Infolists\Components\IconEntry::make('jurnalRekeningAir.is_confirmed')
                                 ->label('Status Konfirmasi')
                                 ->boolean()
@@ -243,6 +245,14 @@ class ViewJurnalRekeningAir extends ViewRecord
                                 ->label('Dikonfirmasi Pada')
                                 ->dateTime('d F Y H:i')
                                 ->placeholder('Belum dikonfirmasi'),
+
+                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_posted')
+                                ->label('Status Posting')
+                                ->boolean()
+                                ->trueIcon('heroicon-o-check-badge')
+                                ->falseIcon('heroicon-o-x-circle')
+                                ->trueColor('success')
+                                ->falseColor('gray'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.created_at')
                                 ->label('Dibuat Pada')
