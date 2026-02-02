@@ -49,7 +49,34 @@ class JurnalBayarKasBank extends Model
         'rp' => 'decimal:2',
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
+        'is_posted' => 'boolean',
+        'posted_at' => 'datetime',
     ];
+
+    /**
+     * Accessor untuk menampilkan nama bank
+     * Jika ada nomor_bantu_id, ambil dari nama bantu
+     * Jika tidak, ambil dari rekening nama_rek
+     */
+    public function getNamaBankDisplayAttribute(): string
+    {
+        // Prioritas 1: Jika field nama_bank sudah diisi langsung
+        if (!empty($this->nama_bank)) {
+            return $this->nama_bank;
+        }
+
+        // Prioritas 2: Ambil dari nomor bantu jika ada
+        if ($this->nomorBantu) {
+            return $this->nomorBantu->nm_bantu;
+        }
+
+        // Prioritas 3: Ambil dari rekening
+        if ($this->rekening) {
+            return $this->rekening->nama_rek;
+        }
+
+        return '-';
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

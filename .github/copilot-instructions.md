@@ -157,7 +157,25 @@ Kredit : Pendapatan Air (4101)
 Kredit : PPN Keluaran (2201) // jika PKP
 ```
 
-### 3. **Integrasi Meter Otomatis**
+### 3. **Jurnal Bayar Kas/Bank**
+
+```php
+// Model dengan Accessor untuk Nama Bank
+public function getNamaBankDisplayAttribute(): string
+{
+    // Prioritas: nama_bank field > nomor_bantu > rekening
+    if (!empty($this->nama_bank)) return $this->nama_bank;
+    if ($this->nomorBantu) return $this->nomorBantu->nm_bantu;
+    if ($this->rekening) return $this->rekening->nama_rek;
+    return '-';
+}
+
+// Jurnal Otomatis
+Debit  : Biaya/Beban (Detail Items)
+Kredit : Kas/Bank (Header)
+```
+
+### 4. **Integrasi Meter Otomatis**
 
 ```php
 // Input: meter_awal, meter_akhir, tarif_per_m3
@@ -166,7 +184,7 @@ $pendapatan = $volume * $tarif;
 $ppn = $pendapatan * 0.11; // jika PKP
 ```
 
-### 4. **Rekonsiliasi Bank**
+### 5. **Rekonsiliasi Bank**
 
 -   Bandingkan mutasi bank vs jurnal.
 -   Gunakan `bank_statements` table + `reconciled_at`.

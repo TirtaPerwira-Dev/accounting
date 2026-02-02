@@ -455,9 +455,10 @@ class JurnalBayarKasBankResource extends Resource
 
                 Tables\Columns\TextColumn::make('bankNoCek')
                     ->label('Nama Bank/No Cek')
-                    ->getStateUsing(fn($record) => ($record->nama_bank ?? '') . ' / ' . ($record->no_cek ?? '-'))
+                    ->getStateUsing(fn($record) => $record->nama_bank_display . ' / ' . ($record->no_cek ?? '-'))
                     ->searchable(false)
-                    ->limit(30),
+                    ->wrap()
+                    ->limit(40),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Nama Rekening')
