@@ -80,7 +80,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         $parentJurnal = $this->record->jurnalPemakaianBahan;
-        
+
         return $infolist
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
@@ -142,7 +142,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                             Infolists\Components\TextEntry::make("kodeProyek")
                                                 ->label("Kode Proyek")
                                                 ->placeholder("-")
-                                                ->state(fn($record) => $record->kodeProyek ? 
+                                                ->state(fn($record) => $record->kodeProyek ?
                                                     $record->kodeProyek->kode . " - " . $record->kodeProyek->name : "-"),
 
                                             Infolists\Components\TextEntry::make("posisi")

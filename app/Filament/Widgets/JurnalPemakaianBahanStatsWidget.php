@@ -20,15 +20,15 @@ class JurnalPemakaianBahanStatsWidget extends BaseWidget
         // Total Debit bulan ini
         $totalDebit = JurnalPemakaianBahanDetail::whereHas('jurnalPemakaianBahan', function ($q) use ($companyId) {
             $q->where('company_id', $companyId)
-              ->whereYear('tanggal', date('Y'))
-              ->whereMonth('tanggal', date('m'));
+                ->whereYear('tanggal', date('Y'))
+                ->whereMonth('tanggal', date('m'));
         })->whereNotNull('rekening_debit_id')->sum('jumlah');
 
         // Total Kredit bulan ini
         $totalKredit = JurnalPemakaianBahanDetail::whereHas('jurnalPemakaianBahan', function ($q) use ($companyId) {
             $q->where('company_id', $companyId)
-              ->whereYear('tanggal', date('Y'))
-              ->whereMonth('tanggal', date('m'));
+                ->whereYear('tanggal', date('Y'))
+                ->whereMonth('tanggal', date('m'));
         })->whereNotNull('rekening_kredit_id')->sum('jumlah');
 
         // Jumlah transaksi bulan ini

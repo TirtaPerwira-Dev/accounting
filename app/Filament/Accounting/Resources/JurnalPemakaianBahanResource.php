@@ -653,7 +653,7 @@ class JurnalPemakaianBahanResource extends Resource
                             }
 
                             $count = $service->postBulk($jurnals);
-                            
+
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
                                 ->success()
