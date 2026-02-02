@@ -105,4 +105,20 @@ class JurnalBayarKasBankPolicy
     {
         return $user->can('reorder_jurnal::bayar::kas::bank');
     }
+
+    /**
+     * Determine whether the user can confirm.
+     */
+    public function confirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    {
+        return $user->can('confirm_jurnal::bayar::kas::bank');
+    }
+
+    /**
+     * Determine whether the user can unconfirm.
+     */
+    public function unconfirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
+    {
+        return $user->can('unconfirm_jurnal::bayar::kas::bank');
+    }
 }

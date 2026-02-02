@@ -455,9 +455,10 @@ class JurnalBayarKasBankResource extends Resource
 
                 Tables\Columns\TextColumn::make('bankNoCek')
                     ->label('Nama Bank/No Cek')
-                    ->getStateUsing(fn($record) => ($record->nama_bank ?? '') . ' / ' . ($record->no_cek ?? '-'))
+                    ->getStateUsing(fn($record) => $record->nama_bank_display . ' / ' . ($record->no_cek ?? '-'))
                     ->searchable(false)
-                    ->limit(30),
+                    ->wrap()
+                    ->limit(40),
 
                 Tables\Columns\TextColumn::make('rekening.nama_rek')
                     ->label('Nama Rekening')
@@ -607,7 +608,7 @@ class JurnalBayarKasBankResource extends Resource
                     Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
-                        ->label('Konfirmasi')
+                        ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
@@ -619,13 +620,14 @@ class JurnalBayarKasBankResource extends Resource
                             Notification::make()
                                 ->success()
                                 ->title('Jurnal berhasil dikonfirmasi')
+                                ->body('Jurnal sudah dikonfirmasi dan siap untuk diposting ke buku besar.')
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('Batal Konfirmasi')
+                        ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
+                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm', $record))
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
@@ -634,6 +636,7 @@ class JurnalBayarKasBankResource extends Resource
                             Notification::make()
                                 ->success()
                                 ->title('Konfirmasi berhasil dibatalkan')
+                                ->body('Jurnal kembali ke status draft dan dapat diedit kembali.')
                         ),
 
                     Tables\Actions\Action::make('exportPdf')
