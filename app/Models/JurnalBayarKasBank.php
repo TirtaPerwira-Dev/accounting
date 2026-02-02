@@ -138,6 +138,30 @@ class JurnalBayarKasBank extends Model
     }
 
     /**
+     * Get grouped items based on no_voucher
+     * Semua record dengan no_voucher yang sama akan dikelompokkan
+     * Ini memungkinkan multiple items dalam 1 transaksi ditampilkan bersama
+     */
+    public function getGroupedItemsAttribute()
+    {
+        // Cek apakah sudah ada relasi loadedGroupedItems yang di-set manual
+        if ($this->relationLoaded('loadedGroupedItems')) {
+            return $this->getRelation('loadedGroupedItems');
+        }
+        
+        if ($this->no_voucher) {
+            return static::query()
+                ->with(['kelompok', 'rekening.kelompok', 'nomorBantu', 'kodeProyek'])
+                ->where('no_voucher', $this->no_voucher)
+                ->orderBy('item_sequence')
+                ->get();
+        }
+        
+        // Jika tidak ada no_voucher, return collection dengan record ini saja
+        return collect([$this]);
+    }
+
+    /**
      * Generate nomor referensi - tetap '4' untuk Jurnal Bayar Kas/Bank
      */
     public function generateNoReff(): string
