@@ -72,7 +72,8 @@ class DokumentasiResource extends Resource
                                 ->default(false)
                                 ->inline(false)
                                 ->live()
-                                ->afterStateUpdated(fn($state, Forms\Set $set) => 
+                                ->afterStateUpdated(
+                                    fn($state, Forms\Set $set) =>
                                     $state ? $set('published_at', now()) : $set('published_at', null)
                                 ),
                         ]),
