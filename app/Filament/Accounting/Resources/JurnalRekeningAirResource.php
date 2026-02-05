@@ -640,8 +640,12 @@ class JurnalRekeningAirResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye')
-                        ->color('info'),
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->icon('heroicon-o-pencil')
+                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('✓ Konfirmasi')
@@ -660,7 +664,7 @@ class JurnalRekeningAirResource extends Resource
                     Tables\Actions\Action::make('unconfirm')
                         ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('danger')
+                        ->color('warning')
                         ->action(function ($record) {
                             $record->jurnalRekeningAir->unconfirm();
                             Notification::make()
@@ -694,17 +698,19 @@ class JurnalRekeningAirResource extends Resource
                         ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
 
                     Tables\Actions\Action::make('exportPdf')
-                        ->label('Export PDF')
+                        ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
                         ->url(fn($record) => route('jurnal-rekening-air.single-pdf', $record->id))
                         ->openUrlInNewTab(),
+
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
                 ])
                     ->button()
                     ->label('Action')
-                    ->color('primary')
-                    ->icon('heroicon-o-ellipsis-vertical'),
-
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

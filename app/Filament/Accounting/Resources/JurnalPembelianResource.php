@@ -611,17 +611,17 @@ class JurnalPembelianResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\Action::make('view_header')
-                        ->label('Lihat Jurnal')
-                        ->icon('heroicon-o-eye')
-                        ->url(fn($record) => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
-                        ->openUrlInNewTab(false),
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
 
-                    Tables\Actions\Action::make('edit_header')
-                        ->label('Edit Jurnal')
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
                         ->icon('heroicon-o-pencil')
-                        ->url(fn($record) => Pages\EditJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
-                        ->visible(fn($record) => !($record->jurnalPembelian ?? $record)->is_confirmed),
+                        ->visible(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return !$header->is_confirmed;
+                        }),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
@@ -662,7 +662,7 @@ class JurnalPembelianResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('Batal Konfirmasi')
+                        ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
                         ->visible(function($record) {
@@ -758,24 +758,16 @@ class JurnalPembelianResource extends Resource
                             return $header->is_confirmed && !$header->is_posted;
                         }),
 
-                    Tables\Actions\Action::make('delete_header')
-                        ->label('Hapus Jurnal')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger')
-                        ->requiresConfirmation()
-                        ->action(function($record) {
-                            $header = $record->jurnalPembelian ?? $record;
-                            $header->delete();
-                        })
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
                         ->visible(function($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             return !$header->is_confirmed;
                         }),
                 ])
-                    ->label('Actions')
-                    ->color('warning')
-                    ->icon('heroicon-o-ellipsis-horizontal')
+                    ->label('Action')
                     ->button()
+                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

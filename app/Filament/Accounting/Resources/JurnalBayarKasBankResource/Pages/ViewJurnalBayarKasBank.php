@@ -36,7 +36,10 @@ class ViewJurnalBayarKasBank extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
+            Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
+                ->visible(fn($record) => !$record->is_confirmed),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -72,6 +75,26 @@ class ViewJurnalBayarKasBank extends ViewRecord
                 ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
                 ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm_jurnal::bayar::kas::bank')),
 
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->action(function ($record) {
+                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-bayar-kas-bank-single', [
+                        'jurnal' => $record,
+                        'generatedAt' => now()->format('d M Y H:i'),
+                    ]);
+
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_voucher ?? $record->id);
+
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        'jurnal-bayar-kas-bank-' . $safeFilename . '.pdf'
+                    );
+                }),
+
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
                 ->icon('heroicon-o-arrow-up-tray')
@@ -94,25 +117,9 @@ class ViewJurnalBayarKasBank extends ViewRecord
                 })
                 ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
 
-            Actions\Action::make('exportPdf')
-                ->label('Export PDF')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('info')
-                ->action(function ($record) {
-                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-bayar-kas-bank-single', [
-                        'jurnal' => $record,
-                        'generatedAt' => now()->format('d M Y H:i'),
-                    ]);
-
-                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_voucher ?? $record->id);
-
-                    return response()->streamDownload(
-                        fn() => print($pdf->output()),
-                        'jurnal-bayar-kas-bank-' . $safeFilename . '.pdf'
-                    );
-                }),
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn($record) => !$record->is_confirmed),
         ];
     }
 

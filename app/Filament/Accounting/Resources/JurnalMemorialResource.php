@@ -517,16 +517,13 @@ class JurnalMemorialResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\Action::make('view_header')
-                        ->label('Lihat Jurnal')
-                        ->icon('heroicon-o-eye')
-                        ->url(fn($record) => Pages\ViewJurnalMemorial::getUrl([($record->jurnalMemorial ?? $record)->id]))
-                        ->openUrlInNewTab(false),
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
 
-                    Tables\Actions\Action::make('edit_header')
-                        ->label('Edit Jurnal')
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
                         ->icon('heroicon-o-pencil')
-                        ->url(fn($record) => Pages\EditJurnalMemorial::getUrl([($record->jurnalMemorial ?? $record)->id]))
                         ->visible(fn($record) => !($record->jurnalMemorial ?? $record)->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
@@ -641,7 +638,9 @@ class JurnalMemorialResource extends Resource
                         })
                         ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(fn($record) => !$record->is_confirmed),
                 ])
                     ->label('Action')
                     ->button()

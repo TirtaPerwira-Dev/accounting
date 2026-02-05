@@ -17,11 +17,10 @@ class ViewJurnalPenerimaanKas extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make("back_to_list")
-                ->label("Kembali ke List")
-                ->icon("heroicon-o-arrow-left")
-                ->color("gray")
-                ->url(fn() => static::getResource()::getUrl("index")),
+            Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
+                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -40,7 +39,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
-                ->color('danger')
+                ->color('warning')
                 ->action(function ($record) {
                     $record->jurnalPenerimaanKas->unconfirm();
                     Notification::make()
@@ -50,6 +49,34 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                 })
                 ->requiresConfirmation()
                 ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('unconfirm', $record->jurnalPenerimaanKas)),
+
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->action(function ($record) {
+                    $parent = $record->jurnalPenerimaanKas;
+                    $parent->load([
+                        'kasBank.rekening.kelompok',
+                        'details.rekening.kelompok',
+                        'details.nomorBantu',
+                        'details.kodeProyek',
+                        'createdBy',
+                        'confirmedBy',
+                        'postedBy'
+                    ]);
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas', [
+                        'record' => $parent,
+                    ]);
+
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->nomor_bukti ?? $parent->id);
+
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        'jurnal-penerimaan-kas-' . $safeFilename . '.pdf'
+                    );
+                }),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -72,6 +99,10 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                     }
                 })
                 ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted),
+
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed),
         ];
     }
 

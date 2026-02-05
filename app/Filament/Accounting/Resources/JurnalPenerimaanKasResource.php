@@ -621,6 +621,15 @@ class JurnalPenerimaanKasResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->icon('heroicon-o-pencil')
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed),
+
                     Tables\Actions\Action::make('confirm')
                         ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
@@ -641,7 +650,7 @@ class JurnalPenerimaanKasResource extends Resource
                     Tables\Actions\Action::make('unconfirm')
                         ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('danger')
+                        ->color('warning')
                         ->action(function ($record) {
                             $record->jurnalPenerimaanKas->unconfirm();
                             Notification::make()
@@ -654,10 +663,6 @@ class JurnalPenerimaanKasResource extends Resource
                         ->modalHeading('Batal Konfirmasi Jurnal')
                         ->modalDescription(fn($record) => "Apakah Anda yakin ingin membatalkan konfirmasi jurnal {$record->jurnalPenerimaanKas->no_reff}?")
                         ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('unconfirm', $record->jurnalPenerimaanKas)),
-
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye'),
 
                     Tables\Actions\Action::make('exportPdf')
                         ->label('PDF')
@@ -711,7 +716,7 @@ class JurnalPenerimaanKasResource extends Resource
 
 
                     Tables\Actions\DeleteAction::make()
-                        ->label('Hapus Item')
+                        ->label('Hapus')
                         ->modalHeading('Hapus Item Transaksi')
                         ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->no_reff}")
                         ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed)

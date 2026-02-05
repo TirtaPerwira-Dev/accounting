@@ -36,7 +36,10 @@ class ViewJurnalMemorial extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()->visible(fn($record) => !$record->jurnalMemorial->is_confirmed),
+            Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
+                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -55,7 +58,7 @@ class ViewJurnalMemorial extends ViewRecord
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
-                ->color('danger')
+                ->color('warning')
                 ->action(function ($record) {
                     $record->jurnalMemorial->unconfirm();
                     Notification::make()
@@ -65,6 +68,26 @@ class ViewJurnalMemorial extends ViewRecord
                 })
                 ->requiresConfirmation()
                 ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted && auth()->user()->can('unconfirm', $record->jurnalMemorial)),
+
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->action(function ($record) {
+                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-memorial-single', [
+                        'jurnal' => $record,
+                        'generatedAt' => now()->format('d M Y H:i'),
+                    ]);
+
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->bukti ?? $record->id);
+
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        'jurnal-memorial-' . $safeFilename . '.pdf'
+                    );
+                }),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -87,6 +110,10 @@ class ViewJurnalMemorial extends ViewRecord
                     }
                 })
                 ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted),
+
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed),
         ];
     }
 

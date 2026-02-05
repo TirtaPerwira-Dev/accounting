@@ -544,11 +544,17 @@ class JurnalPemakaianBahanResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->icon('heroicon-o-pencil')
+                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
-                        ->label('Konfirmasi')
+                        ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed)
@@ -561,9 +567,9 @@ class JurnalPemakaianBahanResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('Batal Konfirmasi')
+                        ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('danger')
+                        ->color('warning')
                         ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed)
                         ->requiresConfirmation()
                         ->action(fn($record) => $record->jurnalPemakaianBahan?->unconfirm())
@@ -623,7 +629,9 @@ class JurnalPemakaianBahanResource extends Resource
                         })
                         ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
                 ])
                     ->label('Action')
                     ->button()
