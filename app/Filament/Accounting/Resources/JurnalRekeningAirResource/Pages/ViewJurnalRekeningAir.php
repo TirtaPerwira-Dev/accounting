@@ -17,11 +17,10 @@ class ViewJurnalRekeningAir extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('back_to_list')
-                ->label('Kembali ke List')
-                ->icon('heroicon-o-arrow-left')
-                ->color('gray')
-                ->url(fn() => static::getResource()::getUrl('index')),
+            Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
+                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -40,7 +39,7 @@ class ViewJurnalRekeningAir extends ViewRecord
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
-                ->color('danger')
+                ->color('warning')
                 ->action(function ($record) {
                     $record->jurnalRekeningAir->unconfirm();
                     Notification::make()
@@ -50,6 +49,13 @@ class ViewJurnalRekeningAir extends ViewRecord
                 })
                 ->requiresConfirmation()
                 ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
+
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn($record) => route('jurnal-rekening-air.single-pdf', $record->id))
+                ->openUrlInNewTab(),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -72,6 +78,10 @@ class ViewJurnalRekeningAir extends ViewRecord
                     }
                 })
                 ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
+
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
         ];
     }
 

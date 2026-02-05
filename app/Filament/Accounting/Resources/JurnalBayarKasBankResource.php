@@ -604,8 +604,14 @@ class JurnalBayarKasBankResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->icon('heroicon-o-pencil')
+                        ->visible(fn($record) => !$record->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('✓ Konfirmasi')
@@ -681,7 +687,9 @@ class JurnalBayarKasBankResource extends Resource
                         })
                         ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(fn($record) => !$record->is_confirmed),
                 ])
                     ->label('Action')
                     ->button()

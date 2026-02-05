@@ -17,13 +17,10 @@ class ViewJurnalPemakaianBahan extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make("back_to_list")
-                ->label("Kembali ke List")
-                ->icon("heroicon-o-arrow-left")
-                ->color("gray")
-                ->url(fn() => static::getResource()::getUrl("index")),
-
-            Actions\EditAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+            Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
+                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -42,7 +39,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
-                ->color('danger')
+                ->color('warning')
                 ->action(function ($record) {
                     $record->jurnalPemakaianBahan->unconfirm();
                     Notification::make()
@@ -52,6 +49,29 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                 })
                 ->requiresConfirmation()
                 ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
+
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->action(function ($record) {
+                    $jurnal = $record->jurnalPemakaianBahan;
+                    if (!$jurnal) {
+                        Notification::make()
+                            ->title('Data jurnal tidak ditemukan')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+                    $jurnal->load(['details.rekeningDebit', 'details.rekeningKredit', 'details.nomorBantuDebit', 'details.nomorBantuKredit', 'details.kodeProyek', 'createdBy', 'confirmedBy']);
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pemakaian-bahan-detail', [
+                        'jurnal' => $jurnal,
+                    ]);
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        "jurnal-pemakaian-bahan-{$jurnal->no_reff}.pdf"
+                    );
+                }),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -74,6 +94,10 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                     }
                 })
                 ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
+
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
         ];
     }
 

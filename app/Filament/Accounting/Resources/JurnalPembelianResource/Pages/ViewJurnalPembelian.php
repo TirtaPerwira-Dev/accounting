@@ -36,15 +36,9 @@ class ViewJurnalPembelian extends ViewRecord
     {
         return [
             Actions\EditAction::make()
+                ->label('Edit')
+                ->icon('heroicon-o-pencil')
                 ->visible(fn($record) => !$record->is_confirmed),
-
-            Actions\Action::make('exportPdf')
-                ->label('Export PDF')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('info')
-                ->action(function ($record) {
-                    return $this->generateJurnalPdf($record);
-                }),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -66,7 +60,7 @@ class ViewJurnalPembelian extends ViewRecord
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
-                ->color('danger')
+                ->color('warning')
                 ->action(function ($record) {
                     $record->unconfirm();
                     Notification::make()
@@ -79,6 +73,14 @@ class ViewJurnalPembelian extends ViewRecord
                 ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
                 ->modalSubmitActionLabel('Ya, Batalkan')
                 ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm_jurnal::pembelian')),
+
+            Actions\Action::make('exportPdf')
+                ->label('PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->action(function ($record) {
+                    return $this->generateJurnalPdf($record);
+                }),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -103,6 +105,7 @@ class ViewJurnalPembelian extends ViewRecord
                 ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
 
             Actions\DeleteAction::make()
+                ->label('Hapus')
                 ->visible(fn($record) => !$record->is_confirmed),
         ];
     }
