@@ -517,18 +517,47 @@ class JurnalMemorialResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\Action::make('view_header')
+                        ->label('Lihat Jurnal')
+                        ->icon('heroicon-o-eye')
+                        ->url(fn($record) => Pages\ViewJurnalMemorial::getUrl([($record->jurnalMemorial ?? $record)->id]))
+                        ->openUrlInNewTab(false),
+
+                    Tables\Actions\Action::make('edit_header')
+                        ->label('Edit Jurnal')
+                        ->icon('heroicon-o-pencil')
+                        ->url(fn($record) => Pages\EditJurnalMemorial::getUrl([($record->jurnalMemorial ?? $record)->id]))
+                        ->visible(fn($record) => !($record->jurnalMemorial ?? $record)->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
-                        ->label('Konfirmasi')
+                        ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record))
+                        ->visible(function($record) {
+                            try {
+                                $header = $record->jurnalMemorial ?? $record;
+                                
+                                if (!($header instanceof \App\Models\JurnalMemorial)) {
+                                    return false;
+                                }
+                                
+                                if ($header->is_confirmed) {
+                                    return false;
+                                }
+                                
+                                return auth()->user()->can('confirm_jurnal::memorial');
+                            } catch (\Exception $e) {
+                                \Log::error('Error checking confirm visibility: ' . $e->getMessage());
+                                return false;
+                            }
+                        })
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(fn($record) => $record->confirm())
+                        ->action(function($record) {
+                            $header = $record->jurnalMemorial ?? $record;
+                            $header->confirm();
+                        })
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -536,14 +565,34 @@ class JurnalMemorialResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('Batal Konfirmasi')
+                        ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed && auth()->user()->can('unconfirm', $record))
+                        ->visible(function($record) {
+                            try {
+                                $header = $record->jurnalMemorial ?? $record;
+                                
+                                if (!($header instanceof \App\Models\JurnalMemorial)) {
+                                    return false;
+                                }
+                                
+                                if (!$header->is_confirmed) {
+                                    return false;
+                                }
+                                
+                                return auth()->user()->can('unconfirm_jurnal::memorial');
+                            } catch (\Exception $e) {
+                                \Log::error('Error checking unconfirm visibility: ' . $e->getMessage());
+                                return false;
+                            }
+                        })
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(fn($record) => $record->unconfirm())
+                        ->action(function($record) {
+                            $header = $record->jurnalMemorial ?? $record;
+                            $header->unconfirm();
+                        })
                         ->successNotification(
                             Notification::make()
                                 ->success()
