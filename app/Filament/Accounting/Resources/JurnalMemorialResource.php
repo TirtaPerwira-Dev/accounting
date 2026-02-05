@@ -662,7 +662,8 @@ class JurnalMemorialResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalMemorialResource\RelationManagers\DetailsRelationManager::class,
+            // Relation manager dihapus karena model resource adalah Detail
+            // Detail ditampilkan langsung di infolist ViewPage
         ];
     }
 
