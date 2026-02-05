@@ -628,8 +628,25 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(function($record) {
-                            $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_confirmed && auth()->user()->can('confirm', $header);
+                            try {
+                                // Get header dari relationship atau langsung dari record
+                                $header = $record->jurnalPembelian ?? $record;
+                                
+                                // Pastikan header adalah JurnalPembelian dan belum dikonfirmasi
+                                if (!($header instanceof \App\Models\JurnalPembelian)) {
+                                    return false;
+                                }
+                                
+                                if ($header->is_confirmed) {
+                                    return false;
+                                }
+                                
+                                // Check permission - gunakan permission langsung tanpa policy
+                                return auth()->user()->can('confirm_jurnal::pembelian');
+                            } catch (\Exception $e) {
+                                \Log::error('Error checking confirm visibility: ' . $e->getMessage());
+                                return false;
+                            }
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
@@ -649,8 +666,25 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
                         ->visible(function($record) {
-                            $header = $record->jurnalPembelian ?? $record;
-                            return $header->is_confirmed && auth()->user()->can('unconfirm', $header);
+                            try {
+                                // Get header dari relationship atau langsung dari record
+                                $header = $record->jurnalPembelian ?? $record;
+                                
+                                // Pastikan header adalah JurnalPembelian dan sudah dikonfirmasi
+                                if (!($header instanceof \App\Models\JurnalPembelian)) {
+                                    return false;
+                                }
+                                
+                                if (!$header->is_confirmed) {
+                                    return false;
+                                }
+                                
+                                // Check permission - gunakan permission langsung tanpa policy
+                                return auth()->user()->can('unconfirm_jurnal::pembelian');
+                            } catch (\Exception $e) {
+                                \Log::error('Error checking unconfirm visibility: ' . $e->getMessage());
+                                return false;
+                            }
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
@@ -671,12 +705,24 @@ class JurnalPembelianResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            $header->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekeningDebit.kelompok', 'details.nomorBantuDebit']);
+                            $header->load([
+                                'nomorBantuKredit.rekening.kelompok', 
+                                'kodeProyek', 
+                                'details.nomorBantuDebit.rekening.kelompok', 
+                                'details.kodeProyek',
+                                'confirmedBy'
+                            ]);
+                            
+                            // Get company data
+                            $company = \App\Models\Company::first();
                             
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
+                                'company' => $company,
                                 'jurnal' => $header,
                                 'generatedAt' => now()->format('d M Y H:i'),
-                            ])->setPaper('a4', 'portrait');
+                            ])->setPaper('a4', 'portrait')
+                              ->setOption('isHtml5ParserEnabled', true)
+                              ->setOption('isRemoteEnabled', true);
 
                             $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->no_reff ?? $header->id);
 
