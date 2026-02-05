@@ -558,14 +558,6 @@ class JurnalPenerimaanKasResource extends Resource
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight(),
 
-                Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
-
                 Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_posted')
                     ->label('Posted')
                     ->boolean()
@@ -574,6 +566,14 @@ class JurnalPenerimaanKasResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable(),
+
+                Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_confirmed')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-clock')
+                    ->trueColor('success')
+                    ->falseColor('warning'),
 
                 Tables\Columns\TextColumn::make('jurnalPenerimaanKas.no_reff')
                     ->label('No Reff')

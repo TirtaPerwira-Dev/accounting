@@ -545,8 +545,19 @@ class JurnalRekeningAirResource extends Resource
                     ->weight('medium')
                     ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
+                Tables\Columns\IconColumn::make('jurnalRekeningAir.is_posted')
+                    ->label('Posted')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-clock')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->sortable()
+                    ->alignCenter()
+                    ->toggleable(),
+                    
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_confirmed')
-                    ->label('Konfirmasi')
+                    ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
@@ -554,17 +565,6 @@ class JurnalRekeningAirResource extends Resource
                     ->falseColor('warning')
                     ->sortable()
                     ->alignCenter(),
-
-                Tables\Columns\IconColumn::make('jurnalRekeningAir.is_posted')
-                    ->label('Posted')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('gray')
-                    ->sortable()
-                    ->alignCenter()
-                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
                     ->label('No Reff')

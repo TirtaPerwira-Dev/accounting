@@ -405,7 +405,7 @@ class JurnalMemorialResource extends Resource
                     ->alignRight()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_posted')
+                Tables\Columns\IconColumn::make('jurnalMemorial.is_posted')
                     ->label('Posted')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-badge')
