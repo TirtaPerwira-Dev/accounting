@@ -47,15 +47,21 @@ class ViewJurnalPembelian extends ViewRecord
                 }),
 
             Actions\Action::make('confirm')
-                ->label('Konfirmasi')
+                ->label('✓ Konfirmasi')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn($record) => !$record->is_confirmed)
+                ->action(function ($record) {
+                    $record->confirm();
+                    Notification::make()
+                        ->title('Jurnal berhasil dikonfirmasi')
+                        ->success()
+                        ->send();
+                })
                 ->requiresConfirmation()
-                ->modalHeading('Konfirmasi Jurnal')
-                ->modalSubheading('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit.')
-                ->action(fn($record) => $record->confirm())
-                ->successNotificationTitle('Jurnal berhasil dikonfirmasi'),
+                ->modalHeading('Konfirmasi Jurnal Pembelian')
+                ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Jurnal yang sudah dikonfirmasi tidak bisa diedit.')
+                ->modalSubmitActionLabel('Ya, Konfirmasi')
+                ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm_jurnal::pembelian')),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
@@ -69,7 +75,10 @@ class ViewJurnalPembelian extends ViewRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm', $record)),
+                ->modalHeading('Batal Konfirmasi Jurnal')
+                ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
+                ->modalSubmitActionLabel('Ya, Batalkan')
+                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm_jurnal::pembelian')),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -217,6 +226,38 @@ class ViewJurnalPembelian extends ViewRecord
                             ]),
                     ])
                     ->compact(),
+
+                // ===================== STATUS & AUDIT =====================
+                Components\Section::make('Status & Audit')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Components\Grid::make(4)->schema([
+                            Components\IconEntry::make('is_confirmed')
+                                ->label('Status Konfirmasi')
+                                ->boolean()
+                                ->trueIcon('heroicon-o-check-badge')
+                                ->falseIcon('heroicon-o-clock')
+                                ->trueColor('success')
+                                ->falseColor('warning'),
+
+                            Components\TextEntry::make('confirmed_at')
+                                ->label('Dikonfirmasi Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('Belum dikonfirmasi'),
+
+                            Components\IconEntry::make('is_posted')
+                                ->label('Status Posting')
+                                ->boolean()
+                                ->trueIcon('heroicon-o-check-badge')
+                                ->falseIcon('heroicon-o-x-circle')
+                                ->trueColor('success')
+                                ->falseColor('gray'),
+
+                            Components\TextEntry::make('updated_at')
+                                ->label('Terakhir Diubah')
+                                ->dateTime('d F Y H:i'),
+                        ]),
+                    ]),
             ]);
     }
 }

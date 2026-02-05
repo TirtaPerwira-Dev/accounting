@@ -53,7 +53,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                 ->requiresConfirmation()
                 ->modalHeading('Konfirmasi Jurnal')
                 ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm', $record)),
+                ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm_jurnal::bayar::kas::bank')),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
@@ -70,7 +70,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                 ->requiresConfirmation()
                 ->modalHeading('Batalkan Konfirmasi')
                 ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm', $record)),
+                ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm_jurnal::bayar::kas::bank')),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')

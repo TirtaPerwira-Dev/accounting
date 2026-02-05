@@ -243,9 +243,22 @@
 <body>
     <!-- ====== KOP SURAT ====== -->
     <div class="kop-surat">
-        <div class="company-name">Pemerintah Kabupaten Purbalingga</div>
-        <div class="company-name">Perusahaan Umum Daerah Air Minum Tirta Perwira</div>
-        <div class="company-name">Kabupaten Purbalingga</div>
+        @if($company)
+            <div class="company-name">{{ $company->name }}</div>
+            @if($company->address)
+                <div style="font-size: 8pt; font-weight: normal; margin-top: 2px;">{{ $company->address }}</div>
+            @endif
+            @if($company->phone)
+                <div style="font-size: 7.5pt; font-weight: normal;">Telp: {{ $company->phone }}</div>
+            @endif
+            @if($company->npwp)
+                <div style="font-size: 7.5pt; font-weight: normal;">NPWP: {{ $company->npwp }}</div>
+            @endif
+        @else
+            <div class="company-name">Pemerintah Kabupaten Purbalingga</div>
+            <div class="company-name">Perusahaan Umum Daerah Air Minum Tirta Perwira</div>
+            <div class="company-name">Kabupaten Purbalingga</div>
+        @endif
     </div>
 
     <!-- ====== JUDUL LAPORAN ====== -->
@@ -272,10 +285,11 @@
                     <th style="width: 6%;">Tanggal</th>
                     <th style="width: 7.5%;">Bukti</th>
                     <th style="width: 7.5%;">Kode<br>Akun</th>
-                    <th style="width: 29%;">Nama Akun</th>
-                    <th style="width: 23%;">Keterangan</th>
-                    <th style="width: 4.5%;">Status</th>
-                    <th style="width: 13%;">Debit (Rp)</th>
+                    <th style="width: 22%;">Nama Akun</th>
+                    <th style="width: 11%;">Debit (Rp)</th>
+                    <th style="width: 11%;">Kredit (Rp)</th>
+                    <th style="width: 20%;">Keterangan</th>
+                    <th style="width: 5.5%;">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -300,21 +314,23 @@
                         <td class="text-center">{{ $rowNum }}</td>
                         <td class="text-center">{{ $jurnal->no_reff }}</td>
                         <td class="text-center">{{ $jurnal->tanggal->format('d/m/Y') }}</td>
-                        <td colspan="3" style="padding-left: 6px;">
-                            <strong>KREDIT:</strong> {{ $kodeSakepKredit }} - {{ $namaAkunKredit }}
+                        <td colspan="2" style="padding-left: 6px;">
+                            <strong>{{ $kodeSakepKredit }}</strong>
                             @if($jurnal->kodeProyek)
-                                <br><span style="font-size: 6pt; font-weight: normal;">Proyek : {{ $jurnal->kodeProyek->name }}</span>
+                                <br><span style="font-size: 6pt; font-weight: normal;">Pry: {{ $jurnal->kodeProyek->kode }}</span>
                             @endif
                         </td>
+                        <td style="padding-left: 6px;"><strong>{{ $namaAkunKredit }}</strong></td>
+                        <td class="text-right">-</td>
+                        <td class="text-right amount">{{ number_format($totalGroupAmount, 0, ',', '.') }}</td>
                         <td style="font-size: 6.5pt; padding-left: 4px;">{{ $jurnal->keterangan ?: '-' }}</td>
                         <td class="text-center">
                             @if($jurnal->is_confirmed)
-                                <span style="color: green; font-size: 8pt;">✓</span>
+                                <span style="color: green; font-size: 8pt; font-weight: bold;">OK</span>
                             @else
-                                <span style="color: orange; font-size: 8pt;">?</span>
+                                <span style="color: orange; font-size: 8pt; font-weight: bold;">P</span>
                             @endif
                         </td>
-                        <td class="text-right amount">{{ number_format($totalGroupAmount, 0, ',', '.') }}</td>
                     </tr>
 
                     <!-- Detail Rows (Akun Debit) -->
@@ -334,9 +350,10 @@
                             <td style="font-size: 6.5pt; padding-left: 4px;">{{ $detail->bukti ?: '-' }}</td>
                             <td class="text-center">{{ $kodeSakepDebit }}</td>
                             <td style="padding-left: 10px;">{{ $namaAkunDebit }}</td>
+                            <td class="text-right amount">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
+                            <td class="text-right">-</td>
                             <td style="font-size: 6.5pt; padding-left: 4px;">{{ $detail->keterangan ?: '-' }}</td>
                             <td></td>
-                            <td class="text-right amount">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
 
@@ -348,8 +365,10 @@
 
                 <!-- Grand Total -->
                 <tr class="grand-total-row">
-                    <td colspan="8" class="text-right" style="padding-right: 8px;">TOTAL KESELURUHAN:</td>
+                    <td colspan="6" class="text-right" style="padding-right: 8px;">TOTAL KESELURUHAN:</td>
                     <td class="text-right amount" style="font-size: 7.5pt;">{{ number_format($grandTotalDebit, 0, ',', '.') }}</td>
+                    <td class="text-right amount" style="font-size: 7.5pt;">{{ number_format($grandTotalCredit, 0, ',', '.') }}</td>
+                    <td colspan="2"></td>
                 </tr>
             </tbody>
         </table>

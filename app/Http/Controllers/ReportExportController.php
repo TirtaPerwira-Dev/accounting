@@ -111,6 +111,9 @@ class ReportExportController extends Controller
      */
     public function jurnalPembelianPdf(Request $request)
     {
+        // Get company data
+        $company = \App\Models\Company::first();
+        
         $filters = [
             'dari_tanggal' => $request->input('dari_tanggal'),
             'sampai_tanggal' => $request->input('sampai_tanggal'),
@@ -142,6 +145,7 @@ class ReportExportController extends Controller
         $data = $query->with([
                 'jurnalPembelian.nomorBantuKredit.rekening.kelompok',
                 'jurnalPembelian.kodeProyek',
+                'jurnalPembelian.confirmedBy',
                 'nomorBantuDebit.rekening.kelompok',
                 'kodeProyek'
             ])
@@ -165,6 +169,7 @@ class ReportExportController extends Controller
             Carbon::parse($filters['sampai_tanggal'])->format('d M Y');
 
         $pdf = Pdf::loadView('reports.jurnal-pembelian', [
+            'company' => $company,
             'data' => $data,
             'filters' => $filters,
             'period' => $period,
@@ -189,6 +194,9 @@ class ReportExportController extends Controller
      */
     public function jurnalPembelianSinglePdf($id)
     {
+        // Get company data
+        $company = \App\Models\Company::first();
+        
         $record = \App\Models\JurnalPembelian::with([
                 'nomorBantuKredit.rekening.kelompok',
                 'kodeProyek',
@@ -199,6 +207,7 @@ class ReportExportController extends Controller
             ->findOrFail($id);
 
         $pdf = Pdf::loadView('reports.jurnal-pembelian-single', [
+            'company' => $company,
             'jurnal' => $record,
             'generatedAt' => now()->format('d M Y H:i'),
         ])->setPaper('a4', 'portrait')

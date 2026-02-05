@@ -296,9 +296,22 @@
         @endif
 
         <div class="header">
-            <p class="kop-text">Pemerintah Kabupaten Purbalingga</p>
-            <p class="kop-perumda">Perusahaan Umum Daerah Air Minum Tirta Perwira</p>
-            <p class="kop-text">Kabupaten Purbalingga</p>
+            @if($company)
+                <p class="kop-text">{{ $company->name }}</p>
+                @if($company->address)
+                    <p class="kop-text" style="font-size: 11px;">{{ $company->address }}</p>
+                @endif
+                @if($company->phone)
+                    <p class="kop-text" style="font-size: 10px;">Telp: {{ $company->phone }}</p>
+                @endif
+                @if($company->npwp)
+                    <p class="kop-text" style="font-size: 10px;">NPWP: {{ $company->npwp }}</p>
+                @endif
+            @else
+                <p class="kop-text">Pemerintah Kabupaten Purbalingga</p>
+                <p class="kop-perumda">Perusahaan Umum Daerah Air Minum Tirta Perwira</p>
+                <p class="kop-text">Kabupaten Purbalingga</p>
+            @endif
             <hr class="kop-divider">
         </div>
 
