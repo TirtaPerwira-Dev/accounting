@@ -720,19 +720,13 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->successNotificationTitle('Jurnal terpilih berhasil dihapus'),
                 ]),
-            ])
-            ->defaultSort('jurnal_pembelians.tanggal', 'desc')
-            ->defaultPaginationPageOption(25)
-            ->paginated([10, 25, 50, 100])
-            ->recordUrl(
-                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id])
-            );
+            ]);
     }
 
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalPembelianResource\RelationManagers\DetailsRelationManager::class,
+            //
         ];
     }
 
