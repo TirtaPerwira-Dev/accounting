@@ -62,19 +62,62 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                         'details.nomorBantu',
                         'details.kodeProyek',
                         'createdBy',
-                        'confirmedBy',
-                        'postedBy'
                     ]);
 
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.jurnal-penerimaan-kas', [
-                        'record' => $parent,
-                    ]);
+                    $items = [];
+                    // Debit Item (Bank/Kas - Tujuan)
+                    $bankCode = '-';
+                    if ($parent->kasBank && $parent->kasBank->rekening) {
+                        $bankCode = ($parent->kasBank->rekening->kelompok->no_kel ?? '') . 
+                                    ($parent->kasBank->rekening->no_rek ?? '') . 
+                                    ($parent->kasBank->no_bantu ?? '');
+                    }
+                    $items[] = [
+                        'code' => $bankCode,
+                        'name' => $parent->kasBank->nm_bantu ?? $parent->kasBank->rekening->nama_rek ?? '-',
+                        'description' => $parent->keterangan,
+                        'debit' => $parent->details->sum('jumlah'),
+                        'credit' => 0,
+                    ];
+
+                    // Credit Items (Details - Sumber)
+                    foreach ($parent->details as $detail) {
+                        $code = '-';
+                        if ($detail->rekening) {
+                            $code = ($detail->rekening->kelompok->no_kel ?? '') . 
+                                    ($detail->rekening->no_rek ?? '') . 
+                                    ($detail->nomorBantu->no_bantu ?? '');
+                        }
+                        $items[] = [
+                            'code' => $code,
+                            'name' => $detail->rekening->nama_rek ?? '-',
+                            'description' => $detail->keterangan_item ?? $parent->keterangan,
+                            'debit' => 0,
+                            'credit' => $detail->jumlah,
+                        ];
+                    }
+
+                    $voucher = [
+                        'title' => 'BUKTI PENERIMAAN KAS / BANK',
+                        'number' => $parent->nomor_bukti ?? $parent->bukti,
+                        'date' => $parent->tanggal,
+                        'reference' => $parent->no_reff,
+                        'description' => $parent->keterangan,
+                        'payee' => 'Internal / Penerimaan Kas',
+                        'created_by' => $parent->createdBy?->name,
+                        'items' => $items,
+                    ];
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
+                        'voucher' => $voucher,
+                        'company' => \App\Models\Company::first(),
+                    ])->setPaper('a4', 'portrait');
 
                     $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->nomor_bukti ?? $parent->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        'jurnal-penerimaan-kas-' . $safeFilename . '.pdf'
+                        'voucher-penerimaan-kas-' . $safeFilename . '.pdf'
                     );
                 }),
 

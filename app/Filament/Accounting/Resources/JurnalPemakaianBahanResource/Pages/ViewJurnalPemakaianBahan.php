@@ -63,13 +63,49 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                             ->send();
                         return;
                     }
-                    $jurnal->load(['details.rekeningDebit', 'details.rekeningKredit', 'details.nomorBantuDebit', 'details.nomorBantuKredit', 'details.kodeProyek', 'createdBy', 'confirmedBy']);
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pemakaian-bahan-detail', [
-                        'jurnal' => $jurnal,
-                    ]);
+                    $jurnal->load(['details.rekeningDebit.kelompok', 'details.rekeningKredit.kelompok', 'details.nomorBantuDebit', 'details.nomorBantuKredit', 'details.kodeProyek', 'createdBy']);
+
+                    $items = [];
+                    foreach ($jurnal->details as $detail) {
+                        if ($detail->rekening_debit_id) {
+                            $items[] = [
+                                'code' => ($detail->rekeningDebit->kelompok->no_kel ?? '') . ($detail->rekeningDebit->no_rek ?? '') . ($detail->nomorBantuDebit->no_bantu ?? ''),
+                                'name' => $detail->rekeningDebit->nama_rek ?? '-',
+                                'description' => $detail->keterangan ?? $jurnal->keterangan,
+                                'debit' => $detail->jumlah,
+                                'credit' => 0,
+                            ];
+                        }
+                        if ($detail->rekening_kredit_id) {
+                            $items[] = [
+                                'code' => ($detail->rekeningKredit->kelompok->no_kel ?? '') . ($detail->rekeningKredit->no_rek ?? '') . ($detail->nomorBantuKredit->no_bantu ?? ''),
+                                'name' => $detail->rekeningKredit->nama_rek ?? '-',
+                                'description' => $detail->keterangan ?? $jurnal->keterangan,
+                                'debit' => 0,
+                                'credit' => $detail->jumlah,
+                            ];
+                        }
+                    }
+
+                    $voucher = [
+                        'title' => 'BUKTI JURNAL PEMAKAIAN BAHAN',
+                        'number' => $jurnal->bukti ?? $jurnal->no_reff,
+                        'date' => $jurnal->tanggal,
+                        'reference' => $jurnal->no_reff,
+                        'description' => $jurnal->keterangan,
+                        'payee' => 'Internal / Pemakaian Bahan',
+                        'created_by' => $jurnal->createdBy?->name,
+                        'items' => $items,
+                    ];
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
+                        'voucher' => $voucher,
+                        'company' => \App\Models\Company::first(),
+                    ])->setPaper('a4', 'portrait');
+
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        "jurnal-pemakaian-bahan-{$jurnal->no_reff}.pdf"
+                        "voucher-pemakaian-bahan-{$jurnal->no_reff}.pdf"
                     );
                 }),
 

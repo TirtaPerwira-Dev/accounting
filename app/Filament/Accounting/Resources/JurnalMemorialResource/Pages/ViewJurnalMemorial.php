@@ -74,18 +74,51 @@ class ViewJurnalMemorial extends ViewRecord
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
                 ->action(function ($record) {
-                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-memorial-single', [
-                        'jurnal' => $record,
-                        'generatedAt' => now()->format('d M Y H:i'),
+                    $parent = $record->jurnalMemorial;
+                    $parent->load([
+                        'details.rekening.kelompok',
+                        'details.nomorBantu',
+                        'details.kodeProyek',
+                        'createdBy',
                     ]);
 
-                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->bukti ?? $record->id);
+                    $items = $parent->details->map(function ($item) use ($parent) {
+                        $code = '-';
+                        if ($item->rekening) {
+                            $code = ($item->rekening->kelompok->no_kel ?? '') . 
+                                    ($item->rekening->no_rek ?? '') . 
+                                    ($item->nomorBantu->no_bantu ?? '');
+                        }
+                        return [
+                            'code' => $code,
+                            'name' => $item->rekening->nama_rek ?? '-',
+                            'description' => $item->keterangan ?? $parent->keterangan,
+                            'debit' => $item->posisi === 'D' ? $item->jumlah : 0,
+                            'credit' => $item->posisi === 'K' ? $item->jumlah : 0,
+                        ];
+                    });
+
+                    $voucher = [
+                        'title' => 'BUKTI JURNAL MEMORIAL',
+                        'number' => $parent->bukti ?? $parent->no_reff,
+                        'date' => $parent->tanggal,
+                        'reference' => $parent->no_reff,
+                        'description' => $parent->keterangan,
+                        'payee' => 'Internal / Memorial',
+                        'created_by' => $parent->createdBy?->name,
+                        'items' => $items,
+                    ];
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
+                        'voucher' => $voucher,
+                        'company' => \App\Models\Company::first(),
+                    ])->setPaper('a4', 'portrait');
+
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->bukti ?? $parent->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        'jurnal-memorial-' . $safeFilename . '.pdf'
+                        'voucher-memorial-' . $safeFilename . '.pdf'
                     );
                 }),
 

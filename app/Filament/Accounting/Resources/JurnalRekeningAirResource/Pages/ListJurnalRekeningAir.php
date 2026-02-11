@@ -24,43 +24,43 @@ class ListJurnalRekeningAir extends ListRecords
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary'),
 
-            // Export PDF Action
             Actions\Action::make('exportPdf')
                 ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
-                    Forms\Components\DatePicker::make('start_date')
+                    Forms\Components\DatePicker::make('dari_tanggal')
                         ->label('Dari Tanggal')
                         ->native(false)
                         ->default(now()->startOfMonth())
-                        ->required()
-                        ->maxDate(now()),
-                    Forms\Components\DatePicker::make('end_date')
+                        ->required(),
+                    Forms\Components\DatePicker::make('sampai_tanggal')
                         ->label('Sampai Tanggal')
                         ->native(false)
                         ->default(now())
                         ->required()
-                        ->maxDate(now())
-                        ->afterOrEqual('start_date'),
+                        ->afterOrEqual('dari_tanggal'),
                     Forms\Components\Select::make('status')
                         ->label('Status')
                         ->options([
-                            '' => 'Semua',
-                            'confirmed' => 'Sudah Dikonfirmasi',
-                            'pending' => 'Belum Dikonfirmasi',
+                            'all' => 'Semua',
+                            'confirmed' => 'Dikonfirmasi',
+                            'pending' => 'Belum Konfirmasi',
                         ])
-                        ->default(''),
+                        ->default('all'),
                 ])
+                ->modalWidth('md')
+                ->modalHeading('Filter Laporan Jurnal Rekening Air')
+                ->modalSubmitActionLabel('Cetak PDF')
                 ->action(function (array $data) {
-                    $url = route('jurnal-rekening-air.pdf', [
-                        'start_date' => $data['start_date'],
-                        'end_date' => $data['end_date'],
-                        'status' => $data['status'] ?? '',
+                    $url = route('report.periodic-pdf', [
+                        'type' => 'rekening_air',
+                        'dari_tanggal' => $data['dari_tanggal'],
+                        'sampai_tanggal' => $data['sampai_tanggal'],
+                        'status' => $data['status'] ?? 'all',
                     ]);
                     
-                    // Dispatch browser event to open URL in new tab
-                    $this->dispatch('open-url-in-new-tab', url: $url);
+                    $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];
     }

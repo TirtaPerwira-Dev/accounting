@@ -618,7 +618,7 @@ class JurnalBayarKasBankResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Accounting\Resources\JurnalBayarKasBankResource\RelationManagers\DetailsRelationManager::class,
+            //
         ];
     }
 

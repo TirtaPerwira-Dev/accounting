@@ -35,60 +35,50 @@ Route::get('/jurnal-penerimaan-kas/pdf/preview', [PdfPreviewController::class, '
     ->name('jurnal-penerimaan-kas.pdf.preview');
 
 // Jurnal Rekening Air PDF Routes
-Route::get('/jurnal-rekening-air/laporan-pdf', function () {
-    $startDate = request('start_date');
-    $endDate = request('end_date');
-    $status = request('status');
-
-    $query = \App\Models\JurnalRekeningAir::query();
-
-    if ($startDate) {
-        $query->whereDate('tanggal', '>=', $startDate);
-    }
-
-    if ($endDate) {
-        $query->whereDate('tanggal', '<=', $endDate);
-    }
-
-    if ($status === 'confirmed') {
-        $query->where('is_confirmed', true);
-    } elseif ($status === 'pending') {
-        $query->where('is_confirmed', false);
-    }
-
-    $journals = $query->with([
+Route::get('/jurnal-rekening-air/{id}/pdf', function ($id) {
+    $jurnal = \App\Models\JurnalRekeningAir::with([
         'company',
-        'details.kelompok',
         'details.rekening.kelompok',
         'details.nomorBantu',
-        'details.kodeProyek'
-    ])->orderBy('tanggal', 'desc')->get();
-
-    $pdf = Pdf::loadView('reports.jurnal-rekening-air', [
-        'journals' => $journals,
-        'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-        'startDate' => $startDate,
-        'endDate' => $endDate,
-        'status' => $status,
-    ]);
-
-    return response($pdf->output(), 200, [
-        'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="jurnal-rekening-air-' . now()->format('Y-m-d-His') . '.pdf"'
-    ]);
-})->name('jurnal-rekening-air.pdf');
-
-Route::get('/jurnal-rekening-air/{id}/pdf', function ($id) {
-    $detail = \App\Models\JurnalRekeningAirDetail::with(['jurnalRekeningAir'])->findOrFail($id);
-    $jurnal = $detail->jurnalRekeningAir;
+        'details.kodeProyek',
+        'createdBy'
+    ])->findOrFail($id);
     
-    $pdf = Pdf::loadView('reports.jurnal-rekening-air-single', [
-        'jurnal' => $jurnal,
-        'company' => auth()->user()?->company ?? \App\Models\Company::first(),
-    ]);
+    $voucher = [
+        'title' => 'BUKTI JURNAL REKENING AIR',
+        'number' => $jurnal->bukti,
+        'date' => $jurnal->tanggal,
+        'reference' => $jurnal->no_reff,
+        'description' => $jurnal->keterangan,
+        'payee' => 'Internal / Rekening Air',
+        'created_by' => $jurnal->createdBy?->name,
+        'items' => $jurnal->details->map(function ($item) {
+            $code = '-';
+            if ($item->rekening) {
+                $code = ($item->rekening->kelompok->no_kel ?? '') . 
+                        ($item->rekening->no_rek ?? '') . 
+                        ($item->nomorBantu->no_bantu ?? '');
+            }
+            return [
+                'code' => $code,
+                'name' => $item->rekening->nama_rek ?? '-',
+                'description' => $item->keterangan,
+                'debit' => $item->position === 'debit' ? $item->jumlah : 0,
+                'credit' => $item->position === 'kredit' ? $item->jumlah : 0,
+            ];
+        }),
+    ];
+
+    $pdf = Pdf::loadView('pdf.voucher', [
+        'voucher' => $voucher,
+        'company' => $jurnal->company ?? \App\Models\Company::first(),
+    ])->setPaper('a4', 'portrait');
 
     return response($pdf->output(), 200, [
         'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="jurnal-rekening-air-' . $jurnal->bukti . '.pdf"'
+        'Content-Disposition' => 'inline; filename="voucher-rekening-air-' . $jurnal->bukti . '.pdf"'
     ]);
 })->name('jurnal-rekening-air.single-pdf');
+
+// Unified Periodic Report Route
+Route::get('/report/periodic-pdf', [ReportExportController::class, 'periodicReportPdf'])->name('report.periodic-pdf');

@@ -26,50 +26,38 @@ class ListJurnalPemakaianBahans extends ListRecords
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
-                    Forms\Components\DatePicker::make('start_date')
-                        ->label('Tanggal Mulai')
+                    Forms\Components\DatePicker::make('dari_tanggal')
+                        ->label('Dari Tanggal')
                         ->required()
                         ->default(now()->startOfMonth())
                         ->native(false),
-
-                    Forms\Components\DatePicker::make('end_date')
-                        ->label('Tanggal Akhir')
+                    Forms\Components\DatePicker::make('sampai_tanggal')
+                        ->label('Sampai Tanggal')
                         ->required()
-                        ->default(now()->endOfMonth())
+                        ->default(now())
                         ->native(false),
-
                     Forms\Components\Select::make('status')
                         ->label('Status')
                         ->options([
-                            'semua' => 'Semua',
+                            'all' => 'Semua',
                             'confirmed' => 'Dikonfirmasi',
-                            'pending' => 'Pending',
+                            'pending' => 'Belum Konfirmasi',
                         ])
-                        ->default('semua')
+                        ->default('all')
                         ->required(),
                 ])
+                ->modalWidth('md')
+                ->modalHeading('Filter Laporan Jurnal Pemakaian Bahan')
+                ->modalSubmitActionLabel('Cetak PDF')
                 ->action(function (array $data) {
-                    $query = JurnalPemakaianBahan::query()
-                        ->with(['kelompokDebit', 'rekeningDebit', 'nomorBantuDebit', 'kelompokKredit', 'rekeningKredit', 'nomorBantuKredit', 'company'])
-                        ->whereBetween('tanggal', [$data['start_date'], $data['end_date']]);
-
-                    if ($data['status'] === 'confirmed') {
-                        $query->where('is_confirmed', true);
-                    } elseif ($data['status'] === 'pending') {
-                        $query->where('is_confirmed', false);
-                    }
-
-                    $journals = $query->orderBy('tanggal', 'desc')->get();
-                    $company = auth()->user()?->company ?? (object)['name' => 'PDAM PURBALINGGA'];
-                    $startDate = date('d/m/Y', strtotime($data['start_date']));
-                    $endDate = date('d/m/Y', strtotime($data['end_date']));
-                    $status = $data['status'];
-
-                    $pdf = Pdf::loadView('reports.jurnal-pemakaian-bahan', compact('journals', 'company', 'startDate', 'endDate', 'status'));
-
-                    return response()->streamDownload(function () use ($pdf) {
-                        echo $pdf->output();
-                    }, 'laporan-jurnal-pemakaian-bahan-' . date('Ymd') . '.pdf');
+                    $url = route('report.periodic-pdf', [
+                        'type' => 'pemakaian_bahan',
+                        'dari_tanggal' => $data['dari_tanggal'],
+                        'sampai_tanggal' => $data['sampai_tanggal'],
+                        'status' => $data['status'] ?? 'all',
+                    ]);
+                    
+                    $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];
     }
