@@ -112,19 +112,50 @@ class ViewJurnalPembelian extends ViewRecord
 
     protected function generateJurnalPdf($record): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $record->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek']);
+        $record->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekeningDebit.kelompok', 'details.nomorBantuDebit', 'createdBy']);
 
-        $pdf = Pdf::loadView('reports.jurnal-pembelian-single', [
-            'jurnal' => $record,
-            'generatedAt' => now()->format('d M Y H:i'),
-        ]);
+        $items = [];
+        // Debit Items (Details)
+        foreach ($record->details as $detail) {
+            $items[] = [
+                'code' => $detail->kode_sakep_debit,
+                'name' => $detail->nama_akun_debit,
+                'description' => $detail->keterangan ?? $record->keterangan,
+                'debit' => $detail->jumlah,
+                'credit' => 0,
+            ];
+        }
 
-        // Sanitize filename - remove invalid characters
+        // Credit Item (Hutang)
+        $items[] = [
+            'code' => $record->kode_sakep_kredit,
+            'name' => $record->nama_akun_kredit,
+            'description' => $record->keterangan,
+            'debit' => 0,
+            'credit' => $record->rp,
+        ];
+
+        $voucher = [
+            'title' => 'BUKTI JURNAL PEMBELIAN',
+            'number' => $record->bukti ?? $record->no_reff,
+            'date' => $record->tanggal,
+            'reference' => $record->no_reff,
+            'description' => $record->keterangan,
+            'payee' => $record->nama_nomor_bantu_kredit ?? '-',
+            'created_by' => $record->createdBy?->name,
+            'items' => $items,
+        ];
+
+        $pdf = Pdf::loadView('pdf.voucher', [
+            'voucher' => $voucher,
+            'company' => \App\Models\Company::first(),
+        ])->setPaper('a4', 'portrait');
+
         $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_reff);
 
         return response()->streamDownload(
             fn() => print($pdf->output()),
-            'jurnal-pembelian-' . $safeFilename . '.pdf'
+            'voucher-pembelian-' . $safeFilename . '.pdf'
         );
     }
 

@@ -19,7 +19,7 @@ class ListJurnalPenerimaanKas extends ListRecords
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary'),
 
-            Actions\Action::make('export_all_pdf')
+            Actions\Action::make('exportPdf')
                 ->label('Laporan PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
@@ -31,7 +31,7 @@ class ListJurnalPenerimaanKas extends ListRecords
                         ->native(false),
                     \Filament\Forms\Components\DatePicker::make('sampai_tanggal')
                         ->label('Sampai Tanggal')
-                        ->default(now()->endOfMonth())
+                        ->default(now())
                         ->required()
                         ->native(false)
                         ->afterOrEqual('dari_tanggal'),
@@ -55,31 +55,29 @@ class ListJurnalPenerimaanKas extends ListRecords
                         })
                         ->searchable()
                         ->placeholder('Semua Kas/Bank'),
+                    \Filament\Forms\Components\Select::make('status')
+                        ->label('Status')
+                        ->options([
+                            'all' => 'Semua',
+                            'confirmed' => 'Dikonfirmasi',
+                            'pending' => 'Belum Konfirmasi',
+                        ])
+                        ->default('all'),
                 ])
-                ->action(function (array $data, Actions\Action $action) {
-                    $fromDate = \Carbon\Carbon::parse($data['dari_tanggal'])->format('Y-m-d');
-                    $toDate = \Carbon\Carbon::parse($data['sampai_tanggal'])->format('Y-m-d');
-                    $kasBank = $data['kas_bank_filter'] ?? '';
-                    
-                    // Build URL untuk preview PDF
-                    $url = route('jurnal-penerimaan-kas.pdf.preview', [
-                        'from' => $fromDate,
-                        'to' => $toDate,
-                        'kas_bank' => $kasBank
+                ->action(function (array $data) {
+                    $url = route('report.periodic-pdf', [
+                        'type' => 'penerimaan_kas',
+                        'dari_tanggal' => $data['dari_tanggal'],
+                        'sampai_tanggal' => $data['sampai_tanggal'],
+                        'kas_bank' => $data['kas_bank_filter'] ?? '',
+                        'status' => $data['status'] ?? 'all',
                     ]);
                     
-                    // Inject JavaScript untuk membuka tab baru
-                    \Filament\Notifications\Notification::make()
-                        ->title('Preview PDF')
-                        ->body('Laporan PDF sedang dibuka di tab baru')
-                        ->success()
-                        ->send();
-                    
-                    // Redirect ke URL dengan openUrlInNewTab
-                    $action->url($url)->openUrlInNewTab();
+                    $this->js('window.open("' . $url . '", "_blank")');
                 })
-                ->modalWidth('xl')
-                ->modalSubmitActionLabel('Submit')
+                ->modalWidth('md')
+                ->modalHeading('Filter Laporan Jurnal Penerimaan Kas')
+                ->modalSubmitActionLabel('Cetak PDF')
                 ->modalCancelActionLabel('Batal'),
         ];
     }

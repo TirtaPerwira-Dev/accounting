@@ -80,18 +80,62 @@ class ViewJurnalBayarKasBank extends ViewRecord
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
                 ->action(function ($record) {
-                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+                    $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu', 'createdBy']);
 
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-bayar-kas-bank-single', [
-                        'jurnal' => $record,
-                        'generatedAt' => now()->format('d M Y H:i'),
-                    ]);
+                    $items = [];
+                    // Debit Items (Details)
+                    foreach ($record->details as $detail) {
+                        $code = '-';
+                        if ($detail->rekening) {
+                            $code = ($detail->rekening->kelompok->no_kel ?? '') . 
+                                    ($detail->rekening->no_rek ?? '') . 
+                                    ($detail->nomorBantu->no_bantu ?? '');
+                        }
+                        $items[] = [
+                            'code' => $code,
+                            'name' => $detail->rekening->nama_rek ?? '-',
+                            'description' => $detail->keterangan ?? $record->keterangan,
+                            'debit' => $detail->debit > 0 ? $detail->debit : $detail->jumlah,
+                            'credit' => $detail->credit,
+                        ];
+                    }
+
+                    // Credit Item (Bank)
+                    $bankCode = '-';
+                    if ($record->rekening) {
+                        $bankCode = ($record->rekening->kelompok->no_kel ?? '') . 
+                                    ($record->rekening->no_rek ?? '') . 
+                                    ($record->nomorBantu->no_bantu ?? '');
+                    }
+                    $items[] = [
+                        'code' => $bankCode,
+                        'name' => $record->rekening->nama_rek ?? '-',
+                        'description' => $record->keterangan,
+                        'debit' => 0,
+                        'credit' => $record->rp,
+                    ];
+
+                    $voucher = [
+                        'title' => 'BUKTI PENGELUARAN KAS / BANK',
+                        'number' => $record->no_voucher ?? $record->bukti,
+                        'date' => $record->tanggal,
+                        'reference' => $record->no_reff,
+                        'description' => $record->keterangan,
+                        'payee' => $record->dibayar_kepada ?? '-',
+                        'created_by' => $record->createdBy?->name,
+                        'items' => $items,
+                    ];
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
+                        'voucher' => $voucher,
+                        'company' => \App\Models\Company::first(),
+                    ])->setPaper('a4', 'portrait');
 
                     $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->no_voucher ?? $record->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        'jurnal-bayar-kas-bank-' . $safeFilename . '.pdf'
+                        'voucher-bayar-kas-bank-' . $safeFilename . '.pdf'
                     );
                 }),
 

@@ -102,18 +102,16 @@ class ListJurnalPembelians extends ListRecords
                         ->default('all'),
                 ])
                 ->modalHeading('Filter Laporan Jurnal Pembelian')
-                ->modalSubmitActionLabel('Generate PDF')
+                ->modalWidth('md')
+                ->modalSubmitActionLabel('Cetak PDF')
                 ->action(function (array $data) {
-                    // Generate URL with parameters
-                    $params = http_build_query([
+                    $url = route('report.periodic-pdf', [
+                        'type' => 'pembelian',
                         'dari_tanggal' => $data['dari_tanggal'],
                         'sampai_tanggal' => $data['sampai_tanggal'],
                         'kode_hutang' => $data['kode_hutang'] ?? null,
                         'status' => $data['status'] ?? 'all',
                     ]);
-                    
-                    // Open in new tab using JavaScript
-                    $url = route('jurnal-pembelian.pdf') . '?' . $params;
                     
                     Notification::make()
                         ->title('PDF sedang diproses')
@@ -121,7 +119,6 @@ class ListJurnalPembelians extends ListRecords
                         ->success()
                         ->send();
                     
-                    // Redirect to PDF URL
                     $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];
