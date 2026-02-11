@@ -84,21 +84,11 @@ class JurnalPenerimaanKasResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
-                                // Kelompok (Hidden) - Auto-set to Aktiva Lancar
-                                Forms\Components\Hidden::make('kelompok_id')
-                                    ->default(function () {
-                                        return Kelompok::where('no_kel', '10')->first()?->id;
-                                    })
-                                    ->dehydrated(),
-
                                 // Rekening
                                 Forms\Components\Select::make('rekening_id')
                                     ->label('Rekening')
-                                    ->options(function (callable $get) {
-                                        $kelompokId = $get('kelompok_id');
-                                        if (!$kelompokId) return [];
-
-                                        return Rekening::where('kelompok_id', $kelompokId)
+                                    ->options(function () {
+                                        return Rekening::whereHas('kelompok', fn($q) => $q->where('no_kel', '10'))
                                             ->where(function ($q) {
                                                 $q->where('no_rek', 'like', '1101%') // Kas
                                                     ->orWhere('no_rek', 'like', '1102%'); // Bank
@@ -110,17 +100,12 @@ class JurnalPenerimaanKasResource extends Resource
                                     })
                                     ->searchable()
                                     ->required()
-                                    ->live()
-                                    ->afterStateUpdated(function (callable $set) {
-                                        $set('kas_bank_id', null);
-                                    })
-                                    ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                    ->dehydrated(),
+                                    ->live(),
 
                                 // Nomor Bantu
                                 Forms\Components\Select::make('kas_bank_id')
                                     ->label('Nomor Bantu')
-                                    ->options(function (callable $get) {
+                                    ->options(function (Forms\Get $get) {
                                         $rekeningId = $get('rekening_id');
                                         if (!$rekeningId) return [];
 
@@ -132,303 +117,195 @@ class JurnalPenerimaanKasResource extends Resource
                                     })
                                     ->searchable()
                                     ->required()
-                                    ->placeholder('Pilih Nomor Bantu')
-                                    ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                    ->dehydrated(),
+                                    ->placeholder('Pilih Nomor Bantu'),
 
                                 // Tanggal
                                 Forms\Components\DatePicker::make('tanggal')
                                     ->label('Tanggal')
                                     ->required()
                                     ->default(now())
-                                    ->native(false)
-                                    ->helperText('Tanggal penerimaan kas/bank')
-                                    ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                    ->dehydrated(),
+                                    ->native(false),
                             ]),
 
                         Forms\Components\Textarea::make('keterangan')
                             ->label('Keterangan Umum')
                             ->placeholder('Contoh: Penerimaan dari penjualan, Penerimaan bunga bank, dll')
                             ->rows(2)
-                            ->columnSpanFull()
-                            ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                            ->dehydrated(),
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(),
 
-                // === SECTION 2: FORM TAMBAH ITEM ===
-                Forms\Components\Section::make('Tambah Sumber Penerimaan')
-                    ->description('Isi form di bawah ini lalu klik "Tambah Item"')
-                    ->schema([
-                        Forms\Components\Grid::make(4)->schema([
-                            // Nomor Bukti
-                            Forms\Components\TextInput::make('temp_nomor_bukti')
-                                ->label('Nomor Bukti')
-                                ->maxLength(50)
-                                ->placeholder('Contoh: BKM-001, KAS-001')
-                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                ->dehydrated(false),
+                // === SECTION 2: ITEM SUMBER PENERIMAAN ===
+                Forms\Components\Section::make('Item Sumber Penerimaan (KREDIT)')
+                    ->description(fn (string $context): string => $context === 'create'
+                        ? 'Tambahkan item sumber penerimaan satu per satu'
+                        : 'Masukkan satu atau lebih sumber penerimaan')
+                    ->schema(function (string $context) {
+                        if ($context === 'create') {
+                            return [
+                                Forms\Components\Grid::make(3)->schema([
+                                    Forms\Components\TextInput::make('temp_nomor_bukti')
+                                        ->label('No. Bukti')
+                                        ->placeholder('BKM-XXX')
+                                        ->dehydrated(false),
 
-                            // Kode Proyek
-                            Forms\Components\Select::make('temp_kode_proyek')
-                                ->label('Kode Proyek')
-                                ->options(function () {
-                                    return KodeProyek::all()
-                                        ->pluck('name', 'id')
-                                        ->mapWithKeys(fn($nama, $id) => [
-                                            $id => KodeProyek::find($id)->kode . ' - ' . $nama
-                                        ]);
-                                })
-                                ->searchable()
-                                ->placeholder('Pilih Proyek')
-                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                ->dehydrated(false),
+                                    Forms\Components\Select::make('temp_kode_proyek_id')
+                                        ->label('Kode Proyek')
+                                        ->options(KodeProyek::all()->pluck('name', 'id'))
+                                        ->searchable()
+                                        ->dehydrated(false),
 
-                            // Rekening (Sumber Kredit)
-                            Forms\Components\Select::make('temp_rekening')
-                                ->label('Rekening (Sumber)')
-                                ->options(function () {
-                                    return Rekening::with('kelompok')
-                                        ->get()
-                                        ->mapWithKeys(fn($rekening) => [
-                                            $rekening->id => "{$rekening->kelompok->no_kel}-{$rekening->no_rek} - {$rekening->nama_rek}"
-                                        ]);
-                                })
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(function (callable $set, $state) {
-                                    if ($state) {
-                                        $set('temp_nomor_bantu', null);
-                                    }
-                                })
-                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                ->dehydrated(false),
+                                    Forms\Components\TextInput::make('temp_jumlah')
+                                        ->label('Jumlah (Rp)')
+                                        ->numeric()
+                                        ->prefix('Rp')
+                                        ->extraAttributes(['style' => 'text-align: right;'])
+                                        ->dehydrated(false),
+                                ]),
 
-                            // Nomor Bantu
-                            Forms\Components\Select::make('temp_nomor_bantu')
-                                ->label('Nomor Bantu')
-                                ->options(function (callable $get) {
-                                    $rekeningId = $get('temp_rekening');
-                                    if (!$rekeningId) return [];
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\Select::make('temp_rekening_id')
+                                        ->label('Rekening (Sumber)')
+                                        ->options(function () {
+                                            return Rekening::with('kelompok')
+                                                ->get()
+                                                ->mapWithKeys(fn($rekening) => [
+                                                    $rekening->id => "{$rekening->no_rek} - {$rekening->nama_rek}"
+                                                ]);
+                                        })
+                                        ->searchable()
+                                        ->live()
+                                        ->afterStateUpdated(fn(callable $set) => $set('temp_nomor_bantu_id', null))
+                                        ->dehydrated(false),
 
-                                    return NomorBantu::where('rekening_id', $rekeningId)
-                                        ->get()
-                                        ->mapWithKeys(fn($item) => [
-                                            $item->id => $item->no_bantu . ' - ' . $item->nm_bantu
-                                        ]);
-                                })
-                                ->searchable()
-                                ->placeholder('Pilih No. Bantu')
-                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                ->dehydrated(false),
+                                    Forms\Components\Select::make('temp_nomor_bantu_id')
+                                        ->label('Nomor Bantu')
+                                        ->options(function (Forms\Get $get) {
+                                            $rekeningId = $get('temp_rekening_id');
+                                            if (!$rekeningId) return [];
 
-                            // Jumlah
-                            Forms\Components\TextInput::make('temp_jumlah')
-                                ->label('Jumlah (Rp)')
-                                ->prefix('Rp')
-                                ->placeholder('0')
-                                ->numeric()
-                                ->extraAttributes([
-                                    'inputmode' => 'numeric',
-                                    'style' => 'text-align: right;',
-                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, \'\').replace(/\B(?=(\d{3})+(?!\d))/g, \'.\');',
+                                            return NomorBantu::where('rekening_id', $rekeningId)
+                                                ->get()
+                                                ->mapWithKeys(fn($item) => [
+                                                    $item->id => $item->no_bantu . ' - ' . $item->nm_bantu
+                                                ]);
+                                        })
+                                        ->searchable()
+                                        ->placeholder('Pilih No. Bantu')
+                                        ->dehydrated(false),
+                                ]),
+
+                                Forms\Components\Textarea::make('temp_keterangan_item')
+                                    ->label('Keterangan Item')
+                                    ->rows(2)
+                                    ->columnSpanFull()
+                                    ->dehydrated(false),
+
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('add_item')
+                                        ->label('Tambah Item')
+                                        ->icon('heroicon-o-plus-circle')
+                                        ->color('warning')
+                                        ->action(function (Forms\Get $get, Forms\Set $set) {
+                                            $tempData = [
+                                                'nomor_bukti' => $get('temp_nomor_bukti'),
+                                                'kode_proyek' => $get('temp_kode_proyek_id'),
+                                                'jumlah' => (float) ($get('temp_jumlah') ?? 0),
+                                                'rekening' => $get('temp_rekening_id'),
+                                                'nomor_bantu' => $get('temp_nomor_bantu_id'),
+                                                'keterangan_item' => $get('temp_keterangan_item'),
+                                            ];
+
+                                            if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Data tidak lengkap!')
+                                                    ->danger()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $currentItems = $get('penerimaan_items') ?? [];
+                                            $currentItems[] = $tempData;
+                                            $set('penerimaan_items', $currentItems);
+
+                                            // Clear temp fields
+                                            $set('temp_nomor_bukti', null);
+                                            $set('temp_kode_proyek_id', null);
+                                            $set('temp_jumlah', null);
+                                            $set('temp_rekening_id', null);
+                                            $set('temp_nomor_bantu_id', null);
+                                            $set('temp_keterangan_item', null);
+                                        }),
+                                ])->alignment('center'),
+
+                                Forms\Components\ViewField::make('penerimaan_items')
+                                    ->view('filament.forms.components.penerimaan-kas-items-table'),
+                            ];
+                        }
+
+                        // EDIT OPERATION: Use Repeater
+                        return [
+                            Forms\Components\Repeater::make('penerimaan_items')
+                                ->label('Items')
+                                ->schema([
+                                    Forms\Components\Grid::make(3)->schema([
+                                        Forms\Components\TextInput::make('nomor_bukti')
+                                            ->label('No. Bukti')
+                                            ->placeholder('BKM-XXX'),
+
+                                        Forms\Components\Select::make('kode_proyek_id')
+                                            ->label('Kode Proyek')
+                                            ->options(KodeProyek::all()->pluck('name', 'id'))
+                                            ->searchable(),
+
+                                        Forms\Components\TextInput::make('jumlah')
+                                            ->label('Jumlah (Rp)')
+                                            ->numeric()
+                                            ->required()
+                                            ->prefix('Rp')
+                                            ->extraAttributes(['style' => 'text-align: right;']),
+                                    ]),
+
+                                    Forms\Components\Grid::make(2)->schema([
+                                        Forms\Components\Select::make('rekening_id')
+                                            ->label('Rekening (Sumber)')
+                                            ->options(function () {
+                                                return Rekening::with('kelompok')
+                                                    ->get()
+                                                    ->mapWithKeys(fn($rekening) => [
+                                                        $rekening->id => "{$rekening->no_rek} - {$rekening->nama_rek}"
+                                                    ]);
+                                            })
+                                            ->searchable()
+                                            ->required()
+                                            ->live(),
+
+                                        Forms\Components\Select::make('nomor_bantu_id')
+                                            ->label('Nomor Bantu')
+                                            ->options(function (Forms\Get $get) {
+                                                $rekeningId = $get('rekening_id');
+                                                if (!$rekeningId) return [];
+
+                                                return NomorBantu::where('rekening_id', $rekeningId)
+                                                    ->get()
+                                                    ->mapWithKeys(fn($item) => [
+                                                        $item->id => $item->no_bantu . ' - ' . $item->nm_bantu
+                                                    ]);
+                                            })
+                                            ->searchable()
+                                            ->placeholder('Pilih No. Bantu'),
+                                    ]),
+
+                                    Forms\Components\Textarea::make('keterangan_item')
+                                        ->label('Keterangan Item')
+                                        ->rows(2)
+                                        ->columnSpanFull(),
                                 ])
-                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                                ->dehydrated(false),
-                        ]),
-
-                        // Keterangan Item (Full Width)
-                        Forms\Components\Textarea::make('temp_keterangan_item')
-                            ->label('Keterangan Item')
-                            ->placeholder('Detail sumber penerimaan ini...')
-                            ->rows(2)
-                            ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                            ->dehydrated(false)
-                            ->columnSpanFull(),
-
-                        Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('add_item')
-                                ->label('Tambah Item')
-                                ->icon('heroicon-o-plus-circle')
-                                ->color('warning')
-                                ->size('lg')
-                                ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
-                                ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $tempData = [
-                                        'nomor_bukti' => $get('temp_nomor_bukti'),
-                                        'kode_proyek' => $get('temp_kode_proyek'),
-                                        'rekening' => $get('temp_rekening'),
-                                        'nomor_bantu' => $get('temp_nomor_bantu'),
-                                        'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
-                                        'keterangan_item' => $get('temp_keterangan_item'),
-                                    ];
-
-                                    // Validate required fields
-                                    if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Data tidak lengkap!')
-                                            ->body('Rekening dan Jumlah harus diisi.')
-                                            ->danger()
-                                            ->send();
-                                        return;
-                                    }
-
-                                    $currentItems = $get('detail_penerimaan') ?? [];
-                                    $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
-                                    $set('detail_penerimaan', $currentItems);
-
-                                    // Clear form
-                                    $set('temp_nomor_bukti', '');
-                                    $set('temp_kode_proyek', null);
-                                    $set('temp_rekening', null);
-                                    $set('temp_nomor_bantu', null);
-                                    $set('temp_jumlah', '');
-                                    $set('temp_keterangan_item', '');
-
-                                    // Reset konfirmasi selesai karena ada item baru
-                                    $set('items_completed', false);
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('Item berhasil ditambahkan!')
-                                        ->success()
-                                        ->send();
-                                })
-                                ->requiresConfirmation(false),
-                        ])->alignment('center')->columnSpanFull(),
-
-                        // Info saat form disabled
-                        Forms\Components\Placeholder::make('form_disabled_info')
-                            ->label('')
-                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" jika ingin menambah item lagi.')
-                            ->visible(fn(Forms\Get $get) => $get('items_completed') ?? false)
-                            ->columnSpanFull(),
-                    ]),
-
-                // === SECTION PREVIEW ITEMS ===
-                Forms\Components\Section::make('Daftar Item Sumber Penerimaan')
-                    ->description('Preview item yang telah ditambahkan')
-                    ->schema([
-                        Forms\Components\ViewField::make('detail_penerimaan')
-                            ->view('filament.forms.components.penerimaan-kas-items-table'),
-
-                        // Action untuk konfirmasi selesai menambah item
-                        Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('confirm_items_complete')
-                                ->label('Konfirmasi Selesai Menambah Item')
-                                ->icon('heroicon-o-check-circle')
-                                ->color('success')
-                                ->size('lg')
-                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('detail_penerimaan')))
-                                ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $items = $get('detail_penerimaan') ?? [];
-
-                                    if (empty($items)) {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Tidak ada item!')
-                                            ->body('Tambahkan minimal 1 item sumber penerimaan terlebih dahulu.')
-                                            ->danger()
-                                            ->send();
-                                        return;
-                                    }
-
-                                    $total = collect($items)->sum('jumlah');
-                                    if ($total == 0) {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Total tidak boleh 0!')
-                                            ->body('Pastikan ada item dengan jumlah yang valid.')
-                                            ->danger()
-                                            ->send();
-                                        return;
-                                    }
-
-                                    $set('items_completed', true);
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('Item dikonfirmasi!')
-                                        ->body('Silakan klik tombol "Buat" untuk menyimpan jurnal.')
-                                        ->success()
-                                        ->send();
-                                })
-                                ->requiresConfirmation()
-                                ->modalHeading('Konfirmasi Item Selesai')
-                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item sumber penerimaan?')
-                                ->modalSubmitActionLabel('Ya, Selesai'),
-
-                            Forms\Components\Actions\Action::make('reset_items_confirmation')
-                                ->label('Reset Konfirmasi')
-                                ->icon('heroicon-o-arrow-path')
-                                ->color('warning')
-                                ->size('md')
-                                ->visible(fn(Forms\Get $get) => $get('items_completed'))
-                                ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $set('items_completed', false);
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('Konfirmasi direset')
-                                        ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
-                                        ->info()
-                                        ->send();
-                                })
-                        ])->alignment('center')->columnSpanFull(),
-
-                        // Status konfirmasi
-                        Forms\Components\Placeholder::make('items_status')
-                            ->label('')
-                            ->content(function (Forms\Get $get) {
-                                if ($get('items_completed')) {
-                                    return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
-                                } else {
-                                    $count = count($get('detail_penerimaan') ?? []);
-                                    if ($count > 0) {
-                                        $items = $get('detail_penerimaan') ?? [];
-                                        $total = collect($items)->sum('jumlah');
-                                        return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi Selesai' untuk melanjutkan";
-                                    }
-                                    return '📋 Belum ada item yang ditambahkan';
-                                }
-                            })
-                            ->visible(fn(Forms\Get $get) => !empty($get('detail_penerimaan')))
-                            ->columnSpanFull(),
-
-                        // Hidden field untuk status konfirmasi
-                        Forms\Components\Hidden::make('items_completed')
-                            ->default(false)
-                            ->dehydrated(true),
-
-                        // Hidden field untuk menyimpan array items
-                        Forms\Components\Hidden::make('detail_penerimaan')
-                            ->dehydrated(true),
-                    ])
-                    ->visible(fn(Forms\Get $get) => !empty($get('detail_penerimaan')))
-                    ->collapsible(),
-
-                // === RINGKASAN ===
-                Forms\Components\Section::make('Ringkasan Transaksi')
-                    ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Placeholder::make('total_amount')
-                                    ->label('Total Penerimaan')
-                                    ->content(function (callable $get) {
-                                        $details = $get('detail_penerimaan') ?? [];
-                                        $total = collect($details)->sum('jumlah');
-                                        return 'Rp ' . number_format($total, 0, ',', '.');
-                                    }),
-
-                                Forms\Components\Placeholder::make('status_balance')
-                                    ->label('⚖️ Status')
-                                    ->content(function (callable $get) {
-                                        $details = $get('detail_penerimaan') ?? [];
-                                        $total = collect($details)->sum('jumlah');
-                                        $isBalance = $total > 0;
-                                        return $isBalance ? '✅ Valid' : '⚠️ Belum ada item';
-                                    }),
-                            ]),
-                    ])
-                    ->compact()
-                    ->collapsible()
-                    ->collapsed(),
+                                ->columns(1)
+                                ->defaultItems(1)
+                                ->addActionLabel('Tambah Item Penerimaan'),
+                        ];
+                    }),
 
                 Forms\Components\Section::make('Nomor Referensi')
                     ->schema([
@@ -441,8 +318,10 @@ class JurnalPenerimaanKasResource extends Resource
                     ->collapsible()
                     ->collapsed(),
 
-                // === HIDDEN FIELDS ===
+                // Hidden Fields
                 Forms\Components\Hidden::make('no_reff')->default('3'),
+                Forms\Components\Hidden::make('company_id')->default(1),
+                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
             ]);
     }
 

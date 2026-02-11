@@ -12,61 +12,89 @@ class CreateJurnalBayarKasBank extends CreateRecord
 {
     protected static string $resource = JurnalBayarKasBankResource::class;
 
-    protected function handleRecordCreation(array $data): JurnalBayarKasBank
+    /**
+     * Method untuk menghapus item dari staging area
+     */
+    public function removeBayarItem($index)
     {
-        // Extract item pembayaran dari detail_pembayaran
-        $details = $data['detail_pembayaran'] ?? [];
-        unset($data['detail_pembayaran']);
-        unset($data['items_completed']);
+        try {
+            $items = $this->data['pembayaran_items'] ?? [];
 
-        if (empty($details)) {
-            throw new \Exception('Minimal harus ada 1 item pembayaran');
+            if (isset($items[$index])) {
+                array_splice($items, $index, 1);
+                $this->data['pembayaran_items'] = $items;
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Item berhasil dihapus!')
+                    ->success()
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal menghapus item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
+    }
 
-        // Generate group transaksi ID jika lebih dari 1 item
-        $groupTransaksi = count($details) > 1 ? Str::uuid()->toString() : null;
+    protected function handleRecordCreation(array $data): \App\Models\JurnalBayarKasBankDetail
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $items = $data['pembayaran_items'] ?? [];
+            unset($data['pembayaran_items']);
 
-        // Generate no_voucher sekali
-        $noVoucher = $data['no_voucher'] ?? 'BKB-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-
-        $createdRecords = [];
-        $totalPembayaran = 0;
-
-        foreach ($details as $index => $item) {
-            // Get nomor bantu info untuk populate kelompok dan rekening
-            $nomorBantu = null;
-            if (!empty($item['nomor_bantu'])) {
-                $nomorBantu = NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu']);
+            if (empty($items)) {
+                throw new \Exception('Minimal harus ada 1 item pembayaran');
             }
 
-            $jumlah = (float) ($item['jumlah'] ?? 0);
-            $totalPembayaran += $jumlah;
+            // Hitung total
+            $totalRp = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
-            // Prepare data untuk setiap record
-            $recordData = array_merge($data, [
-                'no_voucher' => $noVoucher,
-                'tanggal' => $data['tanggal_check'], // Fix: Add tanggal field
-                'rekening_id' => $nomorBantu?->rekening_id ?? ($item['rekening'] ?? $data['rekening_id']),
-                'kelompok_id' => $nomorBantu?->rekening->kelompok_id ?? $data['kelompok_id'],
-                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
-                'kode_proyek_id' => $item['kode_proyek'] ?? null,
-                'rp' => $jumlah,
-                'keterangan' => $item['keterangan'] ?? '',
-                'group_transaksi' => $groupTransaksi,
-                'item_sequence' => $index + 1,
+            // Create Header
+            $headerData = [
+                'no_voucher' => $data['no_voucher'] ?? null,
+                'tanggal' => $data['tanggal_check'],
+                'tanggal_check' => $data['tanggal_check'],
+                'no_reff' => '4',
+                'rekening_id' => $data['rekening_id'] ?? null,
+                'nomor_bantu_id' => $data['nomor_bantu_id'] ?? null,
+                'no_cek' => $data['no_cek'] ?? null,
+                'beban_bagian' => $data['beban_bagian'] ?? null,
+                'dibayar_kepada' => $data['dibayar_kepada'] ?? null,
+                'rp' => $totalRp,
+                'keterangan' => $items[0]['keterangan'] ?? 'Jurnal Bayar Kas/Bank',
+                'company_id' => 1,
                 'created_by' => auth()->id(),
                 'is_confirmed' => false,
-            ]);
+            ];
 
-            // Remove field yang tidak ada di table
-            unset($recordData['rekening_bank_id'], $recordData['total_pembayaran']);
+            $header = \App\Models\JurnalBayarKasBank::create($headerData);
 
-            $record = JurnalBayarKasBank::create($recordData);
-            $createdRecords[] = $record;
-        }
+            $createdDetails = [];
+            foreach ($items as $item) {
+                // Key mapping untuk custom staging: 'rekening' instead of 'rekening_id'
+                $rekeningId = $item['rekening'] ?? $item['rekening_id'] ?? null;
+                $nomorBantuId = $item['nomor_bantu'] ?? $item['nomor_bantu_id'] ?? null;
+                $kodeProyekId = $item['kode_proyek'] ?? $item['kode_proyek_id'] ?? null;
 
-        // Return record pertama sebagai representasi grup
-        return $createdRecords[0];
+                $rekening = \App\Models\Rekening::find($rekeningId);
+
+                $createdDetails[] = \App\Models\JurnalBayarKasBankDetail::create([
+                    'jurnal_bayar_kas_bank_id' => $header->id,
+                    'no_voucher' => $header->no_voucher,
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'jumlah' => (float) ($item['jumlah'] ?? 0),
+                    'dibayar_kepada' => $header->dibayar_kepada,
+                    'kelompok_id' => $rekening?->kelompok_id,
+                    'rekening_id' => $rekeningId,
+                    'nomor_bantu_id' => $nomorBantuId,
+                    'kode_proyek_id' => $kodeProyekId,
+                ]);
+            }
+
+            return $createdDetails[0];
+        });
     }
 
     protected function getRedirectUrl(): string

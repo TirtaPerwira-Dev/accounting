@@ -15,44 +15,65 @@ class CreateJurnalPenerimaanKas extends CreateRecord
     protected static string $resource = JurnalPenerimaanKasResource::class;
 
     /**
-     * Validasi sebelum create
+     * Method untuk menghapus item dari staging area
      */
-    protected function beforeCreate(): void
+    public function removeItem($index)
     {
-        $data = $this->form->getState();
+        try {
+            $items = $this->data['penerimaan_items'] ?? [];
 
-        // Validasi apakah sudah konfirmasi selesai menambah item
-        if (!($data['items_completed'] ?? false)) {
-            Notification::make()
-                ->title('Belum dikonfirmasi!')
-                ->body('Klik tombol "Konfirmasi Selesai Menambah Item" terlebih dahulu sebelum menyimpan.')
+            if (isset($items[$index])) {
+                array_splice($items, $index, 1);
+                $this->data['penerimaan_items'] = $items;
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Item berhasil dihapus!')
+                    ->success()
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal menghapus item')
+                ->body($e->getMessage())
                 ->danger()
                 ->send();
-
-            $this->halt();
         }
+    }
 
-        // Validasi minimal 1 item
-        if (empty($data['detail_penerimaan'])) {
-            Notification::make()
-                ->title('Item kosong!')
-                ->body('Tambahkan minimal 1 item sumber penerimaan.')
+    /**
+     * Method untuk edit item dari staging area
+     */
+    public function editItem($index)
+    {
+        try {
+            $items = $this->data['penerimaan_items'] ?? [];
+
+            if (isset($items[$index])) {
+                $item = $items[$index];
+
+                // Populate temp fields
+                $this->data['temp_nomor_bukti'] = $item['nomor_bukti'] ?? null;
+                $this->data['temp_kode_proyek_id'] = $item['kode_proyek'] ?? null;
+                $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
+                $this->data['temp_rekening_id'] = $item['rekening'] ?? null;
+                $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu'] ?? null;
+                $this->data['temp_keterangan_item'] = $item['keterangan_item'] ?? null;
+
+                // Remove item from list
+                array_splice($items, $index, 1);
+                $this->data['penerimaan_items'] = $items;
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Item dimuat untuk diedit')
+                    ->info()
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal memuat item')
+                ->body($e->getMessage())
                 ->danger()
                 ->send();
-
-            $this->halt();
-        }
-
-        // Validasi total
-        $total = collect($data['detail_penerimaan'])->sum('jumlah');
-        if ($total <= 0) {
-            Notification::make()
-                ->title('Total tidak valid!')
-                ->body('Total penerimaan harus lebih dari 0.')
-                ->danger()
-                ->send();
-
-            $this->halt();
         }
     }
 
@@ -61,43 +82,55 @@ class CreateJurnalPenerimaanKas extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        // Calculate total
-        $items = $data['detail_penerimaan'] ?? [];
-        $total = collect($items)->sum('jumlah');
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $items = $data['penerimaan_items'] ?? [];
+            unset($data['penerimaan_items']);
 
-        // Buat header jurnal - no_reff auto-generate dari boot()
-        $jurnal = JurnalPenerimaanKas::create([
-            'kelompok_id' => $data['kelompok_id'] ?? null,
-            'rekening_id' => $data['rekening_id'] ?? null,
-            'kas_bank_id' => $data['kas_bank_id'],
-            'tanggal' => $data['tanggal'],
-            'nomor_bukti' => $items[0]['nomor_bukti'] ?? 'AUTO-' . date('YmdHis'),
-            'keterangan' => $data['keterangan'] ?? 'Penerimaan Kas/Bank',
-            'kode_proyek_id' => null, // Tidak ada di form utama
-            'nomor_rekening_id' => $data['rekening_id'] ?? null,
-            'jumlah' => $total,
-            'detail_penerimaan' => $items,
-            'total_amount' => $total,
-        ]);
+            if (empty($items)) {
+                throw new \Exception('Minimal harus ada 1 item penerimaan');
+            }
 
-        // Buat detail items dari array
-        foreach ($items as $item) {
-            // Get kelompok_id from rekening sumber
-            $rekening = \App\Models\Rekening::find($item['rekening']);
+            // Calculate total
+            $totalAmount = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
-            JurnalPenerimaanKasDetail::create([
-                'jurnal_penerimaan_kas_id' => $jurnal->id,
-                'nomor_bukti' => $item['nomor_bukti'] ?? null,
-                'kode_proyek_id' => $item['kode_proyek'] ?? null,
-                'kelompok_id' => $rekening?->kelompok_id ?? null,
-                'rekening_id' => $item['rekening'],
-                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
-                'jumlah' => $item['jumlah'],
-                'keterangan_item' => $item['keterangan_item'] ?? null,
+            // Buat header jurnal
+            $jurnal = JurnalPenerimaanKas::create([
+                'kelompok_id' => 10, // Aktiva Lancar
+                'rekening_id' => $data['rekening_id'] ?? null,
+                'kas_bank_id' => $data['kas_bank_id'] ?? null,
+                'tanggal' => $data['tanggal'],
+                'nomor_bukti' => $items[0]['nomor_bukti'] ?? 'BKM-' . date('YmdHis'),
+                'keterangan' => $data['keterangan'] ?? 'Penerimaan Kas/Bank',
+                'total_amount' => $totalAmount,
+                'no_reff' => '3',
+                'company_id' => 1,
+                'created_by' => auth()->id(),
+                'is_confirmed' => false,
             ]);
-        }
 
-        return $jurnal;
+            $createdDetails = [];
+            foreach ($items as $item) {
+                // Mapping custom staging keys: 'rekening' => 'rekening_id', etc.
+                $rekeningId = $item['rekening'] ?? $item['rekening_id'] ?? null;
+                $nomorBantuId = $item['nomor_bantu'] ?? $item['nomor_bantu_id'] ?? null;
+                $kodeProyekId = $item['kode_proyek'] ?? $item['kode_proyek_id'] ?? null;
+
+                $rekening = \App\Models\Rekening::find($rekeningId);
+
+                $createdDetails[] = JurnalPenerimaanKasDetail::create([
+                    'jurnal_penerimaan_kas_id' => $jurnal->id,
+                    'nomor_bukti' => $item['nomor_bukti'] ?? null,
+                    'kode_proyek_id' => $kodeProyekId,
+                    'kelompok_id' => $rekening?->kelompok_id,
+                    'rekening_id' => $rekeningId,
+                    'nomor_bantu_id' => $nomorBantuId,
+                    'jumlah' => (float) ($item['jumlah'] ?? 0),
+                    'keterangan_item' => $item['keterangan_item'] ?? null,
+                ]);
+            }
+
+            return $createdDetails[0];
+        });
     }
 
     /**
@@ -117,65 +150,5 @@ class CreateJurnalPenerimaanKas extends CreateRecord
             ->success()
             ->title('Jurnal Penerimaan Kas berhasil dibuat!')
             ->body('Data telah disimpan ke database.');
-    }
-
-    /**
-     * Method untuk hapus item dari form
-     */
-    public function removeItem(int $index): void
-    {
-        $data = $this->form->getState();
-        $items = $data['detail_penerimaan'] ?? [];
-
-        if (isset($items[$index])) {
-            unset($items[$index]);
-            $items = array_values($items); // Re-index array
-            $this->form->fill(['detail_penerimaan' => $items]);
-
-            // Reset konfirmasi jika masih ada perubahan
-            $this->form->fill(['items_completed' => false]);
-
-            Notification::make()
-                ->title('Item dihapus!')
-                ->success()
-                ->send();
-        }
-    }
-
-    /**
-     * Method untuk edit item (load data ke form)
-     */
-    public function editItem(int $index): void
-    {
-        $data = $this->form->getState();
-        $items = $data['detail_penerimaan'] ?? [];
-
-        if (isset($items[$index])) {
-            $item = $items[$index];
-
-            // Load data ke temporary form fields
-            $this->form->fill([
-                'temp_nomor_bukti' => $item['nomor_bukti'] ?? null,
-                'temp_kode_proyek' => $item['kode_proyek'] ?? null,
-                'temp_rekening' => $item['rekening'] ?? null,
-                'temp_nomor_bantu' => $item['nomor_bantu'] ?? null,
-                'temp_jumlah' => number_format($item['jumlah'] ?? 0, 0, ',', '.'),
-                'temp_keterangan_item' => $item['keterangan_item'] ?? null,
-            ]);
-
-            // Hapus item lama
-            unset($items[$index]);
-            $items = array_values($items);
-            $this->form->fill(['detail_penerimaan' => $items]);
-
-            // Reset konfirmasi
-            $this->form->fill(['items_completed' => false]);
-
-            Notification::make()
-                ->title('Item dimuat ke form!')
-                ->body('Silakan edit lalu klik "Tambah Item" untuk menyimpan perubahan.')
-                ->info()
-                ->send();
-        }
     }
 }

@@ -69,4 +69,80 @@ class EditJurnalMemorial extends EditRecord
                 ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $header = $this->record->jurnalMemorial;
+
+        $data['bukti'] = $header->bukti;
+        $data['tanggal'] = $header->tanggal;
+        $data['no_reff'] = $header->no_reff;
+
+        $data['memorial_items'] = $header->details->map(function ($detail) {
+            return [
+                'rekening_id' => $detail->rekening_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_id,
+                'kode_proyek_id' => $detail->kode_proyek_id,
+                'posisi' => $detail->posisi,
+                'jumlah' => $detail->jumlah,
+                'keterangan' => $detail->keterangan,
+            ];
+        })->toArray();
+
+        return $data;
+    }
+
+    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
+            $items = $data['memorial_items'] ?? [];
+            unset($data['memorial_items']);
+
+            if (empty($items)) {
+                throw new \Exception('Minimal harus ada 1 item memorial');
+            }
+
+            $header = $record->jurnalMemorial;
+
+            // Hitung total debit dan kredit untuk validasi
+            $totalDebit = collect($items)->where('posisi', 'D')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalKredit = collect($items)->where('posisi', 'K')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+
+            // Validasi balance
+            if (number_format($totalDebit, 2) !== number_format($totalKredit, 2)) {
+                throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
+            }
+
+            // Update Header
+            $header->update([
+                'bukti' => $data['bukti'],
+                'tanggal' => $data['tanggal'],
+                'rp' => $totalDebit,
+                'keterangan' => $items[0]['keterangan'] ?? $header->keterangan,
+            ]);
+
+            // Delete existing details
+            $header->details()->delete();
+
+            // Re-create details
+            $newDetails = [];
+            foreach ($items as $item) {
+                $rekening = \App\Models\Rekening::find($item['rekening_id']);
+
+                $newDetails[] = \App\Models\JurnalMemorialDetail::create([
+                    'jurnal_memorial_id' => $header->id,
+                    'bukti' => $header->bukti,
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'jumlah' => (float) ($item['jumlah'] ?? 0),
+                    'posisi' => $item['posisi'],
+                    'kelompok_id' => $rekening?->kelompok_id,
+                    'rekening_id' => $item['rekening_id'],
+                    'nomor_bantu_id' => $item['nomor_bantu_id'] ?? null,
+                    'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
+                ]);
+            }
+
+            return $newDetails[0];
+        });
+    }
 }
