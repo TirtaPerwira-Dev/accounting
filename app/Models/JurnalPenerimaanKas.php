@@ -163,12 +163,12 @@ class JurnalPenerimaanKas extends Model
     // Accessors
     public function getFormattedTanggalAttribute(): string
     {
-        return $this->tanggal?->format('d/m/Y') ?? '';
+        return $this->tanggal ? $this->tanggal->format('d/m/Y') : '';
     }
 
-    public function getFormattedTotalAmountAttribute(): string
+    public function getFormattedTotalRpAttribute(): string
     {
-        return 'Rp ' . number_format($this->total_amount, 0, ',', '.');
+        return 'Rp ' . number_format((float) ($this->rp ?? 0), 0, ',', '.');
     }
 
     /**
@@ -177,13 +177,7 @@ class JurnalPenerimaanKas extends Model
      */
     public function getTotalFromItemsAttribute(): float
     {
-        if (!$this->detail_penerimaan) {
-            return 0;
-        }
-
-        return collect($this->detail_penerimaan)->sum(function ($item) {
-            return floatval($item['jumlah'] ?? 0);
-        });
+        return (float) $this->details()->sum('jumlah');
     }
 
     /**
@@ -219,18 +213,16 @@ class JurnalPenerimaanKas extends Model
         }
 
         // Entry untuk setiap sumber penerimaan (Kredit)
-        foreach ($this->detail_penerimaan as $item) {
-            $jumlah = floatval($item['jumlah'] ?? 0);
-
+        foreach ($this->details as $item) {
             $entries[] = [
                 'tanggal' => $this->tanggal,
                 'bukti' => $this->nomor_bukti,
-                'rekening_id' => $item['rekening'] ?? null,
-                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
+                'rekening_id' => $item->rekening_id,
+                'nomor_bantu_id' => $item->nomor_bantu_id,
                 'debit' => 0,
-                'kredit' => $jumlah, // Sumber penerimaan (kredit)
-                'keterangan' => $item['keterangan_item'] ?? $this->keterangan,
-                'kode_proyek_id' => $item['kode_proyek'] ?? null,
+                'kredit' => $item->jumlah, // Sumber penerimaan (kredit)
+                'keterangan' => $item->keterangan_item ?? $this->keterangan,
+                'kode_proyek_id' => $item->kode_proyek_id,
                 'no_reff' => $this->no_reff,
             ];
         }

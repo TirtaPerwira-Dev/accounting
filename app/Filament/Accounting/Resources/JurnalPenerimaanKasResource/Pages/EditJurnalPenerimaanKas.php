@@ -68,4 +68,76 @@ class EditJurnalPenerimaanKas extends EditRecord
                 ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $header = $this->record->jurnalPenerimaanKas;
+
+        $data['rekening_id'] = $header->rekening_id;
+        $data['kas_bank_id'] = $header->kas_bank_id;
+        $data['tanggal'] = $header->tanggal;
+        $data['keterangan'] = $header->keterangan;
+
+        $data['penerimaan_items'] = $header->details->map(function ($detail) {
+            return [
+                'nomor_bukti' => $detail->nomor_bukti,
+                'kode_proyek_id' => $detail->kode_proyek_id,
+                'rekening_id' => $detail->rekening_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_id,
+                'jumlah' => $detail->jumlah,
+                'keterangan_item' => $detail->keterangan_item,
+            ];
+        })->toArray();
+
+        return $data;
+    }
+
+    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
+            $items = $data['penerimaan_items'] ?? [];
+            unset($data['penerimaan_items']);
+
+            if (empty($items)) {
+                throw new \Exception('Minimal harus ada 1 item penerimaan');
+            }
+
+            $header = $record->jurnalPenerimaanKas;
+
+            // Calculate total
+            $totalAmount = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+
+            // Update Header
+            $header->update([
+                'rekening_id' => $data['rekening_id'],
+                'kas_bank_id' => $data['kas_bank_id'],
+                'tanggal' => $data['tanggal'],
+                'nomor_bukti' => $items[0]['nomor_bukti'] ?? $header->nomor_bukti,
+                'keterangan' => $data['keterangan'],
+                'total_amount' => $totalAmount,
+            ]);
+
+            // Delete existing details
+            $header->details()->delete();
+
+            // Re-create details
+            $newDetails = [];
+            foreach ($items as $item) {
+                $rekening = \App\Models\Rekening::find($item['rekening_id']);
+
+                $newDetails[] = \App\Models\JurnalPenerimaanKasDetail::create([
+                    'jurnal_penerimaan_kas_id' => $header->id,
+                    'nomor_bukti' => $item['nomor_bukti'] ?? null,
+                    'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
+                    'kelompok_id' => $rekening?->kelompok_id,
+                    'rekening_id' => $item['rekening_id'],
+                    'nomor_bantu_id' => $item['nomor_bantu_id'] ?? null,
+                    'jumlah' => (float) ($item['jumlah'] ?? 0),
+                    'keterangan_item' => $item['keterangan_item'] ?? null,
+                ]);
+            }
+
+            return $newDetails[0];
+        });
+    }
 }

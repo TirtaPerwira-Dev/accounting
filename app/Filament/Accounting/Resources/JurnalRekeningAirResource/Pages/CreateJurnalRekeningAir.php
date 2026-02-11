@@ -19,38 +19,6 @@ class CreateJurnalRekeningAir extends CreateRecord
     }
 
     /**
-     * Validasi sebelum create
-     */
-    protected function beforeCreate(): void
-    {
-        $formData = $this->form->getState();
-        $items = $formData['rekening_air_items'] ?? [];
-        $itemsCompleted = $formData['items_completed'] ?? false;
-
-        // Validasi ada items
-        if (empty($items)) {
-            $this->halt();
-            \Filament\Notifications\Notification::make()
-                ->title('Tidak ada item transaksi!')
-                ->body('Tambahkan minimal 1 item transaksi terlebih dahulu.')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        // Validasi konfirmasi selesai
-        if (!$itemsCompleted) {
-            $this->halt();
-            \Filament\Notifications\Notification::make()
-                ->title('Item belum dikonfirmasi!')
-                ->body('Klik tombol "Konfirmasi Selesai Menambah Item" terlebih dahulu sebelum menyimpan.')
-                ->danger()
-                ->send();
-            return;
-        }
-    }
-
-    /**
      * Method untuk menghapus item
      */
     public function removeItem($index)
@@ -61,9 +29,6 @@ class CreateJurnalRekeningAir extends CreateRecord
             if (isset($items[$index])) {
                 array_splice($items, $index, 1);
                 $this->data['rekening_air_items'] = $items;
-
-                // Reset konfirmasi
-                $this->data['items_completed'] = false;
 
                 \Filament\Notifications\Notification::make()
                     ->title('Item berhasil dihapus!')
@@ -86,14 +51,11 @@ class CreateJurnalRekeningAir extends CreateRecord
     {
         try {
             // Populate form fields
-            $this->data['temp_kode_proyek'] = $item['kode_proyek'] ?? null;
-            $this->data['temp_rekening'] = $item['rekening'] ?? null;
-            $this->data['temp_nomor_bantu'] = $item['nomor_bantu'] ?? null;
+            $this->data['temp_rekening_id'] = $item['rekening_id'] ?? null;
+            $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? null;
+            $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? null;
             $this->data['temp_position'] = $item['position'] ?? 'debit';
-
-            // Format jumlah
-            $jumlah = $item['jumlah'] ?? 0;
-            $this->data['temp_jumlah'] = $jumlah ? number_format($jumlah, 0, ',', '.') : '';
+            $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
 
             // Remove item from list
             $items = $this->data['rekening_air_items'] ?? [];
@@ -102,17 +64,10 @@ class CreateJurnalRekeningAir extends CreateRecord
                 $this->data['rekening_air_items'] = $items;
             }
 
-            // Reset konfirmasi
-            $this->data['items_completed'] = false;
-
             \Filament\Notifications\Notification::make()
                 ->title('Item dimuat untuk diedit')
-                ->body('Data item telah dimuat ke form. Silakan ubah dan klik "Tambah Item" untuk menyimpan perubahan.')
                 ->info()
                 ->send();
-
-            // Dispatch event untuk scroll ke form
-            $this->dispatch('scroll-to-form');
         } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
                 ->title('Gagal edit item')
@@ -123,62 +78,56 @@ class CreateJurnalRekeningAir extends CreateRecord
     }
 
     /**
-     * Handle record creation dengan metode add item
+     * Handle custom record creation
      */
-    protected function handleRecordCreation(array $data): JurnalRekeningAir
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
-        // Extract items
-        $rekeningAirItems = $data['rekening_air_items'] ?? [];
-        $itemsCompleted = $data['items_completed'] ?? false;
-        unset($data['rekening_air_items'], $data['items_completed']);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $items = $data['rekening_air_items'] ?? [];
+            unset($data['rekening_air_items']);
 
-        if (empty($rekeningAirItems)) {
-            throw new \Exception('Minimal harus ada 1 item transaksi');
-        }
+            if (empty($items)) {
+                throw new \Exception('Minimal harus ada 1 item transaksi');
+            }
 
-        // Validasi konfirmasi
-        if (!$itemsCompleted) {
-            throw new \Exception('Items belum dikonfirmasi selesai. Klik tombol konfirmasi terlebih dahulu.');
-        }
+            // Hitung total debit dan kredit untuk validasi
+            $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
-        // Validasi balance
-        $totalDebit = collect($rekeningAirItems)->where('position', 'debit')->sum('jumlah');
-        $totalKredit = collect($rekeningAirItems)->where('position', 'kredit')->sum('jumlah');
+            // Validasi balance
+            if (number_format($totalDebit, 2) !== number_format($totalKredit, 2)) {
+                throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
+            }
 
-        if ($totalDebit !== $totalKredit) {
-            throw new \Exception("Jurnal tidak balance! Total Debit: Rp " . number_format($totalDebit, 0, ',', '.') .
-                " | Total Kredit: Rp " . number_format($totalKredit, 0, ',', '.'));
-        }
-
-        if ($totalDebit == 0) {
-            throw new \Exception("Jurnal harus memiliki minimal 1 item Debit dan 1 item Kredit!");
-        }
-
-        // Set rp dari total
-        $data['rp'] = $totalDebit;
-
-        // no_reff akan di-generate otomatis oleh model boot()
-        // Tidak perlu set manual di sini
-
-        // Create jurnal header
-        $jurnal = JurnalRekeningAir::create($data);
-
-        // Create detail items
-        foreach ($rekeningAirItems as $item) {
-            $rekening = Rekening::with('kelompok')->find($item['rekening'] ?? null);
-
-            JurnalRekeningAirDetail::create([
-                'jurnal_rekening_air_id' => $jurnal->id,
-                'kelompok_id' => $rekening?->kelompok_id,
-                'rekening_id' => $item['rekening'],
-                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
-                'kode_proyek_id' => $item['kode_proyek'] ?? null,
-                'position' => $item['position'],
-                'jumlah' => $item['jumlah'],
+            // Create Header
+            $header = \App\Models\JurnalRekeningAir::create([
+                'bukti' => $data['bukti'],
+                'tanggal' => $data['tanggal'],
+                'no_reff' => '2',
+                'rp' => $totalDebit,
+                'keterangan' => $data['keterangan'] ?? ('Jurnal Rekening Air ' . $data['bukti']),
+                'company_id' => 1,
+                'created_by' => auth()->id(),
+                'is_confirmed' => false,
             ]);
-        }
 
-        return $jurnal;
+            $createdDetails = [];
+            foreach ($items as $item) {
+                $rekening = \App\Models\Rekening::find($item['rekening_id']);
+
+                $createdDetails[] = \App\Models\JurnalRekeningAirDetail::create([
+                    'jurnal_rekening_air_id' => $header->id,
+                    'kelompok_id' => $rekening?->kelompok_id,
+                    'rekening_id' => $item['rekening_id'],
+                    'nomor_bantu_id' => $item['nomor_bantu_id'] ?? null,
+                    'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
+                    'position' => $item['position'],
+                    'jumlah' => (float) ($item['jumlah'] ?? 0),
+                ]);
+            }
+
+            return $createdDetails[0];
+        });
     }
 
     protected function getCreatedNotificationTitle(): ?string

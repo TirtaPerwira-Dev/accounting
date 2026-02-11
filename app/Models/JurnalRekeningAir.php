@@ -147,26 +147,20 @@ class JurnalRekeningAir extends Model
 
     public function getFormattedTanggalAttribute(): string
     {
-        return $this->tanggal?->format('d/m/Y') ?? '';
+        return $this->tanggal ? $this->tanggal->format('d/m/Y') : '';
     }
 
     public function getFormattedRpAttribute(): string
     {
-        return 'Rp ' . number_format($this->rp, 0, ',', '.');
+        return 'Rp ' . number_format((float) ($this->rp ?? 0), 0, ',', '.');
     }
 
     /**
-     * Get total dari semua items dalam repeater
+     * Get total dari semua items dalam details relationship
      */
     public function getTotalFromItemsAttribute(): float
     {
-        if (!$this->rekening_air_items) {
-            return 0;
-        }
-
-        return collect($this->rekening_air_items)->sum(function ($item) {
-            return floatval($item['jumlah'] ?? 0);
-        });
+        return (float) $this->details()->sum('jumlah');
     }
 
     /**
@@ -208,24 +202,19 @@ class JurnalRekeningAir extends Model
     {
         $entries = [];
 
-        if (!$this->rekening_air_items) {
-            return $entries;
-        }
-
-        // Entry untuk setiap item berdasarkan position (D/K)
-        foreach ($this->rekening_air_items as $item) {
-            $jumlah = floatval($item['jumlah'] ?? 0);
-            $position = $item['position'] ?? 'D'; // D = Debit, K = Kredit
+        // Entry untuk setiap item berdasarkan position (debit/kredit)
+        foreach ($this->details as $detail) {
+            $isDebit = strtolower($detail->position) === 'debit';
 
             $entries[] = [
                 'tanggal' => $this->tanggal,
                 'bukti' => $this->bukti,
-                'rekening_id' => $item['rekening'] ?? null,
-                'nomor_bantu_id' => $item['nomor_bantu'] ?? null,
-                'debit' => $position === 'D' ? $jumlah : 0,
-                'kredit' => $position === 'K' ? $jumlah : 0,
+                'rekening_id' => $detail->rekening_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_id,
+                'debit' => $isDebit ? $detail->jumlah : 0,
+                'kredit' => !$isDebit ? $detail->jumlah : 0,
                 'keterangan' => $this->keterangan,
-                'kode_proyek_id' => $item['kode_proyek'] ?? null,
+                'kode_proyek_id' => $detail->kode_proyek_id,
                 'no_reff' => $this->no_reff,
             ];
         }
