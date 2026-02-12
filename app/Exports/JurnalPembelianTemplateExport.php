@@ -17,7 +17,7 @@ class JurnalPembelianTemplateExport implements FromArray, WithHeadings, WithStyl
 {
     public function array(): array
     {
-        // Get sample data using IDs not codes
+        // Get sample data using codes not IDs
         $sampleRekeningKredit = \App\Models\Rekening::whereHas('kelompok', function($q) {
             $q->where('no_kel', '10'); // Kas/Bank
         })->first();
@@ -38,24 +38,24 @@ class JurnalPembelianTemplateExport implements FromArray, WithHeadings, WithStyl
         return [
             [
                 '2024-11-26', // tanggal
-                $sampleRekeningKredit?->id ?? '1', // rekening_kredit (ID)
-                $sampleNomorBantuKredit?->id ?? '1', // nomor_bantu_kredit (ID)
+                $sampleRekeningKredit?->no_rek ?? '1101', // rekening_kredit (CODE)
+                $sampleNomorBantuKredit?->no_bantu ?? '10', // nomor_bantu_kredit (CODE)
                 $sampleNomorBantuKredit?->nm_bantu ?? 'Bank BPD Cabang Utama', // nama_nomor_bantu_kredit
                 'BK-001', // bukti
                 'Kaporit untuk pengolahan air', // keterangan
-                $sampleKodeProyek?->id ?? '1', // kode_proyek (ID)
-                $sampleNomorBantuDebit1?->id ?? '1', // nomor_bantu_debit (ID)
+                $sampleKodeProyek?->kode ?? '01', // kode_proyek (CODE)
+                $sampleNomorBantuDebit1?->no_bantu ?? '10', // nomor_bantu_debit (CODE)
                 '1000000', // jumlah
             ],
             [
                 '2024-11-26', // tanggal - same transaction
-                $sampleRekeningKredit?->id ?? '1', // rekening_kredit (ID) - same
-                $sampleNomorBantuKredit?->id ?? '1', // nomor_bantu_kredit (ID) - same
+                $sampleRekeningKredit?->no_rek ?? '1101', // rekening_kredit (CODE) - same
+                $sampleNomorBantuKredit?->no_bantu ?? '10', // nomor_bantu_kredit (CODE) - same
                 $sampleNomorBantuKredit?->nm_bantu ?? 'Bank BPD Cabang Utama', // nama_nomor_bantu_kredit
                 'BK-001', // bukti - same
                 'Chlorine untuk desinfeksi', // keterangan
-                $sampleKodeProyek?->id ?? '1', // kode_proyek (ID)
-                $sampleNomorBantuDebit2?->id ?? '2', // nomor_bantu_debit (ID) - different
+                $sampleKodeProyek?->kode ?? '01', // kode_proyek (CODE)
+                $sampleNomorBantuDebit2?->no_bantu ?? '20', // nomor_bantu_debit (CODE) - different
                 '500000', // jumlah
             ],
         ];

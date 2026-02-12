@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalPemakaianBahan;
+use App\Models\JurnalPemakaianBahanDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -130,34 +131,41 @@ class JurnalPemakaianBahanImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                // Create record
-                $jurnal = JurnalPemakaianBahan::create([
+                // Create or find header record
+                $jurnal = null;
+                if ($isNewGroup) {
+                    $jurnal = JurnalPemakaianBahan::create([
+                        'bukti' => strtoupper($row['bukti']),
+                        'tanggal' => $tanggal,
+                        'keterangan' => $row['keterangan'] ?? null,
+                        'beban_bagian' => $row['beban_bagian'] ?? null,
+                        'kode_proyek_id' => $kodeProyekId,
+                        'no_reff' => '5',
+                        'ref' => '5',
+                        'group_transaksi' => $currentGroupId,
+                        'company_id' => Auth::user()?->company_id ?? 1,
+                        'created_by' => Auth::id(),
+                        'is_confirmed' => false,
+                        'rp' => 0,
+                    ]);
+                    $currentGroupId = $jurnal->id;
+                }
+
+                // Create Detail record
+                JurnalPemakaianBahanDetail::create([
+                    'jurnal_pemakaian_bahan_id' => $currentGroupId,
                     'bukti' => strtoupper($row['bukti']),
-                    'tanggal' => $tanggal,
+                    'keterangan' => $row['keterangan'] ?? null,
+                    'jumlah' => $jumlah,
+                    'beban_bagian' => $row['beban_bagian'] ?? null,
                     'kelompok_debit_id' => $kelompokDebit->id,
                     'rekening_debit_id' => $rekeningDebit->id,
                     'nomor_bantu_debit_id' => $nomorBantuDebit->id,
-                    'data_debit' => $rekeningDebit->data,
                     'kelompok_kredit_id' => $kelompokKredit->id,
                     'rekening_kredit_id' => $rekeningKredit->id,
                     'nomor_bantu_kredit_id' => $nomorBantuKredit->id,
-                    'data_kredit' => $rekeningKredit->data,
-                    'rp' => $jumlah,
-                    'keterangan' => $row['keterangan'] ?? null,
-                    'beban_bagian' => $row['beban_bagian'] ?? null,
                     'kode_proyek_id' => $kodeProyekId,
-                    'ref' => '4',
-                    'group_transaksi' => $currentGroupId,
-                    'item_sequence' => $itemSequence,
-                    'company_id' => Auth::user()?->company_id ?? 1,
-                    'created_by' => Auth::id(),
-                    'is_confirmed' => false,
                 ]);
-
-                // Save no_reff for group
-                if ($isNewGroup) {
-                    $currentNoReff = $jurnal->no_reff;
-                }
 
                 $this->importedCount++;
             }

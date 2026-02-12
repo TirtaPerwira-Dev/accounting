@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalMemorial;
+use App\Models\JurnalMemorialDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -112,30 +113,37 @@ class JurnalMemorialImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                // Create record
-                $jurnal = JurnalMemorial::create([
+                // Create or find header record
+                $jurnal = null;
+                if ($isNewGroup) {
+                    $jurnal = JurnalMemorial::create([
+                        'bukti' => strtoupper($row['bukti']),
+                        'tanggal' => $tanggal,
+                        'keterangan' => $row['keterangan'] ?? null,
+                        'kode_proyek_id' => $kodeProyekId,
+                        'no_reff' => '6',
+                        'ref' => '6',
+                        'group_transaksi' => $currentGroupId,
+                        'company_id' => Auth::user()?->company_id ?? 1,
+                        'created_by' => Auth::id(),
+                        'is_confirmed' => false,
+                        'rp' => 0,
+                    ]);
+                    $currentGroupId = $jurnal->id;
+                }
+
+                // Create Detail record
+                JurnalMemorialDetail::create([
+                    'jurnal_memorial_id' => $currentGroupId,
                     'bukti' => strtoupper($row['bukti']),
-                    'tanggal' => $tanggal,
+                    'keterangan' => $row['keterangan'] ?? null,
+                    'jumlah' => $jumlah,
+                    'posisi' => $kode,
                     'kelompok_id' => $kelompok->id,
                     'rekening_id' => $rekening->id,
                     'nomor_bantu_id' => $nomorBantu->id,
-                    'kode' => $kode,
-                    'rp' => $jumlah,
-                    'keterangan' => $row['keterangan'] ?? null,
                     'kode_proyek_id' => $kodeProyekId,
-                    'data' => $rekening->data,
-                    'ref' => '6',
-                    'group_transaksi' => $currentGroupId,
-                    'item_sequence' => $itemSequence,
-                    'company_id' => Auth::user()?->company_id ?? 1,
-                    'created_by' => Auth::id(),
-                    'is_confirmed' => false,
                 ]);
-
-                // Save no_reff for group
-                if ($isNewGroup) {
-                    $currentNoReff = $jurnal->no_reff;
-                }
 
                 $this->importedCount++;
             }

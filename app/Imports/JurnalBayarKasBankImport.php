@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalBayarKasBank;
+use App\Models\JurnalBayarKasBankDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -115,28 +116,42 @@ class JurnalBayarKasBankImport implements ToCollection, WithHeadingRow
                 }
 
                 // Create record
-                $jurnal = JurnalBayarKasBank::create([
-                    'bukti' => strtoupper($row['bukti']),
-                    'tanggal' => $tanggal,
-                    'tanggal_check' => $tanggalCheck,
-                    'nama_bank' => $row['nama_bank'] ?? null,
-                    'no_cek' => $row['no_cek'] ?? null,
-                    'kelompok_id' => $kelompok->id,
+                $jurnal = null;
+                if ($isNewGroup) {
+                    $jurnal = JurnalBayarKasBank::create([
+                        'no_voucher' => strtoupper($row['bukti']),
+                        'bukti' => strtoupper($row['bukti']),
+                        'tanggal' => $tanggal,
+                        'tanggal_check' => $tanggalCheck,
+                        'nama_bank' => $row['nama_bank'] ?? null,
+                        'no_cek' => $row['no_cek'] ?? null,
+                        'kelompok_id' => $kelompok->id,
+                        'rekening_id' => $rekening->id,
+                        'nomor_bantu_id' => $nomorBantu->id,
+                        'dibayar_kepada' => $row['dibayar_kepada'] ?? null,
+                        'beban_bagian' => $row['beban_bagian'] ?? null,
+                        'keterangan' => $row['keterangan'] ?? null,
+                        'kode_proyek_id' => $kodeProyekId,
+                        'data' => $rekening->data,
+                        'no_reff' => '4',
+                        'ref' => '4',
+                        'group_transaksi' => $currentGroupId,
+                        'company_id' => Auth::user()?->company_id ?? 1,
+                        'created_by' => Auth::id(),
+                        'is_confirmed' => false,
+                        'rp' => 0,
+                    ]);
+                    $currentGroupId = $jurnal->id;
+                }
+
+                // Create detail record
+                JurnalBayarKasBankDetail::create([
+                    'jurnal_bayar_kas_bank_id' => $currentGroupId,
                     'rekening_id' => $rekening->id,
                     'nomor_bantu_id' => $nomorBantu->id,
-                    'kode' => $kode,
-                    'rp' => $jumlah,
-                    'dibayar_kepada' => $row['dibayar_kepada'] ?? null,
-                    'beban_bagian' => $row['beban_bagian'] ?? null,
-                    'keterangan' => $row['keterangan'] ?? null,
                     'kode_proyek_id' => $kodeProyekId,
-                    'data' => $rekening->data,
-                    'ref' => '3',
-                    'group_transaksi' => $currentGroupId,
-                    'item_sequence' => $itemSequence,
-                    'company_id' => Auth::user()?->company_id ?? 1,
-                    'created_by' => Auth::id(),
-                    'is_confirmed' => false,
+                    'jumlah' => $jumlah,
+                    'keterangan' => $row['keterangan'] ?? null,
                 ]);
 
                 // Save no_reff for group
