@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalRekeningAir;
+use App\Models\JurnalRekeningAirDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -108,7 +109,7 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
                 $noReff = $this->generateNoReff();
 
                 // Create jurnal rekening air
-                JurnalRekeningAir::create([
+                $jurnal = JurnalRekeningAir::create([
                     'no_reff' => $noReff,
                     'tanggal' => $tanggal,
                     'bukti' => strtoupper($bukti),
@@ -119,6 +120,20 @@ class JurnalRekeningAirImport implements ToCollection, WithHeadingRow, WithValid
                     'created_by' => \Illuminate\Support\Facades\Auth::id(),
                     'is_confirmed' => false,
                 ]);
+
+                // Create detail records in the table
+                foreach ($rekeningAirItems as $item) {
+                    $account = Rekening::find($item['rekening']);
+                    JurnalRekeningAirDetail::create([
+                        'jurnal_rekening_air_id' => $jurnal->id,
+                        'kelompok_id' => $account?->kelompok_id,
+                        'rekening_id' => $item['rekening'],
+                        'nomor_bantu_id' => $item['nomor_bantu'],
+                        'kode_proyek_id' => $item['kode_proyek'],
+                        'position' => $item['position'],
+                        'jumlah' => $item['jumlah'],
+                    ]);
+                }
 
                 $this->importedCount++;
             }

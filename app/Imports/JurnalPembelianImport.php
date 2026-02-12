@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalPembelian;
+use App\Models\JurnalPembelianDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -58,33 +59,36 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
                     continue;
                 }
 
-                // Cari rekening kredit
-                $rekeningKredit = \App\Models\Rekening::find($row['rekening_kredit'] ?? null);
+                // Find rekening kredit by code
+                $rekeningKredit = \App\Models\Rekening::where('no_rek', $row['rekening_kredit'] ?? null)->first();
                 if (!$rekeningKredit) {
-                    $this->errors[] = "Baris {$rowNumber}: Rekening kredit tidak ditemukan dengan ID: " . ($row['rekening_kredit'] ?? '');
+                    $this->errors[] = "Baris {$rowNumber}: Rekening kredit tidak ditemukan dengan kode: " . ($row['rekening_kredit'] ?? '');
                     continue;
                 }
 
-                // Cari nomor bantu kredit
-                $nomorBantuKredit = NomorBantu::find($row['nomor_bantu_kredit'] ?? null);
-                if (!$nomorBantuKredit || $nomorBantuKredit->rekening_id !== $rekeningKredit->id) {
-                    $this->errors[] = "Baris {$rowNumber}: Nomor bantu kredit tidak ditemukan atau tidak sesuai dengan rekening: " . ($row['nomor_bantu_kredit'] ?? '');
+                // Find nomor bantu kredit by code
+                $nomorBantuKredit = NomorBantu::where('no_bantu', $row['nomor_bantu_kredit'] ?? null)
+                    ->where('rekening_id', $rekeningKredit->id)
+                    ->first();
+                if (!$nomorBantuKredit) {
+                    $this->errors[] = "Baris {$rowNumber}: Nomor bantu kredit tidak ditemukan dengan kode: " . ($row['nomor_bantu_kredit'] ?? '');
                     continue;
                 }
 
-                // Cari nomor bantu debit
-                $nomorBantuDebit = NomorBantu::with('rekening.kelompok')->find($row['nomor_bantu_debit'] ?? null);
+                // Find nomor bantu debit by code
+                // Try to find by code only first, then with rekening if needed
+                $nomorBantuDebit = NomorBantu::with('rekening')->where('no_bantu', $row['nomor_bantu_debit'] ?? null)->first();
                 if (!$nomorBantuDebit) {
-                    $this->errors[] = "Baris {$rowNumber}: Nomor bantu debit tidak ditemukan dengan ID: " . ($row['nomor_bantu_debit'] ?? '');
+                    $this->errors[] = "Baris {$rowNumber}: Nomor bantu debit tidak ditemukan dengan kode: " . ($row['nomor_bantu_debit'] ?? '');
                     continue;
                 }
 
-                // Cari kode proyek jika ada
+                // Find kode proyek if exists
                 $kodeProyekId = null;
                 if (!empty($row['kode_proyek'])) {
-                    $kodeProyek = KodeProyek::find($row['kode_proyek']);
+                    $kodeProyek = KodeProyek::where('kode', $row['kode_proyek'])->first();
                     if (!$kodeProyek) {
-                        $this->errors[] = "Baris {$rowNumber}: Kode proyek tidak ditemukan dengan ID: " . $row['kode_proyek'];
+                        $this->errors[] = "Baris {$rowNumber}: Kode proyek tidak ditemukan dengan kode: " . $row['kode_proyek'];
                         continue;
                     }
                     $kodeProyekId = $kodeProyek->id;
@@ -97,34 +101,45 @@ class JurnalPembelianImport implements ToCollection, WithHeadingRow, WithValidat
                     continue;
                 }
 
-                // Create jurnal pembelian record (simplified - no redundant columns)
-                $data = [
-                    'no_reff' => $currentNoReff,
-                    'tanggal' => $tanggal,
+                // Create or find header record
+                $jurnal = null;
+                if ($isNewGroup) {
+                    $jurnal = JurnalPembelian::create([
+                        'no_reff' => $currentNoReff,
+                        'tanggal' => $tanggal,
+                        'bukti' => strtoupper($row['bukti'] ?? ''),
+                        'keterangan' => $row['keterangan'] ?? '',
+                        'nomor_bantu_kredit_id' => $nomorBantuKredit->id,
+                        'nama_nomor_bantu_kredit' => $row['nama_nomor_bantu_kredit'] ?? $nomorBantuKredit->nm_bantu,
+                        'data_k' => $rekeningKredit->data,
+                        'group_transaksi' => $currentGroupId,
+                        'kode_proyek_id' => $kodeProyekId,
+                        'company_id' => \Illuminate\Support\Facades\Auth::user()?->company_id ?? 1,
+                        'created_by' => \Illuminate\Support\Facades\Auth::id(),
+                        'is_confirmed' => false,
+                        'rp' => 0,
+                    ]);
+                    $currentGroupId = $jurnal->id;
+                }
+
+                // Create Detail record
+                JurnalPembelianDetail::create([
+                    'jurnal_pembelian_id' => $currentGroupId,
                     'bukti' => strtoupper($row['bukti'] ?? ''),
-                    'rp' => $jumlah,
                     'keterangan' => $row['keterangan'] ?? '',
-
-                    // Akun Kredit (Hutang/Kas/Bank) - only nomor_bantu_id needed
-                    'nomor_bantu_kredit_id' => $nomorBantuKredit->id,
-                    'nama_nomor_bantu_kredit' => $row['nama_nomor_bantu_kredit'] ?? $nomorBantuKredit->nm_bantu,
-                    'data_k' => $rekeningKredit->data,
-
-                    // Akun Debit (Pembelian) - only nomor_bantu_id needed
+                    'jumlah' => $jumlah,
+                    'kelompok_debit_id' => $nomorBantuDebit->rekening->kelompok_id,
+                    'rekening_debit_id' => $nomorBantuDebit->rekening_id,
                     'nomor_bantu_debit_id' => $nomorBantuDebit->id,
-                    'data_d' => $nomorBantuDebit->rekening->data,
-
-                    // Group management
-                    'group_transaksi' => $currentGroupId,
-                    'item_sequence' => $itemSequence,
-
                     'kode_proyek_id' => $kodeProyekId,
-                    'company_id' => \Illuminate\Support\Facades\Auth::user()?->company_id ?? 1,
-                    'created_by' => \Illuminate\Support\Facades\Auth::id(),
-                    'is_confirmed' => false,
-                ];
+                ]);
 
-                JurnalPembelian::create($data);
+                // Update header total amount
+                $header = JurnalPembelian::find($currentGroupId);
+                if ($header) {
+                    $header->increment('rp', $jumlah);
+                }
+
                 $this->importedCount++;
             }
 

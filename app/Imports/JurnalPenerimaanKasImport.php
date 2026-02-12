@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JurnalPenerimaanKas;
+use App\Models\JurnalPenerimaanKasDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
@@ -109,7 +110,7 @@ class JurnalPenerimaanKasImport implements ToCollection, WithHeadingRow, WithVal
                 }
 
                 // Create jurnal penerimaan kas
-                JurnalPenerimaanKas::create([
+                $jurnal = JurnalPenerimaanKas::create([
                     'kelompok_id' => $kelompokId,
                     'rekening_id' => $rekeningId,
                     'kas_bank_id' => $kasBankId,
@@ -118,8 +119,21 @@ class JurnalPenerimaanKasImport implements ToCollection, WithHeadingRow, WithVal
                     'keterangan' => $firstRow['keterangan_umum'] ?? '',
                     'detail_penerimaan' => $detailPenerimaan,
                     'total_amount' => $totalAmount,
-                    'reff' => $firstRow['reff'] ?? '3',
+                    'no_reff' => $firstRow['reff'] ?? '3',
                 ]);
+
+                // Create detail records in the table
+                foreach ($detailPenerimaan as $item) {
+                    JurnalPenerimaanKasDetail::create([
+                        'jurnal_penerimaan_kas_id' => $jurnal->id,
+                        'nomor_bukti' => $item['nomor_bukti'],
+                        'rekening_id' => $item['rekening'],
+                        'nomor_bantu_id' => $item['nomor_bantu'],
+                        'kode_proyek_id' => $item['kode_proyek'],
+                        'jumlah' => $item['jumlah'],
+                        'keterangan_item' => $item['keterangan_item'],
+                    ]);
+                }
 
                 $this->importedCount++;
             }
