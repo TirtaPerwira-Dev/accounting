@@ -68,6 +68,10 @@ class UserResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+                TextInput::make('username')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->email()
                     ->required()
@@ -105,6 +109,10 @@ class UserResource extends Resource
                     ->color(fn(User $record) => !$record->email_verified_at ? 'danger' : 'success')
                     ->icon(fn(User $record) => !$record->email_verified_at ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
                     ->description(fn(User $record) => !$record->email_verified_at ? '⚠️ Perlu Verifikasi' : '✅ Terverifikasi'),
+                TextColumn::make('username')
+                    ->label('Username')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
