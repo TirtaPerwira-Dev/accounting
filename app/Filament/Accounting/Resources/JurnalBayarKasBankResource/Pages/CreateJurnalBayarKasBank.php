@@ -51,12 +51,16 @@ class CreateJurnalBayarKasBank extends CreateRecord
             // Hitung total
             $totalRp = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
+            // Fetch kelompok_id for the bank/cash account
+            $rekeningBank = \App\Models\Rekening::find($data['rekening_id']);
+
             // Create Header
             $headerData = [
                 'no_voucher' => $data['no_voucher'] ?? null,
                 'tanggal' => $data['tanggal_check'],
                 'tanggal_check' => $data['tanggal_check'],
                 'no_reff' => '4',
+                'kelompok_id' => $rekeningBank?->kelompok_id,
                 'rekening_id' => $data['rekening_id'] ?? null,
                 'nomor_bantu_id' => $data['nomor_bantu_id'] ?? null,
                 'no_cek' => $data['no_cek'] ?? null,
@@ -64,6 +68,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
                 'dibayar_kepada' => $data['dibayar_kepada'] ?? null,
                 'rp' => $totalRp,
                 'keterangan' => $items[0]['keterangan'] ?? 'Jurnal Bayar Kas/Bank',
+                'kode' => 'K', // Kas/Bank berkurang (Kredit)
                 'company_id' => 1,
                 'created_by' => auth()->id(),
                 'is_confirmed' => false,
