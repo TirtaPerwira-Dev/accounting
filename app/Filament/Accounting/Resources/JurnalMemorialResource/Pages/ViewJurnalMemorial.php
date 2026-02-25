@@ -14,23 +14,19 @@ class ViewJurnalMemorial extends ViewRecord
 {
     protected static string $resource = JurnalMemorialResource::class;
 
-    /**
-     * Override resolveRecord untuk mendapatkan detail pertama dari parent JurnalMemorial
-     * karena resource model adalah JurnalMemorialDetail tapi URL menggunakan parent ID
-     */
-    public function resolveRecord(int|string $key): \Illuminate\Database\Eloquent\Model
+    protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Key adalah ID dari JurnalMemorial (parent)
-        // Kita perlu ambil detail pertama dari parent tersebut
-        $detail = \App\Models\JurnalMemorialDetail::whereHas('jurnalMemorial', function($query) use ($key) {
-            $query->where('id', $key);
-        })->with(['jurnalMemorial', 'rekening.kelompok', 'nomorBantu', 'kodeProyek'])->first();
-        
-        if (!$detail) {
-            abort(404);
-        }
-        
-        return $detail;
+        $this->record->load([
+            'jurnalMemorial.rekening.kelompok',
+            'jurnalMemorial.nomorBantu',
+            'jurnalMemorial.kodeProyek',
+            'jurnalMemorial.details.rekening.kelompok',
+            'jurnalMemorial.details.nomorBantu',
+            'jurnalMemorial.details.kodeProyek',
+            'jurnalMemorial.createdBy',
+        ]);
+
+        return $data;
     }
 
     protected function getHeaderActions(): array
@@ -214,7 +210,7 @@ class ViewJurnalMemorial extends ViewRecord
                                                     $record->rekening->kelompok->no_kel . '-' .
                                                     $record->rekening->no_rek . ' - ' .
                                                     $record->rekening->nama_rek : '-')
-                                                ->columnSpan(3),
+                                                ->columnSpan(4),
 
                                             // NOMOR BANTU
                                             Components\TextEntry::make('nomorBantu.nm_bantu')
@@ -223,7 +219,7 @@ class ViewJurnalMemorial extends ViewRecord
                                                 ->formatStateUsing(fn($record) => $record->nomorBantu ?
                                                     $record->nomorBantu->no_bantu . ' - ' .
                                                     $record->nomorBantu->nm_bantu : '-')
-                                                ->columnSpan(2),
+                                                ->columnSpan(3),
 
                                             // POSISI D/K (BADGE)
                                             Components\TextEntry::make('posisi')
@@ -236,13 +232,19 @@ class ViewJurnalMemorial extends ViewRecord
 
                                             // JUMLAH
                                             Components\TextEntry::make('jumlah')
-                                                ->label('')
+                                                ->label('Jumlah')
                                                 ->money('IDR')
-                                                ->size('xl')
+                                                ->size('lg')
                                                 ->weight('bold')
                                                 ->alignEnd()
                                                 ->columnSpan(2)
                                                 ->color(fn($record) => $record->posisi === 'D' ? 'danger' : 'success'),
+
+                                            // KETERANGAN ITEM
+                                            Components\TextEntry::make('keterangan')
+                                                ->label('Keterangan Item')
+                                                ->placeholder('-')
+                                                ->columnSpanFull(),
                                         ]),
                                     ])
                                     ->collapsible()
