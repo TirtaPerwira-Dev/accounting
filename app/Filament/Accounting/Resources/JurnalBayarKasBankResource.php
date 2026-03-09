@@ -470,17 +470,17 @@ class JurnalBayarKasBankResource extends Resource
                     Tables\Actions\EditAction::make()
                         ->label('Edit')
                         ->icon('heroicon-o-pencil')
-                        ->visible(fn($record) => !$record->is_confirmed),
+                        ->visible(fn($record) => !$record->jurnalBayarKasBank->is_confirmed),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('✓ Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->is_confirmed && auth()->user()->can('confirm_jurnal::bayar::kas::bank'))
+                        ->visible(fn($record) => !$record->jurnalBayarKasBank->is_confirmed && auth()->user()->can('confirm_jurnal::bayar::kas::bank'))
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(fn($record) => $record->confirm())
+                        ->action(fn($record) => $record->jurnalBayarKasBank->confirm())
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -492,11 +492,11 @@ class JurnalBayarKasBankResource extends Resource
                         ->label('↶ Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted && auth()->user()->can('unconfirm_jurnal::bayar::kas::bank'))
+                        ->visible(fn($record) => $record->jurnalBayarKasBank->is_confirmed && !$record->jurnalBayarKasBank->is_posted && auth()->user()->can('unconfirm_jurnal::bayar::kas::bank'))
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(fn($record) => $record->unconfirm())
+                        ->action(fn($record) => $record->jurnalBayarKasBank->unconfirm())
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -531,7 +531,7 @@ class JurnalBayarKasBankResource extends Resource
                         ->requiresConfirmation()
                         ->action(function ($record, \App\Services\JournalPostingService $service) {
                             try {
-                                $service->post($record);
+                                $service->post($record->jurnalBayarKasBank);
                                 Notification::make()
                                     ->title('Jurnal berhasil diposting ke Buku Besar')
                                     ->success()
@@ -544,11 +544,11 @@ class JurnalBayarKasBankResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
+                        ->visible(fn($record) => $record->jurnalBayarKasBank->is_confirmed && !$record->jurnalBayarKasBank->is_posted),
 
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
-                        ->visible(fn($record) => !$record->is_confirmed),
+                        ->visible(fn($record) => !$record->jurnalBayarKasBank->is_confirmed),
                 ])
                     ->label('Action')
                     ->button()
@@ -562,9 +562,11 @@ class JurnalBayarKasBankResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
-                            $validRecords = $records->filter(fn($record) => $record->is_confirmed && !$record->is_posted);
+                            $validHeaders = $records->map(fn($record) => $record->jurnalBayarKasBank)
+                                ->filter(fn($header) => $header->is_confirmed && !$header->is_posted)
+                                ->unique('id');
 
-                            if ($validRecords->isEmpty()) {
+                            if ($validHeaders->isEmpty()) {
                                 Notification::make()
                                     ->title('Tidak ada jurnal yang valid untuk diposting')
                                     ->warning()
@@ -572,7 +574,7 @@ class JurnalBayarKasBankResource extends Resource
                                 return;
                             }
 
-                            $count = $service->postBulk($validRecords);
+                            $count = $service->postBulk($validHeaders);
                             
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
@@ -587,8 +589,8 @@ class JurnalBayarKasBankResource extends Resource
                         ->color('success')
                         ->action(function ($records) {
                             foreach ($records as $record) {
-                                if (!$record->is_confirmed) {
-                                    $record->confirm();
+                                if (!$record->jurnalBayarKasBank->is_confirmed) {
+                                    $record->jurnalBayarKasBank->confirm();
                                 }
                             }
                         })
@@ -601,8 +603,8 @@ class JurnalBayarKasBankResource extends Resource
                         ->color('warning')
                         ->action(function ($records) {
                             foreach ($records as $record) {
-                                if ($record->is_confirmed) {
-                                    $record->unconfirm();
+                                if ($record->jurnalBayarKasBank->is_confirmed) {
+                                    $record->jurnalBayarKasBank->unconfirm();
                                 }
                             }
                         })

@@ -126,9 +126,9 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        @if(!empty($item['kode_proyek']) && $kodeProyekOptions->has($item['kode_proyek']))
+                                        @if(!empty($item['kode_proyek_id']) && $kodeProyekOptions->has($item['kode_proyek_id']))
                                             <span class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-2 py-1 fi-color-info fi-badge-color-info bg-info-50 text-info-600 ring-info-600/10 dark:bg-info-400/10 dark:text-info-400 dark:ring-info-400/30">
-                                                {{ $kodeProyekOptions->get($item['kode_proyek']) }}
+                                                {{ $kodeProyekOptions->get($item['kode_proyek_id']) }}
                                             </span>
                                         @else
                                             <span class="text-gray-500 dark:text-gray-400 italic text-xs">-</span>
@@ -143,10 +143,10 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        @if(!empty($item['rekening']) && $rekeningOptions->has($item['rekening']))
+                                        @if(!empty($item['rekening_id']) && $rekeningOptions->has($item['rekening_id']))
                                             <div class="max-w-sm">
                                                 <span class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-2 py-1 fi-color-gray fi-badge-color-gray bg-gray-50 text-gray-600 ring-gray-600/10 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/30 font-mono">
-                                                    {{ $rekeningOptions->get($item['rekening']) }}
+                                                    {{ $rekeningOptions->get($item['rekening_id']) }}
                                                 </span>
                                             </div>
                                         @else
@@ -162,10 +162,10 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        @if(!empty($item['nomor_bantu']) && $nomorBantuOptions->has($item['nomor_bantu']))
+                                        @if(!empty($item['nomor_bantu_id']) && $nomorBantuOptions->has($item['nomor_bantu_id']))
                                             <div class="max-w-sm">
                                                 <span class="text-xs">
-                                                    {{ $nomorBantuOptions->get($item['nomor_bantu']) }}
+                                                    {{ $nomorBantuOptions->get($item['nomor_bantu_id']) }}
                                                 </span>
                                             </div>
                                         @else

@@ -135,6 +135,7 @@ class JurnalBayarKasBankImport implements ToCollection, WithHeadingRow
                         'data' => $rekening->data,
                         'no_reff' => '4',
                         'ref' => '4',
+                        'kode' => 'K', // Kas/Bank berkurang (Kredit)
                         'group_transaksi' => $currentGroupId,
                         'company_id' => Auth::user()?->company_id ?? 1,
                         'created_by' => Auth::id(),
