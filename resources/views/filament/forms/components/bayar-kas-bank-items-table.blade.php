@@ -107,9 +107,9 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        @if(!empty($item['kode_proyek']) && $kodeProyekOptions->has($item['kode_proyek']))
+                                        @if(!empty($item['kode_proyek_id']) && $kodeProyekOptions->has($item['kode_proyek_id']))
                                             <span class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-2 py-1 fi-color-info fi-badge-color-info bg-info-50 text-info-600 ring-info-600/10 dark:bg-info-400/10 dark:text-info-400 dark:ring-info-400/30">
-                                                {{ $kodeProyekOptions->get($item['kode_proyek']) }}
+                                                {{ $kodeProyekOptions->get($item['kode_proyek_id']) }}
                                             </span>
                                         @else
                                             <span class="text-gray-500 dark:text-gray-400 italic text-xs">-</span>
@@ -123,13 +123,13 @@
                         <div class="fi-ta-col-wrp px-3 py-4">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex flex-col gap-1">
-                                    @if(!empty($item['rekening']) && $rekeningOptions->has($item['rekening']))
+                                    @if(!empty($item['rekening_id']) && $rekeningOptions->has($item['rekening_id']))
                                         <div class="text-sm leading-6 text-gray-950 dark:text-white">
-                                            {{ $rekeningOptions->get($item['rekening']) }}
+                                            {{ $rekeningOptions->get($item['rekening_id']) }}
                                         </div>
-                                        @if(!empty($item['nomor_bantu']) && $nomorBantuOptions->has($item['nomor_bantu']))
+                                        @if(!empty($item['nomor_bantu_id']) && $nomorBantuOptions->has($item['nomor_bantu_id']))
                                             <div class="text-xs text-gray-600 dark:text-gray-400">
-                                                {{ $nomorBantuOptions->get($item['nomor_bantu']) }}
+                                                {{ $nomorBantuOptions->get($item['nomor_bantu_id']) }}
                                             </div>
                                         @endif
                                     @else
@@ -171,7 +171,19 @@
                                 <div class="flex justify-center gap-2">
                                     <button
                                         type="button"
-                                        wire:click="$dispatch('remove-bayar-item', { index: {{ $index }} })"
+                                        wire:click="editItem({{ $index }})"
+                                        class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-custom fi-ac-action fi-ac-link-action"
+                                        style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);"
+                                        title="Edit item">
+                                        <svg class="fi-link-icon h-5 w-5 text-custom-500 dark:text-custom-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z"/>
+                                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z"/>
+                                        </svg>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        wire:click="removeItem({{ $index }})"
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-danger fi-ac-action fi-ac-link-action"
                                         title="Hapus item">
                                         <svg class="fi-link-icon h-5 w-5 text-danger-500 dark:text-danger-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

@@ -200,24 +200,27 @@ class RekeningSeeder extends Seeder
         ];
 
         foreach ($rekenings as $rekening) {
-            $kelompokId = $kelompoks[$rekening['kelompok_no']] ?? null;
+            $noKel = str_pad(trim((string) $rekening['kelompok_no']), 2, '0', STR_PAD_LEFT);
+            $noRek = str_pad(trim((string) $rekening['no_rek']), 4, '0', STR_PAD_LEFT);
+
+            $kelompokId = $kelompoks[$noKel] ?? null;
             if (!$kelompokId) {
-                $this->command->warn("Kelompok {$rekening['kelompok_no']} not found for rekening {$rekening['no_rek']}");
+                $this->command->warn("Kelompok {$noKel} not found for rekening {$noRek}");
                 continue;
             }
 
             $kelompokModel = Kelompok::find($kelompokId);
             $kelValue = $kelompokModel?->kel;
-            $dataValue = ($rekening['kelompok_no'] === '30') ? 'AT' : null;
+            $dataValue = ($noKel === '30') ? 'AT' : null;
 
             Rekening::updateOrCreate(
                 [
                     'kelompok_id' => $kelompokId,
-                    'no_rek' => $rekening['no_rek']
+                    'no_rek' => $noRek
                 ],
                 [
-                    'nama_rek' => $rekening['nama_rek'],
-                    'kode' => $rekening['kode'],
+                    'nama_rek' => trim((string) $rekening['nama_rek']),
+                    'kode' => strtoupper(trim((string) $rekening['kode'])),
                     'kel' => $kelValue,
                     'data' => $dataValue,
                     'is_active' => true

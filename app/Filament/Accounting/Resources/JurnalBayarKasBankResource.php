@@ -119,6 +119,7 @@ class JurnalBayarKasBankResource extends Resource
                                     }
 
                                     $set('nama_bank', $namaBank);
+                                    $set('dibayar_kepada', $namaBank);
                                     $set('rekening_id', $rekeningId);
                                     $set('nomor_bantu_id', $nomorBantuId > 0 ? $nomorBantuId : null);
                                 }),
@@ -145,6 +146,38 @@ class JurnalBayarKasBankResource extends Resource
                             Forms\Components\TextInput::make('dibayar_kepada')
                                 ->label('Boleh dibayar kepada')
                                 ->maxLength(255),
+
+                            Forms\Components\TextInput::make('nominal_input')
+                                ->label('Nominal Pembayaran (Rp)')
+                                ->prefix('Rp')
+                                ->numeric()
+                                ->default(0)
+                                ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                ]),
+                        ]),
+
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\Placeholder::make('total_item_pembayaran')
+                                ->label('Total Item Pembayaran')
+                                ->content(function (Forms\Get $get): string {
+                                    $items = $get('pembayaran_items') ?? [];
+                                    $total = collect($items)->sum('jumlah');
+
+                                    return 'Rp ' . number_format((float) $total, 0, ',', '.');
+                                }),
+                            Forms\Components\Placeholder::make('selisih_nominal')
+                                ->label('Selisih Nominal')
+                                ->content(function (Forms\Get $get): string {
+                                    $nominal = (float) ($get('nominal_input') ?? 0);
+                                    $items = $get('pembayaran_items') ?? [];
+                                    $total = (float) collect($items)->sum('jumlah');
+                                    $selisih = $nominal - $total;
+
+                                    return 'Rp ' . number_format($selisih, 0, ',', '.');
+                                }),
                         ]),
 
                         // Hidden fields for backend
@@ -159,7 +192,7 @@ class JurnalBayarKasBankResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(3)->schema([
                             // Kode Proyek
-                            Forms\Components\Select::make('temp_kode_proyek')
+                            Forms\Components\Select::make('temp_kode_proyek_id')
                                 ->label('Kode Proyek')
                                 ->options(function () {
                                     return KodeProyek::query()
@@ -176,7 +209,7 @@ class JurnalBayarKasBankResource extends Resource
                                 ->dehydrated(false),
 
                             // Rekening
-                            Forms\Components\Select::make('temp_rekening')
+                            Forms\Components\Select::make('temp_rekening_id')
                                 ->label('Rekening')
                                 ->options(function () {
                                     return Rekening::with('kelompok')
@@ -189,17 +222,17 @@ class JurnalBayarKasBankResource extends Resource
                                 ->live()
                                 ->afterStateUpdated(function (callable $set, $state) {
                                     if ($state) {
-                                        $set('temp_nomor_bantu', null);
+                                        $set('temp_nomor_bantu_id', null);
                                     }
                                 })
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
 
                             // Nomor Bantu
-                            Forms\Components\Select::make('temp_nomor_bantu')
+                            Forms\Components\Select::make('temp_nomor_bantu_id')
                                 ->label('Nomor Bantu')
                                 ->options(function (callable $get) {
-                                    $rekeningId = $get('temp_rekening');
+                                    $rekeningId = $get('temp_rekening_id');
                                     if (!$rekeningId) return [];
 
                                     return NomorBantu::where('rekening_id', $rekeningId)
@@ -247,15 +280,15 @@ class JurnalBayarKasBankResource extends Resource
                                 ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $tempData = [
-                                        'kode_proyek' => $get('temp_kode_proyek'),
-                                        'rekening' => $get('temp_rekening'),
-                                        'nomor_bantu' => $get('temp_nomor_bantu'),
+                                        'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'rekening_id' => $get('temp_rekening_id'),
+                                        'nomor_bantu_id' => $get('temp_nomor_bantu_id'),
                                         'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
                                         'keterangan' => $get('temp_keterangan'),
                                     ];
 
                                     // Validate required fields
-                                    if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
+                                    if (empty($tempData['rekening_id']) || empty($tempData['jumlah'])) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Data tidak lengkap!')
                                             ->body('Rekening dan Jumlah harus diisi.')
@@ -264,14 +297,14 @@ class JurnalBayarKasBankResource extends Resource
                                         return;
                                     }
 
-                                    $currentItems = $get('detail_pembayaran') ?? [];
+                                    $currentItems = $get('pembayaran_items') ?? [];
                                     $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
-                                    $set('detail_pembayaran', $currentItems);
+                                    $set('pembayaran_items', $currentItems);
 
                                     // Clear form
-                                    $set('temp_kode_proyek', null);
-                                    $set('temp_rekening', null);
-                                    $set('temp_nomor_bantu', null);
+                                    $set('temp_kode_proyek_id', null);
+                                    $set('temp_rekening_id', null);
+                                    $set('temp_nomor_bantu_id', null);
                                     $set('temp_jumlah', '');
                                     $set('temp_keterangan', '');
 
@@ -298,7 +331,7 @@ class JurnalBayarKasBankResource extends Resource
                 Forms\Components\Section::make('Daftar Item Pembayaran')
                     ->description('Preview item yang telah ditambahkan')
                     ->schema([
-                        Forms\Components\ViewField::make('detail_pembayaran')
+                        Forms\Components\ViewField::make('pembayaran_items')
                             ->view('filament.forms.components.bayar-kas-bank-items-table'),
 
                         // Action untuk konfirmasi selesai menambah item
@@ -308,9 +341,9 @@ class JurnalBayarKasBankResource extends Resource
                                 ->icon('heroicon-o-check-circle')
                                 ->color('success')
                                 ->size('lg')
-                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('detail_pembayaran')))
+                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('pembayaran_items')))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $items = $get('detail_pembayaran') ?? [];
+                                    $items = $get('pembayaran_items') ?? [];
 
                                     if (empty($items)) {
                                         \Filament\Notifications\Notification::make()
@@ -368,16 +401,16 @@ class JurnalBayarKasBankResource extends Resource
                                 if ($get('items_completed')) {
                                     return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
                                 } else {
-                                    $count = count($get('detail_pembayaran') ?? []);
+                                    $count = count($get('pembayaran_items') ?? []);
                                     if ($count > 0) {
-                                        $items = $get('detail_pembayaran') ?? [];
+                                        $items = $get('pembayaran_items') ?? [];
                                         $total = collect($items)->sum('jumlah');
                                         return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi Selesai' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
                             })
-                            ->visible(fn(Forms\Get $get) => !empty($get('detail_pembayaran')))
+                            ->visible(fn(Forms\Get $get) => !empty($get('pembayaran_items')))
                             ->columnSpanFull(),
 
                         // Hidden field untuk status konfirmasi
@@ -386,10 +419,10 @@ class JurnalBayarKasBankResource extends Resource
                             ->dehydrated(true),
 
                         // Hidden field untuk menyimpan array items
-                        Forms\Components\Hidden::make('detail_pembayaran')
+                        Forms\Components\Hidden::make('pembayaran_items')
                             ->dehydrated(true),
                     ])
-                    ->visible(fn(Forms\Get $get) => !empty($get('detail_pembayaran')))
+                    ->visible(fn(Forms\Get $get) => !empty($get('pembayaran_items')))
                     ->collapsible(),
 
                 // SECTION 4: RINGKASAN
@@ -400,7 +433,7 @@ class JurnalBayarKasBankResource extends Resource
                                 Forms\Components\Placeholder::make('total_amount')
                                     ->label('Total Pembayaran')
                                     ->content(function (callable $get) {
-                                        $details = $get('detail_pembayaran') ?? [];
+                                        $details = $get('pembayaran_items') ?? [];
                                         $total = collect($details)->sum('jumlah');
                                         return 'Rp ' . number_format($total, 0, ',', '.');
                                     }),
@@ -408,7 +441,7 @@ class JurnalBayarKasBankResource extends Resource
                                 Forms\Components\Placeholder::make('status_balance')
                                     ->label('⚖️ Status')
                                     ->content(function (callable $get) {
-                                        $details = $get('detail_pembayaran') ?? [];
+                                        $details = $get('pembayaran_items') ?? [];
                                         $total = collect($details)->sum('jumlah');
                                         $isBalance = $total > 0;
                                         return $isBalance ? '✅ Valid' : '⚠️ Belum ada item';

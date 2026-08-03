@@ -84,9 +84,37 @@ class JurnalPembelianResource extends Resource
                                         })
                                         ->get()
                                         ->mapWithKeys(function ($rekening) {
-                                            $code = $rekening->kelompok->no_kel . $rekening->no_rek;
-                                            return [$rekening->id => "[$code] {$rekening->nama_rek}"];
+                                            $code = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                            return [$rekening->id => "[{$code}] {$rekening->nama_rek}"];
                                         });
+                                })
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    return \App\Models\Rekening::with('kelompok')
+                                        ->whereHas('kelompok', function ($q) {
+                                            $q->whereIn('no_kel', ['10', '50']);
+                                        })
+                                        ->where('no_rek', 'like', '%' . preg_replace('/\D/', '', $search) . '%')
+                                        ->orderBy('no_rek')
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function ($rekening) {
+                                            $code = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                            return [$rekening->id => "[{$code}] {$rekening->nama_rek}"];
+                                        })
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (!$value) {
+                                        return null;
+                                    }
+
+                                    $rekening = \App\Models\Rekening::find($value);
+                                    if (!$rekening) {
+                                        return null;
+                                    }
+
+                                    $code = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                    return "[{$code}] {$rekening->nama_rek}";
                                 })
                                 ->searchable()
                                 ->required()
@@ -106,7 +134,8 @@ class JurnalPembelianResource extends Resource
                                     return NomorBantu::where('rekening_id', $rekeningId)
                                         ->get()
                                         ->mapWithKeys(function ($nb) {
-                                            return [$nb->id => "[$nb->no_bantu] {$nb->nm_bantu}"];
+                                            $noBantu = str_pad((string) $nb->no_bantu, 3, '0', STR_PAD_LEFT);
+                                            return [$nb->id => "[{$noBantu}] {$nb->nm_bantu}"];
                                         });
                                 })
                                 ->searchable()
@@ -199,17 +228,49 @@ class JurnalPembelianResource extends Resource
                                 ->dehydrated(false),
 
                             Forms\Components\Select::make('temp_nomor_bantu_debit_id')
-                                ->label('Kode Rekening')
+                                ->label('Kode Rekening (4 digit) - Nomor Bantu (3 digit)')
                                 ->placeholder('Pilih akun pembelian...')
                                 ->options(function () {
                                     return NomorBantu::with(['rekening.kelompok'])
                                         ->get()
                                         ->mapWithKeys(function ($n) {
-                                            $code = $n->rekening->kelompok->no_kel .
-                                                $n->rekening->no_rek .
-                                                str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
+                                            $code = str_pad((string) $n->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
+                                                str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
                                             return [$n->id => "[$code] {$n->nm_bantu}"];
                                         });
+                                })
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    $keyword = preg_replace('/\D/', '', $search);
+
+                                    return NomorBantu::with(['rekening'])
+                                        ->whereHas('rekening', function ($q) use ($keyword) {
+                                            $q->where('no_rek', 'like', '%' . $keyword . '%');
+                                        })
+                                        ->orderBy('rekening_id')
+                                        ->orderBy('no_bantu')
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function ($n) {
+                                            $code = str_pad((string) $n->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
+                                                str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
+                                            return [$n->id => "[{$code}] {$n->nm_bantu}"];
+                                        })
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (!$value) {
+                                        return null;
+                                    }
+
+                                    $nomorBantu = NomorBantu::with('rekening')->find($value);
+                                    if (!$nomorBantu || !$nomorBantu->rekening) {
+                                        return null;
+                                    }
+
+                                    $code = str_pad((string) $nomorBantu->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
+                                        str_pad((string) $nomorBantu->no_bantu, 3, '0', STR_PAD_LEFT);
+
+                                    return "[{$code}] {$nomorBantu->nm_bantu}";
                                 })
                                 ->searchable()
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)

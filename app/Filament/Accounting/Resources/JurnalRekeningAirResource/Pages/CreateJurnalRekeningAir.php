@@ -51,9 +51,9 @@ class CreateJurnalRekeningAir extends CreateRecord
     {
         try {
             // Populate form fields
-            $this->data['temp_rekening_id'] = $item['rekening_id'] ?? null;
-            $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? null;
-            $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? null;
+            $this->data['temp_rekening_id'] = $item['rekening_id'] ?? $item['rekening'] ?? null;
+            $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? $item['nomor_bantu'] ?? null;
+            $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? $item['kode_proyek'] ?? null;
             $this->data['temp_position'] = $item['position'] ?? 'debit';
             $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
 

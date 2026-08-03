@@ -136,9 +136,9 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        @if(!empty($item['kode_proyek']) && $kodeProyekOptions->has($item['kode_proyek']))
+                                        @if(!empty($item['kode_proyek_id']) && $kodeProyekOptions->has($item['kode_proyek_id']))
                                             <span class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-2 py-1 fi-color-info fi-badge-color-info bg-info-50 text-info-600 ring-info-600/10 dark:bg-info-400/10 dark:text-info-400 dark:ring-info-400/30">
-                                                {{ $kodeProyekOptions->get($item['kode_proyek']) }}
+                                                {{ $kodeProyekOptions->get($item['kode_proyek_id']) }}
                                             </span>
                                         @else
                                             <span class="text-gray-500 dark:text-gray-400 italic text-xs">-</span>
@@ -152,13 +152,13 @@
                         <div class="fi-ta-col-wrp px-3 py-4">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex flex-col gap-1">
-                                    @if(!empty($item['rekening']) && $rekeningOptions->has($item['rekening']))
+                                    @if(!empty($item['rekening_id']) && $rekeningOptions->has($item['rekening_id']))
                                         <div class="fi-ta-text-item text-sm leading-6 text-gray-950 dark:text-white">
-                                            {{ $rekeningOptions->get($item['rekening']) }}
+                                            {{ $rekeningOptions->get($item['rekening_id']) }}
                                         </div>
-                                        @if(!empty($item['nomor_bantu']) && $nomorBantuOptions->has($item['nomor_bantu']))
+                                        @if(!empty($item['nomor_bantu_id']) && $nomorBantuOptions->has($item['nomor_bantu_id']))
                                             <div class="text-xs text-gray-600 dark:text-gray-400">
-                                                {{ $nomorBantuOptions->get($item['nomor_bantu']) }}
+                                                {{ $nomorBantuOptions->get($item['nomor_bantu_id']) }}
                                             </div>
                                         @endif
                                     @else

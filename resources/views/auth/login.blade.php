@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - SIP Tirta Perwira</title>
+    <title>Login - AccountingApp Tirta Perwira</title>
     <style>
         :root {
             --bg: #f4f7fb;
@@ -188,7 +188,7 @@
 <div class="layout">
     <section class="branding" aria-hidden="true">
         <div class="branding-inner">
-            <h1>SIP TIRTA PERWIRA</h1>
+            <h1>AccountingApp Tirta Perwira</h1>
             <p>Sistem Akuntansi SAKEP untuk transaksi, jurnal, dan pelaporan keuangan terintegrasi.</p>
         </div>
     </section>

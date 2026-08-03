@@ -129,8 +129,8 @@
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
                                     <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-sm leading-6 text-gray-950 dark:text-white">
-                                        <div class="max-w-xs">
-                                            <span class="truncate">{{ $item['keterangan'] ?? '-' }}</span>
+                                        <div class="max-w-xs whitespace-normal">
+                                            <span class="block break-words leading-5">{{ $item['keterangan'] ?? '-' }}</span>
                                         </div>
                                     </div>
                                 </div>

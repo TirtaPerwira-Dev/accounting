@@ -171,7 +171,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->dehydrated(false),
 
                             // Kode Proyek
-                            Forms\Components\Select::make('temp_kode_proyek')
+                            Forms\Components\Select::make('temp_kode_proyek_id')
                                 ->label('Kode Proyek')
                                 ->options(function () {
                                     return KodeProyek::query()
@@ -188,7 +188,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->dehydrated(false),
 
                             // Rekening (Sumber Kredit)
-                            Forms\Components\Select::make('temp_rekening')
+                            Forms\Components\Select::make('temp_rekening_id')
                                 ->label('Rekening (Sumber)')
                                 ->options(function () {
                                     return Rekening::with('kelompok')
@@ -201,17 +201,17 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->live()
                                 ->afterStateUpdated(function (callable $set, $state) {
                                     if ($state) {
-                                        $set('temp_nomor_bantu', null);
+                                        $set('temp_nomor_bantu_id', null);
                                     }
                                 })
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
 
                             // Nomor Bantu
-                            Forms\Components\Select::make('temp_nomor_bantu')
+                            Forms\Components\Select::make('temp_nomor_bantu_id')
                                 ->label('Nomor Bantu')
                                 ->options(function (callable $get) {
-                                    $rekeningId = $get('temp_rekening');
+                                    $rekeningId = $get('temp_rekening_id');
                                     if (!$rekeningId) return [];
 
                                     return NomorBantu::where('rekening_id', $rekeningId)
@@ -259,15 +259,15 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $tempData = [
                                         'nomor_bukti' => $get('temp_nomor_bukti'),
-                                        'kode_proyek' => $get('temp_kode_proyek'),
-                                        'rekening' => $get('temp_rekening'),
-                                        'nomor_bantu' => $get('temp_nomor_bantu'),
+                                        'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'rekening_id' => $get('temp_rekening_id'),
+                                        'nomor_bantu_id' => $get('temp_nomor_bantu_id'),
                                         'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
                                         'keterangan_item' => $get('temp_keterangan_item'),
                                     ];
 
                                     // Validate required fields
-                                    if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
+                                    if (empty($tempData['rekening_id']) || empty($tempData['jumlah'])) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Data tidak lengkap!')
                                             ->body('Rekening dan Jumlah harus diisi.')
@@ -276,15 +276,15 @@ class JurnalPenerimaanKasResource extends Resource
                                         return;
                                     }
 
-                                    $currentItems = $get('detail_penerimaan') ?? [];
+                                    $currentItems = $get('penerimaan_items') ?? [];
                                     $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
-                                    $set('detail_penerimaan', $currentItems);
+                                    $set('penerimaan_items', $currentItems);
 
                                     // Clear form
                                     $set('temp_nomor_bukti', '');
-                                    $set('temp_kode_proyek', null);
-                                    $set('temp_rekening', null);
-                                    $set('temp_nomor_bantu', null);
+                                    $set('temp_kode_proyek_id', null);
+                                    $set('temp_rekening_id', null);
+                                    $set('temp_nomor_bantu_id', null);
                                     $set('temp_jumlah', '');
                                     $set('temp_keterangan_item', '');
 
@@ -311,7 +311,7 @@ class JurnalPenerimaanKasResource extends Resource
                 Forms\Components\Section::make('Daftar Item Sumber Penerimaan')
                     ->description('Preview item yang telah ditambahkan')
                     ->schema([
-                        Forms\Components\ViewField::make('detail_penerimaan')
+                        Forms\Components\ViewField::make('penerimaan_items')
                             ->view('filament.forms.components.penerimaan-kas-items-table'),
 
                         // Action untuk konfirmasi selesai menambah item
@@ -321,9 +321,9 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->icon('heroicon-o-check-circle')
                                 ->color('success')
                                 ->size('lg')
-                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('detail_penerimaan')))
+                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('penerimaan_items')))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $items = $get('detail_penerimaan') ?? [];
+                                    $items = $get('penerimaan_items') ?? [];
 
                                     if (empty($items)) {
                                         \Filament\Notifications\Notification::make()
@@ -381,16 +381,16 @@ class JurnalPenerimaanKasResource extends Resource
                                 if ($get('items_completed')) {
                                     return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
                                 } else {
-                                    $count = count($get('detail_penerimaan') ?? []);
+                                    $count = count($get('penerimaan_items') ?? []);
                                     if ($count > 0) {
-                                        $items = $get('detail_penerimaan') ?? [];
+                                        $items = $get('penerimaan_items') ?? [];
                                         $total = collect($items)->sum('jumlah');
                                         return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi Selesai' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
                             })
-                            ->visible(fn(Forms\Get $get) => !empty($get('detail_penerimaan')))
+                            ->visible(fn(Forms\Get $get) => !empty($get('penerimaan_items')))
                             ->columnSpanFull(),
 
                         // Hidden field untuk status konfirmasi
@@ -399,10 +399,10 @@ class JurnalPenerimaanKasResource extends Resource
                             ->dehydrated(true),
 
                         // Hidden field untuk menyimpan array items
-                        Forms\Components\Hidden::make('detail_penerimaan')
+                        Forms\Components\Hidden::make('penerimaan_items')
                             ->dehydrated(true),
                     ])
-                    ->visible(fn(Forms\Get $get) => !empty($get('detail_penerimaan')))
+                    ->visible(fn(Forms\Get $get) => !empty($get('penerimaan_items')))
                     ->collapsible(),
 
                 // === RINGKASAN ===
@@ -413,7 +413,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 Forms\Components\Placeholder::make('total_amount')
                                     ->label('Total Penerimaan')
                                     ->content(function (callable $get) {
-                                        $details = $get('detail_penerimaan') ?? [];
+                                        $details = $get('penerimaan_items') ?? [];
                                         $total = collect($details)->sum('jumlah');
                                         return 'Rp ' . number_format($total, 0, ',', '.');
                                     }),
@@ -421,7 +421,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 Forms\Components\Placeholder::make('status_balance')
                                     ->label('⚖️ Status')
                                     ->content(function (callable $get) {
-                                        $details = $get('detail_penerimaan') ?? [];
+                                        $details = $get('penerimaan_items') ?? [];
                                         $total = collect($details)->sum('jumlah');
                                         $isBalance = $total > 0;
                                         return $isBalance ? '✅ Valid' : '⚠️ Belum ada item';
@@ -660,6 +660,11 @@ class JurnalPenerimaanKasResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail')
                         ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit Jurnal')
+                        ->icon('heroicon-o-pencil-square')
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
 
                     Tables\Actions\Action::make('exportPdf')
                         ->label('PDF')

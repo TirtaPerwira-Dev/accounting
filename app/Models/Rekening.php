@@ -130,7 +130,10 @@ class Rekening extends Model
      */
     public function getFullCodeAttribute(): string
     {
-        return $this->kelompok->no_kel . '.' . $this->no_rek;
+        $noKel = str_pad((string) ($this->kelompok?->no_kel ?? ''), 2, '0', STR_PAD_LEFT);
+        $noRek = str_pad((string) $this->no_rek, 4, '0', STR_PAD_LEFT);
+
+        return trim($noKel . '.' . $noRek, '.');
     }
 
     public function getNomorKelompokAttribute(): ?string
@@ -140,7 +143,7 @@ class Rekening extends Model
 
     public function getNomorRekeningAttribute(): string
     {
-        return $this->no_rek;
+        return str_pad((string) $this->no_rek, 4, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -135,7 +135,11 @@ class NomorBantu extends Model
      */
     public function getFullCodeAttribute(): string
     {
-        return $this->rekening->kelompok->no_kel . '.' . $this->rekening->no_rek . '.' . $this->no_bantu;
+        $noKel = str_pad((string) ($this->rekening?->kelompok?->no_kel ?? ''), 2, '0', STR_PAD_LEFT);
+        $noRek = str_pad((string) ($this->rekening?->no_rek ?? ''), 4, '0', STR_PAD_LEFT);
+        $noBantu = str_pad((string) $this->no_bantu, 3, '0', STR_PAD_LEFT);
+
+        return trim($noKel . '.' . $noRek . '.' . $noBantu, '.');
     }
 
     public function getNomorKelompokAttribute(): ?string
@@ -145,12 +149,14 @@ class NomorBantu extends Model
 
     public function getNomorRekeningAttribute(): ?string
     {
-        return $this->rekening?->no_rek;
+        return $this->rekening?->no_rek
+            ? str_pad((string) $this->rekening->no_rek, 4, '0', STR_PAD_LEFT)
+            : null;
     }
 
     public function getNomorBantuAttribute(): string
     {
-        return $this->no_bantu;
+        return str_pad((string) $this->no_bantu, 3, '0', STR_PAD_LEFT);
     }
 
     /**

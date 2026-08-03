@@ -8,6 +8,8 @@ use App\Http\Controllers\PdfPreviewController;
 use App\Models\JurnalPenerimaanKas;
 use Barryvdh\DomPDF\Facade\Pdf;
 
+Route::redirect('/', '/login');
+Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/auth/login', [LoginController::class, 'authenticate'])->name('auth.custom.login');
 
 // Default Laravel welcome removed - Filament admin panel is now at '/'

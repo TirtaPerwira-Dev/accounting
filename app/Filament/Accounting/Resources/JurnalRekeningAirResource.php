@@ -113,7 +113,7 @@ class JurnalRekeningAirResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(5)->schema([
                             // Kode Proyek
-                            Forms\Components\Select::make('temp_kode_proyek')
+                            Forms\Components\Select::make('temp_kode_proyek_id')
                                 ->label('Kode Proyek')
                                 ->options(function () {
                                     return KodeProyek::query()
@@ -130,7 +130,7 @@ class JurnalRekeningAirResource extends Resource
                                 ->dehydrated(false),
 
                             // Rekening
-                            Forms\Components\Select::make('temp_rekening')
+                            Forms\Components\Select::make('temp_rekening_id')
                                 ->label('Rekening')
                                 ->options(function () {
                                     return Rekening::with('kelompok')
@@ -146,7 +146,7 @@ class JurnalRekeningAirResource extends Resource
                                         $rekening = Rekening::find($state);
                                         if ($rekening) {
                                             $set('temp_position', $rekening->kode === 'K' ? 'kredit' : 'debit');
-                                            $set('temp_nomor_bantu', null);
+                                            $set('temp_nomor_bantu_id', null);
                                         }
                                     }
                                 })
@@ -154,10 +154,10 @@ class JurnalRekeningAirResource extends Resource
                                 ->dehydrated(false),
 
                             // Nomor Bantu
-                            Forms\Components\Select::make('temp_nomor_bantu')
+                            Forms\Components\Select::make('temp_nomor_bantu_id')
                                 ->label('Nomor Bantu')
                                 ->options(function (callable $get) {
-                                    $rekeningId = $get('temp_rekening');
+                                    $rekeningId = $get('temp_rekening_id');
                                     if (!$rekeningId) return [];
 
                                     return NomorBantu::where('rekening_id', $rekeningId)
@@ -207,15 +207,15 @@ class JurnalRekeningAirResource extends Resource
                                 ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
                                 ->action(function (Forms\Get $get, Forms\Set $set) {
                                     $tempData = [
-                                        'kode_proyek' => $get('temp_kode_proyek'),
-                                        'rekening' => $get('temp_rekening'),
-                                        'nomor_bantu' => $get('temp_nomor_bantu'),
+                                        'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'rekening_id' => $get('temp_rekening_id'),
+                                        'nomor_bantu_id' => $get('temp_nomor_bantu_id'),
                                         'position' => $get('temp_position'),
                                         'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
                                     ];
 
                                     // Validate required fields
-                                    if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
+                                    if (empty($tempData['rekening_id']) || empty($tempData['jumlah'])) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Data tidak lengkap!')
                                             ->body('Rekening dan Jumlah harus diisi.')
@@ -229,9 +229,9 @@ class JurnalRekeningAirResource extends Resource
                                     $set('rekening_air_items', $currentItems);
 
                                     // Clear form
-                                    $set('temp_kode_proyek', null);
-                                    $set('temp_rekening', null);
-                                    $set('temp_nomor_bantu', null);
+                                    $set('temp_kode_proyek_id', null);
+                                    $set('temp_rekening_id', null);
+                                    $set('temp_nomor_bantu_id', null);
                                     $set('temp_position', 'debit');
                                     $set('temp_jumlah', '');
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('nomor_bantus', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rekening_id')->constrained('rekenings')->onDelete('cascade');
-            $table->string('no_bantu', 2)->comment('Nomor Bantu (10, 20, 30, dst)');
+            $table->string('no_bantu', 3)->comment('Nomor Bantu (01, 010, 100, dst)');
             $table->string('nm_bantu')->comment('Nama Bantu (Bank BPD, BMT Mrebet, dst)');
             $table->enum('kel', ['1', '2', '3', '4', '5', '6'])->comment('KEL (1-6)');
             $table->enum('kode', ['D', 'K'])->comment('Kode Debit/Kredit');

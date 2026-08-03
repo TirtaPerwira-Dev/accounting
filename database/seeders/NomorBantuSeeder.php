@@ -1417,21 +1417,35 @@ class NomorBantuSeeder extends Seeder
 
         // === PROSES INSERT / UPDATE ===
         foreach ($nomorBantus as $nomorBantu) {
-            $rekening = $rekenings[$nomorBantu['rek_key']] ?? null;
+            $rekKey = trim((string) $nomorBantu['rek_key']);
+            [$rawKel, $rawRek] = array_pad(explode('.', $rekKey), 2, null);
+            $normalizedRekKey = str_pad((string) $rawKel, 2, '0', STR_PAD_LEFT)
+                . '.'
+                . str_pad((string) $rawRek, 4, '0', STR_PAD_LEFT);
+
+            $rekening = $rekenings[$normalizedRekKey] ?? null;
             if (!$rekening) {
-                $this->command->warn("Rekening {$nomorBantu['rek_key']} not found for nomor bantu {$nomorBantu['no_bantu']}");
+                $this->command->warn("Rekening {$normalizedRekKey} not found for nomor bantu {$nomorBantu['no_bantu']}");
                 continue;
             }
+
+            $noBantu = trim((string) $nomorBantu['no_bantu']);
+            if (ctype_digit($noBantu)) {
+                $noBantu = str_pad($noBantu, 2, '0', STR_PAD_LEFT);
+            }
+
+            $kelValue = trim((string) ($nomorBantu['kel'] ?? $rekening->kel));
+            $kodeValue = strtoupper(trim((string) ($nomorBantu['kode'] ?? $rekening->kode)));
 
             NomorBantu::updateOrCreate(
                 [
                     'rekening_id' => $rekening->id,
-                    'no_bantu' => $nomorBantu['no_bantu']
+                    'no_bantu' => $noBantu
                 ],
                 [
-                    'nm_bantu' => $nomorBantu['nm_bantu'],
-                    'kel' => $nomorBantu['kel'],
-                    'kode' => $nomorBantu['kode'],
+                    'nm_bantu' => trim((string) $nomorBantu['nm_bantu']),
+                    'kel' => $kelValue,
+                    'kode' => in_array($kodeValue, ['D', 'K'], true) ? $kodeValue : $rekening->kode,
                     'is_active' => true
                 ]
             );
