@@ -576,17 +576,17 @@ class JurnalPembelianResource extends Resource
                         // Detail item - ambil dari record detail
                         $kodeProyek = $record->kodeProyek?->kode ?? '';
                         $namaProyek = $record->kodeProyek?->name ?? '';
-                        
+
                         $nomorBantu = $record->nomorBantuDebit;
                         $rekening = $nomorBantu?->rekening?->no_rek ?? '';
                         $namaRekening = $nomorBantu?->rekening?->nama_rek ?? '';
- 
+
                         $kode = ($kodeProyek && $rekening)
                             ? sprintf('%02d %04d', intval($kodeProyek), intval($rekening))
                             : ($rekening ? sprintf('-- %04d', intval($rekening)) : ($kodeProyek ?: '-'));
- 
+
                         $nama = trim(($namaProyek ? $namaProyek : '') . ($namaProyek && $namaRekening ? ' - ' : '') . ($namaRekening ? $namaRekening : ''));
- 
+
                         return "<div class='font-medium'>{$kode}</div><div class='text-xs text-gray-500'>{$nama}</div>";
                     })
                     ->searchable(false)
@@ -695,7 +695,7 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(function($record) {
+                        ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             $header->confirm();
                         })
@@ -713,7 +713,7 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(function($record) {
+                        ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             $header->unconfirm();
                         })
@@ -734,7 +734,7 @@ class JurnalPembelianResource extends Resource
                         ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             $header->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekeningDebit.kelompok', 'details.nomorBantuDebit']);
-                            
+
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
                                 'jurnal' => $header,
                                 'generatedAt' => now()->format('d M Y H:i'),
@@ -769,7 +769,7 @@ class JurnalPembelianResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(function($record) {
+                        ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
@@ -779,11 +779,11 @@ class JurnalPembelianResource extends Resource
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->action(function($record) {
+                        ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             $header->delete();
                         })
-                        ->visible(function($record) {
+                        ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
@@ -814,7 +814,7 @@ class JurnalPembelianResource extends Resource
                             }
 
                             $count = $service->postBulk($validRecords);
-                            
+
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
                                 ->success()
@@ -854,7 +854,7 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->successNotificationTitle('Konfirmasi dibatalkan')
                         ->visible(false),
-                        
+
                     Tables\Actions\BulkAction::make('delete_selected')
                         ->label('Hapus Terpilih')
                         ->icon('heroicon-o-trash')

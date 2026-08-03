@@ -742,7 +742,7 @@ class JurnalBayarKasBankResource extends Resource
                             }
 
                             $count = $service->postBulk($validRecords);
-                            
+
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
                                 ->success()

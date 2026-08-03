@@ -48,7 +48,7 @@ Route::get('/jurnal-rekening-air/{id}/pdf', function ($id) {
         'details.kodeProyek',
         'createdBy'
     ])->findOrFail($id);
-    
+
     $voucher = [
         'title' => 'BUKTI JURNAL REKENING AIR',
         'number' => $jurnal->bukti,
@@ -60,9 +60,9 @@ Route::get('/jurnal-rekening-air/{id}/pdf', function ($id) {
         'items' => $jurnal->details->map(function ($item) {
             $code = '-';
             if ($item->rekening) {
-                $code = ($item->rekening->kelompok->no_kel ?? '') . 
-                        ($item->rekening->no_rek ?? '') . 
-                        ($item->nomorBantu->no_bantu ?? '');
+                $code = ($item->rekening->kelompok->no_kel ?? '') .
+                    ($item->rekening->no_rek ?? '') .
+                    ($item->nomorBantu->no_bantu ?? '');
             }
             return [
                 'code' => $code,
