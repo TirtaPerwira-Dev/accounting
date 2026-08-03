@@ -44,6 +44,12 @@ class DokumentasiResource extends Resource
                             Forms\Components\Select::make('kategori')
                                 ->label('Kategori')
                                 ->options([
+                                    'Master Penomoran' => 'Master Penomoran',
+                                    'Jurnal' => 'Jurnal',
+                                    'Setup Saldo' => 'Setup Saldo',
+                                    'Laporan Keuangan' => 'Laporan Keuangan',
+                                    'Bantuan' => 'Bantuan',
+                                    'Governance Role' => 'Governance Role',
                                     'Panduan' => 'Panduan',
                                     'Tutorial' => 'Tutorial',
                                     'FAQ' => 'FAQ',
@@ -213,6 +219,12 @@ class DokumentasiResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('kategori')
                     ->options([
+                        'Master Penomoran' => 'Master Penomoran',
+                        'Jurnal' => 'Jurnal',
+                        'Setup Saldo' => 'Setup Saldo',
+                        'Laporan Keuangan' => 'Laporan Keuangan',
+                        'Bantuan' => 'Bantuan',
+                        'Governance Role' => 'Governance Role',
                         'Panduan' => 'Panduan',
                         'Tutorial' => 'Tutorial',
                         'FAQ' => 'FAQ',

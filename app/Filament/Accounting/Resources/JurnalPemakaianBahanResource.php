@@ -544,20 +544,14 @@ class JurnalPemakaianBahanResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye'),
-
-                    Tables\Actions\EditAction::make()
-                        ->label('Edit')
-                        ->icon('heroicon-o-pencil')
-                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
 
                     Tables\Actions\Action::make('confirm')
-                        ->label('✓ Konfirmasi')
+                        ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed)
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->action(fn($record) => $record->jurnalPemakaianBahan?->confirm())
                         ->successNotification(
@@ -567,10 +561,10 @@ class JurnalPemakaianBahanResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('↶ Batal Konfirmasi')
+                        ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
-                        ->color('warning')
-                        ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed)
+                        ->color('danger')
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->action(fn($record) => $record->jurnalPemakaianBahan?->unconfirm())
                         ->successNotification(
@@ -583,6 +577,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
+                        ->visible(fn($record) => $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan))
                         ->action(function ($record) {
                             // $record is JurnalPemakaianBahanDetail, so we get the parent jurnal
                             $jurnal = $record->jurnalPemakaianBahan;
@@ -627,11 +622,9 @@ class JurnalPemakaianBahanResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
+                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
 
-                    Tables\Actions\DeleteAction::make()
-                        ->label('Hapus')
-                        ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
                 ])
                     ->label('Action')
                     ->button()
@@ -648,9 +641,9 @@ class JurnalPemakaianBahanResource extends Resource
                             // Get unique parent jurnals from selected details
                             $jurnalIds = $records->pluck('jurnal_pemakaian_bahan_id')->unique()->filter();
                             $jurnals = \App\Models\JurnalPemakaianBahan::whereIn('id', $jurnalIds)
-                                ->where('is_confirmed', true)
                                 ->where('is_posted', false)
-                                ->get();
+                                ->get()
+                                ->filter(fn($jurnal) => auth()->user()->can('postToLedger', $jurnal));
 
                             if ($jurnals->isEmpty()) {
                                 Notification::make()
@@ -673,7 +666,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Konfirmasi Terpilih')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn() => auth()->user()->can('confirm_any_jurnal::pemakaian::bahan'))
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             // Get unique parent jurnals from selected details
@@ -681,8 +674,11 @@ class JurnalPemakaianBahanResource extends Resource
                             \App\Models\JurnalPemakaianBahan::whereIn('id', $jurnalIds)
                                 ->where('is_confirmed', false)
                                 ->get()
-                                ->each
-                                ->confirm();
+                                ->each(function ($jurnal) {
+                                    if (auth()->user()->can('confirm', $jurnal)) {
+                                        $jurnal->confirm();
+                                    }
+                                });
                         })
                         ->successNotification(
                             Notification::make()
@@ -695,7 +691,7 @@ class JurnalPemakaianBahanResource extends Resource
                         ->label('Batal Konfirmasi Terpilih')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn() => auth()->user()->can('unconfirm_any_jurnal::pemakaian::bahan'))
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             // Get unique parent jurnals from selected details
@@ -703,8 +699,11 @@ class JurnalPemakaianBahanResource extends Resource
                             \App\Models\JurnalPemakaianBahan::whereIn('id', $jurnalIds)
                                 ->where('is_confirmed', true)
                                 ->get()
-                                ->each
-                                ->unconfirm();
+                                ->each(function ($jurnal) {
+                                    if (auth()->user()->can('unconfirm', $jurnal)) {
+                                        $jurnal->unconfirm();
+                                    }
+                                });
                         })
                         ->successNotification(
                             Notification::make()

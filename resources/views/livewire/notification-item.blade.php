@@ -49,7 +49,7 @@
                 };
                 
                 $indexUrl = $resource ? $resource::getUrl('index', [
-                    'tableFilters[is_confirmed][value]' => ($action === 'confirm' ? '0' : '1'),
+                    'tableFilters[is_posted][value]' => '0',
                 ], panel: 'accounting') : '#';
             @endphp
 
@@ -63,18 +63,7 @@
                 View
             </x-filament::link>
 
-            @if($action === 'confirm')
-                <x-filament::link
-                    wire:click="confirmJournal('{{ get_class($record) }}', {{ $record->id }})"
-                    wire:loading.attr="disabled"
-                    size="sm"
-                    color="warning"
-                    icon="heroicon-m-check"
-                    class="font-bold tracking-tight text-xs cursor-pointer"
-                >
-                    Confirm
-                </x-filament::link>
-            @else
+            @if(($canAct ?? false) && $action === 'post')
                 <x-filament::link
                     wire:click="postJournal('{{ get_class($record) }}', {{ $record->id }})"
                     wire:loading.attr="disabled"

@@ -121,4 +121,12 @@ class JurnalMemorialPolicy
     {
         return $user->can('unconfirm_jurnal::memorial');
     }
+
+    /**
+     * Determine whether the user can post to ledger.
+     */
+    public function postToLedger(User $user, JurnalMemorial $jurnalMemorial): bool
+    {
+        return $user->can('post_jurnal::memorial');
+    }
 }

@@ -17,35 +17,35 @@ class EditJurnalRekeningAir extends EditRecord
         return [
             Actions\ViewAction::make(),
             Actions\DeleteAction::make()
-                ->visible(fn($record) => $record->jurnalRekeningAir->canBeEdited()),
+                ->visible(fn() => $this->record->canBeEdited() && !$this->record->is_posted && auth()->user()->can('postToLedger', $this->record)),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->action(function ($record) {
-                    $record->jurnalRekeningAir->confirm();
+                    $record->confirm();
                     Notification::make()
                         ->title('Jurnal berhasil dikonfirmasi')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
+                ->visible(false),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->action(function ($record) {
-                    $record->jurnalRekeningAir->unconfirm();
+                    $record->unconfirm();
                     Notification::make()
                         ->title('Konfirmasi jurnal dibatalkan')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
+                ->visible(false),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -54,7 +54,7 @@ class EditJurnalRekeningAir extends EditRecord
                 ->requiresConfirmation()
                 ->action(function ($record, JournalPostingService $service) {
                     try {
-                        $service->post($record->jurnalRekeningAir);
+                        $service->post($record);
                         Notification::make()
                             ->title('Jurnal berhasil diposting ke Buku Besar')
                             ->success()
@@ -67,82 +67,42 @@ class EditJurnalRekeningAir extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
+                ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
         ];
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    protected function getRedirectUrl(): string
     {
-        $header = $this->record->jurnalRekeningAir;
-
-        $data['bukti'] = $header->bukti;
-        $data['tanggal'] = $header->tanggal;
-        $data['keterangan'] = $header->keterangan;
-        $data['no_reff'] = $header->no_reff;
-
-        $data['rekening_air_items'] = $header->details->map(function ($detail) {
-            return [
-                'rekening_id' => $detail->rekening_id,
-                'nomor_bantu_id' => $detail->nomor_bantu_id,
-                'kode_proyek_id' => $detail->kode_proyek_id,
-                'position' => $detail->position,
-                'jumlah' => $detail->jumlah,
-            ];
-        })->toArray();
-
-        return $data;
+        return $this->getResource()::getUrl('index');
     }
 
-    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
-            $items = $data['rekening_air_items'] ?? [];
-            unset($data['rekening_air_items']);
+        // Validasi balance dan hitung total dari items
+        if (isset($data['rekening_air_items'])) {
+            $totalDebit = collect($data['rekening_air_items'])
+                ->where('position', 'debit')
+                ->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
 
-            if (empty($items)) {
-                throw new \Exception('Minimal harus ada 1 item transaksi');
-            }
-
-            $header = $record->jurnalRekeningAir;
-
-            // Hitung total debit dan kredit untuk validasi
-            $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
-            $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalKredit = collect($data['rekening_air_items'])
+                ->where('position', 'kredit')
+                ->sum(fn($item) => (int) str_replace(['.', ',', 'Rp', ' '], '', $item['jumlah'] ?? 0));
 
             // Validasi balance
-            if (number_format($totalDebit, 2) !== number_format($totalKredit, 2)) {
-                throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
+            if ($totalDebit !== $totalKredit) {
+                throw new \Exception("Jurnal tidak balance! Total Debit: Rp " . number_format($totalDebit, 0, ',', '.') .
+                    " | Total Kredit: Rp " . number_format($totalKredit, 0, ',', '.'));
             }
 
-            // Update Header
-            $header->update([
-                'bukti' => $data['bukti'],
-                'tanggal' => $data['tanggal'],
-                'keterangan' => $data['keterangan'],
-                'rp' => $totalDebit,
-            ]);
-
-            // Delete existing details
-            $header->details()->delete();
-
-            // Re-create details
-            $newDetails = [];
-            foreach ($items as $item) {
-                $rekening = \App\Models\Rekening::find($item['rekening_id']);
-
-                $newDetails[] = \App\Models\JurnalRekeningAirDetail::create([
-                    'jurnal_rekening_air_id' => $header->id,
-                    'kelompok_id' => $rekening?->kelompok_id,
-                    'rekening_id' => $item['rekening_id'],
-                    'nomor_bantu_id' => $item['nomor_bantu_id'] ?? null,
-                    'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
-                    'position' => $item['position'],
-                    'jumlah' => (float) ($item['jumlah'] ?? 0),
-                ]);
+            // Validasi minimal ada 1 debit dan 1 kredit
+            if ($totalDebit == 0 || $totalKredit == 0) {
+                throw new \Exception("Jurnal harus memiliki minimal 1 item Debit dan 1 item Kredit!");
             }
 
-            return $newDetails[0];
-        });
+            $data['rp'] = $totalDebit; // atau totalKredit, karena sudah balance
+        }
+
+        return $data;
     }
 
     protected function getSavedNotificationTitle(): ?string

@@ -44,6 +44,23 @@ class Rekening extends Model
         '6' => 'Kategori 6',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $rekening): void {
+            if (!empty($rekening->kel) || empty($rekening->kelompok_id)) {
+                return;
+            }
+
+            $parentKel = Kelompok::query()
+                ->whereKey($rekening->kelompok_id)
+                ->value('kel');
+
+            if (!empty($parentKel)) {
+                $rekening->kel = (string) $parentKel;
+            }
+        });
+    }
+
     /**
      * Scope for active rekening
      */
@@ -114,6 +131,16 @@ class Rekening extends Model
     public function getFullCodeAttribute(): string
     {
         return $this->kelompok->no_kel . '.' . $this->no_rek;
+    }
+
+    public function getNomorKelompokAttribute(): ?string
+    {
+        return $this->kelompok?->no_kel;
+    }
+
+    public function getNomorRekeningAttribute(): string
+    {
+        return $this->no_rek;
     }
 
     /**

@@ -35,12 +35,13 @@
                                     </button>
                                 </div>
                                 <div class="grid gap-3">
-                                    @foreach($data['unconfirmed'] as $record)
-                                        @include('livewire.notification-item', ['record' => $record, 'type' => $type, 'action' => 'confirm'])
-                                    @endforeach
-                                    
                                     @foreach($data['unposted'] as $record)
-                                        @include('livewire.notification-item', ['record' => $record, 'type' => $type, 'action' => 'post'])
+                                        @include('livewire.notification-item', [
+                                            'record' => $record,
+                                            'type' => $type,
+                                            'action' => 'post',
+                                            'canAct' => $data['can_post'] ?? false,
+                                        ])
                                     @endforeach
                                 </div>
                             </div>

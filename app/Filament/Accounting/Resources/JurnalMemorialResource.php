@@ -4,7 +4,6 @@ namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalMemorialResource\Pages;
 use App\Filament\Widgets\JurnalMemorialStatsWidget;
-use App\Models\JurnalMemorial;
 use App\Models\JurnalMemorialDetail;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
@@ -83,212 +82,271 @@ class JurnalMemorialResource extends Resource
                         Forms\Components\Hidden::make('no_reff'),
                     ]),
 
-                // SECTION 2: ITEM JURNAL MEMORIAL
-                Forms\Components\Section::make('Item Jurnal Memorial')
-                    ->description(fn (string $context): string => $context === 'create'
-                        ? 'Tambahkan item jurnal memorial satu per satu (Debit & Kredit harus seimbang)'
-                        : 'Masukkan rincian akun (Debit & Kredit harus seimbang)')
-                    ->schema(function (string $context) {
-                        if ($context === 'create') {
-                            return [
-                                Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\Select::make('temp_rekening_id')
-                                        ->label('Nama Rekening')
-                                        ->options(function () {
-                                            return \App\Models\Rekening::with('kelompok')
-                                                ->get()
-                                                ->mapWithKeys(fn($r) => [
-                                                    $r->id => "[{$r->kelompok->no_kel}-{$r->no_rek}] {$r->nama_rek}"
-                                                ]);
-                                        })
-                                        ->searchable()
-                                        ->live()
-                                        ->afterStateUpdated(fn(callable $set) => $set('temp_nomor_bantu_id', null))
-                                        ->dehydrated(false),
-
-                                    Forms\Components\Select::make('temp_nomor_bantu_id')
-                                        ->label('No. Bantu/Rekening')
-                                        ->options(function (Forms\Get $get) {
-                                            $rekeningId = $get('temp_rekening_id');
-                                            if (!$rekeningId) return [];
-                                            return NomorBantu::where('rekening_id', $rekeningId)
-                                                ->get()
-                                                ->mapWithKeys(fn($nb) => [$nb->id => "[{$nb->no_bantu}] {$nb->nm_bantu}"]);
-                                        })
-                                        ->searchable()
-                                        ->placeholder('Pilih No. Bantu')
-                                        ->dehydrated(false),
-
-                                    Forms\Components\Select::make('temp_kode_proyek_id')
-                                        ->label('Kode Proyek')
-                                        ->options(KodeProyek::pluck('name', 'id'))
-                                        ->searchable()
-                                        ->placeholder('Pilih Proyek')
-                                        ->dehydrated(false),
-                                ]),
-
-                                Forms\Components\Grid::make(2)->schema([
-                                    Forms\Components\Select::make('temp_posisi')
-                                        ->label('D/K')
-                                        ->options([
-                                            'debit' => 'Debit',
-                                            'kredit' => 'Kredit',
-                                        ])
-                                        ->default('debit')
-                                        ->dehydrated(false),
-
-                                    Forms\Components\TextInput::make('temp_jumlah')
-                                        ->label('Jumlah (Rp)')
-                                        ->numeric()
-                                        ->prefix('Rp')
-                                        ->extraAttributes(['style' => 'text-align: right;'])
-                                        ->dehydrated(false),
-                                ]),
-
-                                Forms\Components\Textarea::make('temp_keterangan')
-                                    ->label('Keterangan Item')
-                                    ->rows(2)
-                                    ->columnSpanFull()
-                                    ->dehydrated(false),
-
-                                Forms\Components\Actions::make([
-                                    Forms\Components\Actions\Action::make('add_item')
-                                        ->label('Tambah Item')
-                                        ->icon('heroicon-o-plus-circle')
-                                        ->color('warning')
-                                        ->action(function (Forms\Get $get, Forms\Set $set) {
-                                            $tempData = [
-                                                'rekening' => $get('temp_rekening_id'),
-                                                'nomor_bantu' => $get('temp_nomor_bantu_id'),
-                                                'kode_proyek' => $get('temp_kode_proyek_id'),
-                                                'position' => $get('temp_posisi'),
-                                                'jumlah' => (float) ($get('temp_jumlah') ?? 0),
-                                                'keterangan' => $get('temp_keterangan'),
-                                            ];
-
-                                            if (empty($tempData['rekening']) || empty($tempData['jumlah'])) {
-                                                \Filament\Notifications\Notification::make()
-                                                    ->title('Data tidak lengkap!')
-                                                    ->danger()
-                                                    ->send();
-                                                return;
-                                            }
-
-                                            $currentItems = $get('memorial_items') ?? [];
-                                            $currentItems[] = $tempData;
-                                            $set('memorial_items', $currentItems);
-
-                                            // Clear temp fields
-                                            $set('temp_rekening_id', null);
-                                            $set('temp_nomor_bantu_id', null);
-                                            $set('temp_kode_proyek_id', null);
-                                            $set('temp_posisi', 'debit');
-                                            $set('temp_jumlah', null);
-                                            $set('temp_keterangan', null);
-                                        }),
-                                ])->alignment('center'),
-
-                                Forms\Components\ViewField::make('memorial_items')
-                                    ->view('filament.forms.components.memorial-items-table'),
-                            ];
-                        }
-
-                        // EDIT OPERATION: Use Repeater
-                        return [
-                            Forms\Components\Repeater::make('memorial_items')
-                                ->label('Items')
-                                ->schema([
-                                    Forms\Components\Grid::make(3)->schema([
-                                        Forms\Components\Select::make('rekening_id')
-                                            ->label('Nama Rekening')
-                                            ->options(function () {
-                                                return \App\Models\Rekening::with('kelompok')
-                                                    ->get()
-                                                    ->mapWithKeys(fn($r) => [
-                                                        $r->id => "[{$r->kelompok->no_kel}-{$r->no_rek}] {$r->nama_rek}"
-                                                    ]);
-                                            })
-                                            ->searchable()
-                                            ->required()
-                                            ->live(),
-
-                                        Forms\Components\Select::make('nomor_bantu_id')
-                                            ->label('No. Bantu/Rekening')
-                                            ->options(function (Forms\Get $get) {
-                                                $rekeningId = $get('rekening_id');
-                                                if (!$rekeningId) return [];
-                                                return NomorBantu::where('rekening_id', $rekeningId)
-                                                    ->get()
-                                                    ->mapWithKeys(fn($nb) => [$nb->id => "[{$nb->no_bantu}] {$nb->nm_bantu}"]);
-                                            })
-                                            ->searchable()
-                                            ->placeholder('Pilih No. Bantu'),
-
-                                        Forms\Components\Select::make('kode_proyek_id')
-                                            ->label('Kode Proyek')
-                                            ->options(KodeProyek::pluck('name', 'id'))
-                                            ->searchable()
-                                            ->placeholder('Pilih Proyek'),
-                                    ]),
-
-                                    Forms\Components\Grid::make(2)->schema([
-                                        Forms\Components\Select::make('posisi')
-                                            ->label('D/K')
-                                            ->options([
-                                                'debit' => 'Debit',
-                                                'kredit' => 'Kredit',
-                                            ])
-                                            ->required()
-                                            ->default('debit'),
-
-                                        Forms\Components\TextInput::make('jumlah')
-                                            ->label('Jumlah (Rp)')
-                                            ->numeric()
-                                            ->required()
-                                            ->prefix('Rp')
-                                            ->extraAttributes(['style' => 'text-align: right;']),
-                                    ]),
-
-                                    Forms\Components\Textarea::make('keterangan')
-                                        ->label('Keterangan Item')
-                                        ->rows(2)
-                                        ->columnSpanFull(),
-                                ])
-                                ->columns(1)
-                                ->defaultItems(2)
-                                ->addActionLabel('Tambah Baris Jurnal'),
-                        ];
-                    }),
-
-                // SECTION 3: RINGKASAN & STATUS
-                Forms\Components\Section::make('Ringkasan & Validasi')
+                // SECTION 2: FORM TAMBAH ITEM MEMORIAL
+                Forms\Components\Section::make('Tambah Item Jurnal Memorial')
+                    ->description('Isi form di bawah ini lalu klik "Tambah Item"')
                     ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Placeholder::make('summary_preview')
-                                    ->label('Total Balance')
-                                    ->content(function (Forms\Get $get) {
-                                        $items = $get('memorial_items') ?? [];
-                                        $totalDebit = collect($items)->where('posisi', 'D')->sum('jumlah');
-                                        $totalKredit = collect($items)->where('posisi', 'K')->sum('jumlah');
-                                        $balance = $totalDebit - $totalKredit;
-
-                                        $text = "Debit: Rp " . number_format($totalDebit, 0, ',', '.') . " | Kredit: Rp " . number_format($totalKredit, 0, ',', '.');
-                                        if ($balance == 0 && count($items) > 0) {
-                                            return new \Illuminate\Support\HtmlString("<span class='text-success font-bold'>{$text} (✅ Balanced)</span>");
-                                        } elseif ($balance != 0) {
-                                            $diff = number_format(abs($balance), 0, ',', '.');
-                                            return new \Illuminate\Support\HtmlString("<span class='text-danger font-bold'>{$text} (⚠️ Selisih: Rp {$diff})</span>");
+                        // Form Input untuk menambah item
+                        Forms\Components\Grid::make(5)->schema([
+                            // Nama Rekening
+                            Forms\Components\Select::make('temp_rekening')
+                                ->label('Nama Rekening')
+                                ->options(function () {
+                                    return \App\Models\Rekening::with('kelompok')
+                                        ->get()
+                                        ->mapWithKeys(fn($r) => [
+                                            $r->id => "[{$r->kelompok->no_kel}-{$r->no_rek}] {$r->nama_rek}"
+                                        ]);
+                                })
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, $state) {
+                                    $set('temp_nomor_bantu', null);
+                                    if ($state) {
+                                        $rekening = \App\Models\Rekening::find($state);
+                                        if ($rekening) {
+                                            $set('temp_position', $rekening->kode === 'K' ? 'kredit' : 'debit');
                                         }
-                                        return $text;
-                                    }),
+                                    }
+                                })
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                                Forms\Components\Placeholder::make('no_reff_info')
-                                    ->label('Nomor Referensi')
-                                    ->content('Status: Jurnal Memorial (Reff: 6)'),
-                            ]),
+                            // Kode Proyek
+                            Forms\Components\Select::make('temp_kode_proyek')
+                                ->label('Kode Proyek')
+                                ->options(function () {
+                                    return KodeProyek::pluck('name', 'id');
+                                })
+                                ->searchable()
+                                ->placeholder('Pilih Proyek')
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // Nomor Bantu / Rekening
+                            Forms\Components\Select::make('temp_nomor_bantu')
+                                ->label('Rekening (No. Bantu)')
+                                ->options(function (Forms\Get $get) {
+                                    if (!$get('temp_rekening')) return [];
+                                    return NomorBantu::where('rekening_id', $get('temp_rekening'))
+                                        ->get()
+                                        ->mapWithKeys(fn($nb) => [$nb->id => "[{$nb->no_bantu}] {$nb->nm_bantu}"]);
+                                })
+                                ->searchable()
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // D/K (Debit/Kredit)
+                            Forms\Components\Select::make('temp_position')
+                                ->label('D/K')
+                                ->options([
+                                    'debit' => 'Debit',
+                                    'kredit' => 'Kredit',
+                                ])
+                                ->default('debit')
+                                ->live()
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            // Jumlah
+                            Forms\Components\TextInput::make('temp_jumlah')
+                                ->label('Jumlah')
+                                ->prefix('Rp')
+                                ->numeric()
+                                ->default(0)
+                                ->live()
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+                        ]),
+
+                        // Keterangan
+                        Forms\Components\Textarea::make('temp_keterangan')
+                            ->label('Keterangan')
+                            ->rows(2)
+                            ->columnSpanFull()
+                            ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                            ->dehydrated(false),
+
+                        // Tombol Tambah Item
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('add_item')
+                                ->label('Tambah Item')
+                                ->icon('heroicon-o-plus-circle')
+                                ->color('warning')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $tempRekening = $get('temp_rekening');
+                                    $tempNomorBantu = $get('temp_nomor_bantu');
+                                    $tempKodeProyek = $get('temp_kode_proyek');
+                                    $tempPosition = $get('temp_position') ?? 'debit';
+                                    $tempJumlah = $get('temp_jumlah') ?? 0;
+                                    $tempKeterangan = $get('temp_keterangan');
+
+                                    if (!$tempRekening || !$tempJumlah || $tempJumlah <= 0) {
+                                        Notification::make()
+                                            ->title('Validasi Gagal')
+                                            ->body('Rekening dan Jumlah harus diisi dengan benar')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $currentItems = $get('detail_rekening') ?? [];
+                                    $currentItems[] = [
+                                        'rekening' => $tempRekening,
+                                        'nomor_bantu' => $tempNomorBantu,
+                                        'kode_proyek' => $tempKodeProyek,
+                                        'position' => $tempPosition,
+                                        'jumlah' => $tempJumlah,
+                                        'keterangan' => $tempKeterangan,
+                                    ];
+
+                                    $set('detail_rekening', $currentItems);
+
+                                    // Reset temp fields
+                                    $set('temp_rekening', null);
+                                    $set('temp_nomor_bantu', null);
+                                    $set('temp_kode_proyek', null);
+                                    $set('temp_position', 'debit');
+                                    $set('temp_jumlah', 0);
+                                    $set('temp_keterangan', null);
+
+                                    // Reset konfirmasi
+                                    $set('items_completed', false);
+
+                                    Notification::make()
+                                        ->title('Item berhasil ditambahkan!')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation(false),
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Info saat form disabled
+                        Forms\Components\Placeholder::make('form_disabled_info')
+                            ->label('')
+                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" jika ingin menambah item lagi.')
+                            ->visible(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                            ->columnSpanFull(),
+                    ]),
+
+                // SECTION 3: PREVIEW ITEMS
+                Forms\Components\Section::make('Daftar Item Jurnal Memorial')
+                    ->description('Preview item yang telah ditambahkan')
+                    ->schema([
+
+                        // Display Items Table
+                        Forms\Components\ViewField::make('detail_rekening')
+                            ->view('filament.forms.components.memorial-items-table'),
+
+                        // Action untuk konfirmasi selesai menambah item
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('confirm_items_complete')
+                                ->label('Konfirmasi Selesai Menambah Item')
+                                ->icon('heroicon-o-check-circle')
+                                ->color('success')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('detail_rekening')))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $items = $get('detail_rekening') ?? [];
+
+                                    if (empty($items)) {
+                                        Notification::make()
+                                            ->title('Tidak ada item!')
+                                            ->body('Tambahkan minimal 1 item terlebih dahulu.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                                    $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+
+                                    if ($totalDebit != $totalKredit) {
+                                        Notification::make()
+                                            ->title('Balance tidak valid!')
+                                            ->body('Total Debit (Rp ' . number_format($totalDebit, 0, ',', '.') . ') harus sama dengan Total Kredit (Rp ' . number_format($totalKredit, 0, ',', '.') . ')')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $set('items_completed', true);
+
+                                    Notification::make()
+                                        ->title('Item dikonfirmasi!')
+                                        ->body('Silakan klik tombol "Buat" untuk menyimpan jurnal.')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation()
+                                ->modalHeading('Konfirmasi Item Selesai')
+                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item dan balance sudah benar?')
+                                ->modalSubmitActionLabel('Ya, Selesai'),
+
+                            Forms\Components\Actions\Action::make('reset_items_confirmation')
+                                ->label('Reset Konfirmasi')
+                                ->icon('heroicon-o-arrow-path')
+                                ->color('warning')
+                                ->size('md')
+                                ->visible(fn(Forms\Get $get) => $get('items_completed'))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $set('items_completed', false);
+
+                                    Notification::make()
+                                        ->title('Konfirmasi direset')
+                                        ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
+                                        ->info()
+                                        ->send();
+                                })
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Status konfirmasi
+                        Forms\Components\Placeholder::make('items_status')
+                            ->label('')
+                            ->content(function (Forms\Get $get) {
+                                if ($get('items_completed')) {
+                                    return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
+                                } else {
+                                    $count = count($get('detail_rekening') ?? []);
+                                    if ($count > 0) {
+                                        $items = $get('detail_rekening') ?? [];
+                                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                                        $balance = $totalDebit - $totalKredit;
+                                        $balanceText = $balance == 0 ? '✅ Balance' : '⚠️ Selisih: Rp ' . number_format(abs($balance), 0, ',', '.');
+                                        return "📋 {$count} item ditambahkan | Debit: Rp " . number_format($totalDebit, 0, ',', '.') . " | Kredit: Rp " . number_format($totalKredit, 0, ',', '.') . " | {$balanceText}";
+                                    }
+                                    return '📋 Belum ada item yang ditambahkan';
+                                }
+                            })
+                            ->visible(fn(Forms\Get $get) => !empty($get('detail_rekening')))
+                            ->columnSpanFull(),
+
+                        // Hidden field untuk status konfirmasi
+                        Forms\Components\Hidden::make('items_completed')
+                            ->default(false)
+                            ->dehydrated(true),
+
+                        // Hidden field untuk menyimpan array items
+                        Forms\Components\Hidden::make('detail_rekening')
+                            ->dehydrated(true),
                     ])
-                    ->compact(),
+                    ->visible(fn(Forms\Get $get) => !empty($get('detail_rekening')))
+                    ->collapsible(),
+
+                // SECTION 4: Nomor Referensi
+                Forms\Components\Section::make('Nomor Referensi')
+                    ->schema([
+                        Forms\Components\Placeholder::make('no_reff_preview')
+                            ->label('Nomor Referensi')
+                            ->content('Nomor Reff Jurnal Memorial adalah = 6')
+                            ->columnSpanFull(),
+                    ])
+                    ->compact()
+                    ->collapsible()
+                    ->collapsed(),
 
                 // Hidden Fields
                 Forms\Components\Hidden::make('no_reff')->default('6'),
@@ -443,7 +501,12 @@ class JurnalMemorialResource extends Resource
                     ->label('Status Posting')
                     ->placeholder('Semua Status')
                     ->trueLabel('Sudah Diposting')
-                    ->falseLabel('Belum Diposting'),
+                    ->falseLabel('Belum Diposting')
+                    ->queries(
+                        true: fn($query) => $query->whereHas('jurnalMemorial', fn($q) => $q->where('is_posted', true)),
+                        false: fn($query) => $query->whereHas('jurnalMemorial', fn($q) => $q->where('is_posted', false)),
+                        blank: fn($query) => $query,
+                    ),
 
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
@@ -451,51 +514,26 @@ class JurnalMemorialResource extends Resource
                         Forms\Components\DatePicker::make('until')->label('Sampai'),
                     ])
                     ->query(
-                        fn($query, $data) => $query
-                            ->when($data['from'], fn($q, $d) => $q->whereDate('tanggal', '>=', $d))
-                            ->when($data['until'], fn($q, $d) => $q->whereDate('tanggal', '<=', $d))
+                        fn($query, $data) => $query->whereHas('jurnalMemorial', function ($q) use ($data) {
+                            $q->when($data['from'] ?? null, fn($qq, $d) => $qq->whereDate('tanggal', '>=', $d))
+                                ->when($data['until'] ?? null, fn($qq, $d) => $qq->whereDate('tanggal', '<=', $d));
+                        })
                     ),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye'),
-
-                    Tables\Actions\EditAction::make()
-                        ->label('Edit')
-                        ->icon('heroicon-o-pencil')
-                        ->visible(fn($record) => !($record->jurnalMemorial ?? $record)->is_confirmed),
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
 
                     Tables\Actions\Action::make('confirm')
-                        ->label('✓ Konfirmasi')
+                        ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(function($record) {
-                            try {
-                                $header = $record->jurnalMemorial ?? $record;
-                                
-                                if (!($header instanceof \App\Models\JurnalMemorial)) {
-                                    return false;
-                                }
-                                
-                                if ($header->is_confirmed) {
-                                    return false;
-                                }
-                                
-                                return auth()->user()->can('confirm_jurnal::memorial');
-                            } catch (\Exception $e) {
-                                \Log::error('Error checking confirm visibility: ' . $e->getMessage());
-                                return false;
-                            }
-                        })
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
-                        ->action(function($record) {
-                            $header = $record->jurnalMemorial ?? $record;
-                            $header->confirm();
-                        })
+                        ->action(fn($record) => $record->jurnalMemorial->confirm())
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -503,34 +541,14 @@ class JurnalMemorialResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('↶ Batal Konfirmasi')
+                        ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(function($record) {
-                            try {
-                                $header = $record->jurnalMemorial ?? $record;
-                                
-                                if (!($header instanceof \App\Models\JurnalMemorial)) {
-                                    return false;
-                                }
-                                
-                                if (!$header->is_confirmed) {
-                                    return false;
-                                }
-                                
-                                return auth()->user()->can('unconfirm_jurnal::memorial');
-                            } catch (\Exception $e) {
-                                \Log::error('Error checking unconfirm visibility: ' . $e->getMessage());
-                                return false;
-                            }
-                        })
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
-                        ->action(function($record) {
-                            $header = $record->jurnalMemorial ?? $record;
-                            $header->unconfirm();
-                        })
+                        ->action(fn($record) => $record->jurnalMemorial->unconfirm())
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -541,15 +559,25 @@ class JurnalMemorialResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
+                        ->visible(fn($record) => $record->jurnalMemorial && auth()->user()->can('postToLedger', $record->jurnalMemorial))
                         ->action(function ($record) {
-                            $record->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+                            $header = $record->jurnalMemorial;
+                            if (!$header) {
+                                Notification::make()
+                                    ->title('Data header jurnal tidak ditemukan')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $header->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
 
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-memorial-single', [
-                                'jurnal' => $record,
+                                'jurnal' => $header,
                                 'generatedAt' => now()->format('d M Y H:i'),
                             ]);
 
-                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $record->bukti ?? $record->id);
+                            $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->bukti ?? $header->id);
 
                             return response()->streamDownload(
                                 fn() => print($pdf->output()),
@@ -564,7 +592,10 @@ class JurnalMemorialResource extends Resource
                         ->requiresConfirmation()
                         ->action(function ($record, \App\Services\JournalPostingService $service) {
                             try {
-                                $service->post($record);
+                                if (!$record->jurnalMemorial) {
+                                    throw new \RuntimeException('Data header jurnal tidak ditemukan.');
+                                }
+                                $service->post($record->jurnalMemorial);
                                 Notification::make()
                                     ->title('Jurnal berhasil diposting ke Buku Besar')
                                     ->success()
@@ -577,11 +608,9 @@ class JurnalMemorialResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => $record->is_confirmed && !$record->is_posted),
+                        ->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
 
-                    Tables\Actions\DeleteAction::make()
-                        ->label('Hapus')
-                        ->visible(fn($record) => !$record->is_confirmed),
+                    Tables\Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
                 ])
                     ->label('Action')
                     ->button()
@@ -595,7 +624,14 @@ class JurnalMemorialResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
-                            $validRecords = $records->filter(fn($record) => $record->is_confirmed && !$record->is_posted);
+                            $headers = $records
+                                ->pluck('jurnalMemorial')
+                                ->filter()
+                                ->unique('id')
+                                ->values()
+                                ->filter(fn($record) => auth()->user()->can('postToLedger', $record));
+
+                            $validRecords = $headers->filter(fn($record) => !$record->is_posted);
 
                             if ($validRecords->isEmpty()) {
                                 Notification::make()
@@ -606,7 +642,7 @@ class JurnalMemorialResource extends Resource
                             }
 
                             $count = $service->postBulk($validRecords);
-                            
+
                             Notification::make()
                                 ->title("{$count} Jurnal berhasil diposting ke Buku Besar")
                                 ->success()
@@ -619,28 +655,30 @@ class JurnalMemorialResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                if (!$record->is_confirmed) {
+                            foreach ($records->pluck('jurnalMemorial')->filter()->unique('id') as $record) {
+                                if (!$record->is_confirmed && auth()->user()->can('confirm', $record)) {
                                     $record->confirm();
                                 }
                             }
                         })
                         ->requiresConfirmation()
-                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi'),
+                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi')
+                        ->visible(false),
 
                     Tables\Actions\BulkAction::make('unconfirm_selected')
                         ->label('↶ Batal Konfirmasi Terpilih')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                if ($record->is_confirmed) {
+                            foreach ($records->pluck('jurnalMemorial')->filter()->unique('id') as $record) {
+                                if ($record->is_confirmed && auth()->user()->can('unconfirm', $record)) {
                                     $record->unconfirm();
                                 }
                             }
                         })
                         ->requiresConfirmation()
-                        ->successNotificationTitle('Konfirmasi dibatalkan'),
+                        ->successNotificationTitle('Konfirmasi dibatalkan')
+                        ->visible(false),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
@@ -651,8 +689,7 @@ class JurnalMemorialResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Relation manager dihapus karena model resource adalah Detail
-            // Detail ditampilkan langsung di infolist ViewPage
+            \App\Filament\Accounting\Resources\JurnalMemorialResource\RelationManagers\DetailsRelationManager::class,
         ];
     }
 

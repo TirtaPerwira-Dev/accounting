@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JurnalMemorialDetail extends Model
 {
@@ -27,6 +28,14 @@ class JurnalMemorialDetail extends Model
     public function jurnalMemorial(): BelongsTo
     {
         return $this->belongsTo(JurnalMemorial::class);
+    }
+
+    /**
+     * Backward-compatibility accessor for code paths that expect a details() relation.
+     */
+    public function details(): HasMany
+    {
+        return $this->hasMany(self::class, 'jurnal_memorial_id', 'jurnal_memorial_id');
     }
 
     public function kelompok(): BelongsTo

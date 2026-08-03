@@ -16,8 +16,8 @@ class JournalPostingService
      */
     public function post(Model $record): ?Journal
     {
-        if (!$record->is_confirmed) {
-            throw new \Exception("Hanya jurnal yang sudah dikonfirmasi yang dapat diposting.");
+        if (!Auth::user() || !Auth::user()->can('postToLedger', $record)) {
+            throw new \Exception('Anda tidak memiliki hak akses untuk melakukan posting jurnal ini.');
         }
 
         if ($record->is_posted) {
@@ -67,12 +67,25 @@ class JournalPostingService
             }
 
             // 3. Update Source Record
-            $record->update([
+            $updatePayload = [
                 'is_posted' => true,
                 'posted_at' => now(),
                 'posted_by' => Auth::id(),
                 'journal_id' => $journal->id,
-            ]);
+            ];
+
+            // Keep backward compatibility for screens still showing confirmation state.
+            if (!$record->is_confirmed) {
+                $updatePayload['is_confirmed'] = true;
+                if (array_key_exists('confirmed_at', $record->getAttributes())) {
+                    $updatePayload['confirmed_at'] = now();
+                }
+                if (array_key_exists('confirmed_by', $record->getAttributes())) {
+                    $updatePayload['confirmed_by'] = Auth::id();
+                }
+            }
+
+            $record->update($updatePayload);
 
             return $journal;
         });

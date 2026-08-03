@@ -206,6 +206,10 @@ class RekeningSeeder extends Seeder
                 continue;
             }
 
+            $kelompokModel = Kelompok::find($kelompokId);
+            $kelValue = $kelompokModel?->kel;
+            $dataValue = ($rekening['kelompok_no'] === '30') ? 'AT' : null;
+
             Rekening::updateOrCreate(
                 [
                     'kelompok_id' => $kelompokId,
@@ -214,6 +218,8 @@ class RekeningSeeder extends Seeder
                 [
                     'nama_rek' => $rekening['nama_rek'],
                     'kode' => $rekening['kode'],
+                    'kel' => $kelValue,
+                    'data' => $dataValue,
                     'is_active' => true
                 ]
             );

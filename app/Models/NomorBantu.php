@@ -138,6 +138,21 @@ class NomorBantu extends Model
         return $this->rekening->kelompok->no_kel . '.' . $this->rekening->no_rek . '.' . $this->no_bantu;
     }
 
+    public function getNomorKelompokAttribute(): ?string
+    {
+        return $this->rekening?->kelompok?->no_kel;
+    }
+
+    public function getNomorRekeningAttribute(): ?string
+    {
+        return $this->rekening?->no_rek;
+    }
+
+    public function getNomorBantuAttribute(): string
+    {
+        return $this->no_bantu;
+    }
+
     /**
      * Get formatted KEL
      */

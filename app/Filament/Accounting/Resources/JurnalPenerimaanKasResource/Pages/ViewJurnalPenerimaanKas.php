@@ -4,6 +4,7 @@ namespace App\Filament\Accounting\Resources\JurnalPenerimaanKasResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalPenerimaanKasResource;
 use App\Services\JournalPostingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -17,107 +18,38 @@ class ViewJurnalPenerimaanKas extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->label('Edit')
-                ->icon('heroicon-o-pencil')
-                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed),
-
-            Actions\Action::make('confirm')
-                ->label('✓ Konfirmasi')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->action(function ($record) {
-                    $record->jurnalPenerimaanKas->confirm();
-                    Notification::make()
-                        ->title('Jurnal berhasil dikonfirmasi')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('confirm', $record->jurnalPenerimaanKas)),
-
-            Actions\Action::make('unconfirm')
-                ->label('↶ Batal Konfirmasi')
-                ->icon('heroicon-o-x-circle')
-                ->color('warning')
-                ->action(function ($record) {
-                    $record->jurnalPenerimaanKas->unconfirm();
-                    Notification::make()
-                        ->title('Konfirmasi jurnal dibatalkan')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('unconfirm', $record->jurnalPenerimaanKas)),
+            Actions\Action::make("back_to_list")
+                ->label("Kembali ke List")
+                ->icon("heroicon-o-arrow-left")
+                ->color("gray")
+                ->url(fn() => static::getResource()::getUrl("index")),
 
             Actions\Action::make('exportPdf')
-                ->label('PDF')
+                ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
+                ->visible(fn($record) => auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
                 ->action(function ($record) {
-                    $parent = $record->jurnalPenerimaanKas;
-                    $parent->load([
+                    $header = $record->jurnalPenerimaanKas;
+                    $header->load([
                         'kasBank.rekening.kelompok',
                         'details.rekening.kelompok',
                         'details.nomorBantu',
                         'details.kodeProyek',
                         'createdBy',
+                        'confirmedBy',
+                        'postedBy',
                     ]);
 
-                    $items = [];
-                    // Debit Item (Bank/Kas - Tujuan)
-                    $bankCode = '-';
-                    if ($parent->kasBank && $parent->kasBank->rekening) {
-                        $bankCode = ($parent->kasBank->rekening->kelompok->no_kel ?? '') . 
-                                    ($parent->kasBank->rekening->no_rek ?? '') . 
-                                    ($parent->kasBank->no_bantu ?? '');
-                    }
-                    $items[] = [
-                        'code' => $bankCode,
-                        'name' => $parent->kasBank->nm_bantu ?? $parent->kasBank->rekening->nama_rek ?? '-',
-                        'description' => $parent->keterangan,
-                        'debit' => $parent->details->sum('jumlah'),
-                        'credit' => 0,
-                    ];
+                    $pdf = Pdf::loadView('pdf.jurnal-penerimaan-kas', [
+                        'record' => $header,
+                    ]);
 
-                    // Credit Items (Details - Sumber)
-                    foreach ($parent->details as $detail) {
-                        $code = '-';
-                        if ($detail->rekening) {
-                            $code = ($detail->rekening->kelompok->no_kel ?? '') . 
-                                    ($detail->rekening->no_rek ?? '') . 
-                                    ($detail->nomorBantu->no_bantu ?? '');
-                        }
-                        $items[] = [
-                            'code' => $code,
-                            'name' => $detail->rekening->nama_rek ?? '-',
-                            'description' => $detail->keterangan_item ?? $parent->keterangan,
-                            'debit' => 0,
-                            'credit' => $detail->jumlah,
-                        ];
-                    }
-
-                    $voucher = [
-                        'title' => 'BUKTI PENERIMAAN KAS / BANK',
-                        'number' => $parent->nomor_bukti ?? $parent->bukti,
-                        'date' => $parent->tanggal,
-                        'reference' => $parent->no_reff,
-                        'description' => $parent->keterangan,
-                        'payee' => 'Internal / Penerimaan Kas',
-                        'created_by' => $parent->createdBy?->name,
-                        'items' => $items,
-                    ];
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
-                        'voucher' => $voucher,
-                        'company' => \App\Models\Company::first(),
-                    ])->setPaper('a4', 'portrait');
-
-                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->nomor_bukti ?? $parent->id);
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->nomor_bukti ?? $header->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        'voucher-penerimaan-kas-' . $safeFilename . '.pdf'
+                        'jurnal-penerimaan-kas-' . $safeFilename . '.pdf'
                     );
                 }),
 
@@ -141,11 +73,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted),
-
-            Actions\DeleteAction::make()
-                ->label('Hapus')
-                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed),
+                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
         ];
     }
 

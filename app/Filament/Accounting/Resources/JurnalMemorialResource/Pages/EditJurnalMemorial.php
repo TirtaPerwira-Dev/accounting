@@ -15,7 +15,7 @@ class EditJurnalMemorial extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')
@@ -30,7 +30,7 @@ class EditJurnalMemorial extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed && auth()->user()->can('confirm', $record->jurnalMemorial)),
+                ->visible(false),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
@@ -44,7 +44,7 @@ class EditJurnalMemorial extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted && auth()->user()->can('unconfirm', $record->jurnalMemorial)),
+                ->visible(false),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -66,7 +66,7 @@ class EditJurnalMemorial extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted),
+                ->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
         ];
     }
 

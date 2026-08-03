@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Middleware\Authenticate;
+use App\Http\Middleware\FilamentAuthenticate;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -27,7 +27,7 @@ use App\Filament\Widgets\RecentJournalsTable;
 use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
-use App\Filament\Pages\Auth\Login;
+use App\Http\Controllers\Auth\LoginController;
 
 class AccountingPanelProvider extends PanelProvider
 {
@@ -37,7 +37,7 @@ class AccountingPanelProvider extends PanelProvider
             ->id('accounting')
             ->path('accounting')
             ->authGuard('web')
-            ->login(Login::class)
+            ->login([LoginController::class, 'show'])
             ->userMenuItems([
                 'admin' => MenuItem::make()
                     ->label('Admin Panel')
@@ -86,7 +86,7 @@ class AccountingPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                FilamentAuthenticate::class,
                 'redirect.role',
             ])
             ->plugins([

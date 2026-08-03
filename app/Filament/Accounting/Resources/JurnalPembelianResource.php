@@ -21,7 +21,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class JurnalPembelianResource extends Resource
 {
-    protected static ?string $model = \App\Models\JurnalPembelianDetail::class;
+    protected static ?string $model = JurnalPembelian::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
@@ -40,7 +40,7 @@ class JurnalPembelianResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         // Count dari header (jurnal_pembelians) yang belum dikonfirmasi
-        return (string) \App\Models\JurnalPembelian::where('is_confirmed', 0)->count();
+        return (string) JurnalPembelian::where('is_confirmed', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -53,9 +53,12 @@ class JurnalPembelianResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
-                'jurnalPembelian.nomorBantuKredit.rekening.kelompok',
+                'nomorBantuKredit.rekening.kelompok',
                 'nomorBantuDebit.rekening.kelompok',
                 'kodeProyek',
+                'confirmedBy',
+                'details.nomorBantuDebit.rekening.kelompok',
+                'details.kodeProyek'
             ]);
     }
 
@@ -65,26 +68,19 @@ class JurnalPembelianResource extends Resource
     {
         return $form
             ->schema([
-                // === SECTION HUTANG (HEADER) ===
-                Forms\Components\Section::make('Informasi Utama (Header)')
-                    ->description('Data ini berlaku untuk semua item dalam satu transaksi')
+
+                // === SECTION HUTANG ===
+                Forms\Components\Section::make('Akun Hutang/Pembayaran')
+                    ->description('Pilih akun untuk pembayaran atau hutang')
                     ->schema([
                         Forms\Components\Grid::make(3)->schema([
-                            Forms\Components\DatePicker::make('tanggal')
-                                ->label('Tanggal Transaksi')
-                                ->default(now())
-                                ->native(false)
-                                ->displayFormat('d/m/Y')
-                                ->format('Y-m-d')
-                                ->required(),
-
                             Forms\Components\Select::make('rekening_kredit_id')
-                                ->label('Akun Kredit (Kas/Bank/Hutang)')
+                                ->label('Cari Rekening')
                                 ->placeholder('Pilih rekening...')
                                 ->options(function () {
                                     return \App\Models\Rekening::with('kelompok')
                                         ->whereHas('kelompok', function ($q) {
-                                            $q->whereIn('no_kel', ['10', '50']);
+                                            $q->whereIn('no_kel', ['10', '50']); // Kas/Bank atau Hutang
                                         })
                                         ->get()
                                         ->mapWithKeys(function ($rekening) {
@@ -95,13 +91,13 @@ class JurnalPembelianResource extends Resource
                                 ->searchable()
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function (Forms\Set $set) {
+                                ->afterStateUpdated(function (Forms\Set $set, $state) {
                                     $set('nomor_bantu_kredit_id', null);
                                     $set('nama_nomor_bantu_kredit', '');
                                 }),
 
                             Forms\Components\Select::make('nomor_bantu_kredit_id')
-                                ->label('Nomor Bantu Kredit')
+                                ->label('Cari Nomor Bantu')
                                 ->placeholder('Pilih nomor bantu...')
                                 ->options(function (Forms\Get $get) {
                                     $rekeningId = $get('rekening_kredit_id');
@@ -109,10 +105,11 @@ class JurnalPembelianResource extends Resource
 
                                     return NomorBantu::where('rekening_id', $rekeningId)
                                         ->get()
-                                        ->mapWithKeys(fn($nb) => [$nb->id => "[$nb->no_bantu] {$nb->nm_bantu}"]);
+                                        ->mapWithKeys(function ($nb) {
+                                            return [$nb->id => "[$nb->no_bantu] {$nb->nm_bantu}"];
+                                        });
                                 })
                                 ->searchable()
-                                ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Forms\Set $set, $state) {
                                     if ($state) {
@@ -124,169 +121,297 @@ class JurnalPembelianResource extends Resource
                             Forms\Components\TextInput::make('nama_nomor_bantu_kredit')
                                 ->label('Nama Nomor Bantu')
                                 ->placeholder('Isi otomatis atau manual...')
-                                ->maxLength(255)
-                                ->columnSpan(1),
+                                ->maxLength(255),
 
-                            Forms\Components\Textarea::make('keterangan_header')
-                                ->label('Keterangan Umum')
-                                ->placeholder('Keterangan untuk seluruh transaksi...')
-                                ->rows(1)
-                                ->columnSpan(2),
+                            Forms\Components\DatePicker::make('tanggal')
+                                ->label('Tanggal Transaksi')
+                                ->default(now())
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->format('Y-m-d')
+                                ->required()
+                                ->columnSpanFull(),
                         ]),
+
+                        // Hidden fields
+                        Forms\Components\Hidden::make('data_k')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $nomorBantuId = $get('nomor_bantu_kredit_id');
+                                if ($nomorBantuId) {
+                                    $nomorBantu = NomorBantu::with('rekening')->find($nomorBantuId);
+                                    return $nomorBantu?->rekening?->data;
+                                }
+                                return null;
+                            }),
+                        Forms\Components\Hidden::make('data_d')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $items = $get('pembelian_items') ?? [];
+                                foreach ($items as $item) {
+                                    if (!empty($item['nomor_bantu_debit_id'])) {
+                                        $nomorBantu = NomorBantu::with('rekening')->find($item['nomor_bantu_debit_id']);
+                                        if ($nomorBantu && $nomorBantu->rekening && $nomorBantu->rekening->data === 'AT') {
+                                            return 'AT'; // Isi jika ada rekening dengan data AT
+                                        }
+                                    }
+                                }
+                                return null; // Kosong jika tidak ada rekening AT
+                            }),
+                        Forms\Components\Hidden::make('no_reff')->default('1'),
+                        Forms\Components\Hidden::make('company_id')->default(1),
                     ]),
 
-                // === SECTION REPEATER (DETAILS) ===
-                Forms\Components\Section::make('Item Pembelian')
-                    ->description(fn (string $context): string => $context === 'create'
-                        ? 'Tambahkan item pembelian satu per satu'
-                        : 'Masukkan satu atau lebih item pembelian')
-                    ->schema(function (string $context) {
-                        if ($context === 'create') {
-                            return [
-                                Forms\Components\Grid::make(5)->schema([
-                                    Forms\Components\TextInput::make('temp_bukti')
-                                        ->label('No. Bukti')
-                                        ->placeholder('INV...')
-                                        ->maxLength(255)
-                                        ->extraAttributes(['style' => 'text-transform: uppercase;'])
-                                        ->dehydrateStateUsing(fn($state) => strtoupper($state))
-                                        ->dehydrated(false),
-
-                                    Forms\Components\TextInput::make('temp_keterangan')
-                                        ->label('Keterangan Item')
-                                        ->placeholder('Keterangan baris...')
-                                        ->dehydrated(false),
-
-                                    Forms\Components\Select::make('temp_kode_proyek_id')
-                                        ->label('Proyek')
-                                        ->options(KodeProyek::pluck('name', 'id'))
-                                        ->searchable()
-                                        ->dehydrated(false),
-
-                                    Forms\Components\Select::make('temp_nomor_bantu_debit_id')
-                                        ->label('Akun Debit')
-                                        ->placeholder('Pilih akun...')
-                                        ->options(function () {
-                                            return NomorBantu::with(['rekening.kelompok'])
-                                                ->get()
-                                                ->mapWithKeys(function ($n) {
-                                                    $code = $n->rekening->kelompok->no_kel .
-                                                        $n->rekening->no_rek .
-                                                        str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-                                                    return [$n->id => "[$code] {$n->nm_bantu}"];
-                                                });
-                                        })
-                                        ->searchable()
-                                        ->dehydrated(false),
-
-                                    Forms\Components\TextInput::make('temp_jumlah')
-                                        ->label('Jumlah (Rp)')
-                                        ->prefix('Rp')
-                                        ->numeric()
-                                        ->extraAttributes(['style' => 'text-align: right;'])
-                                        ->dehydrated(false),
-                                ]),
-
-                                Forms\Components\Actions::make([
-                                    Forms\Components\Actions\Action::make('add_item')
-                                        ->label('Tambah Item')
-                                        ->icon('heroicon-o-plus-circle')
-                                        ->color('warning')
-                                        ->action(function (Forms\Get $get, Forms\Set $set) {
-                                            $tempData = [
-                                                'bukti' => $get('temp_bukti'),
-                                                'keterangan' => $get('temp_keterangan'),
-                                                'kode_proyek_id' => $get('temp_kode_proyek_id'),
-                                                'nomor_bantu_debit_id' => $get('temp_nomor_bantu_debit_id'),
-                                                'jumlah' => (float) ($get('temp_jumlah') ?? 0),
-                                            ];
-
-                                            if (empty($tempData['nomor_bantu_debit_id']) || empty($tempData['jumlah'])) {
-                                                \Filament\Notifications\Notification::make()
-                                                    ->title('Data tidak lengkap!')
-                                                    ->danger()
-                                                    ->send();
-                                                return;
-                                            }
-
-                                            $currentItems = $get('pembelian_items') ?? [];
-                                            $currentItems[] = $tempData;
-                                            $set('pembelian_items', $currentItems);
-
-                                            // Clear temp fields
-                                            $set('temp_bukti', null);
-                                            $set('temp_keterangan', null);
-                                            $set('temp_kode_proyek_id', null);
-                                            $set('temp_nomor_bantu_debit_id', null);
-                                            $set('temp_jumlah', null);
-                                        }),
-                                ])->alignment('center'),
-
-                                Forms\Components\ViewField::make('pembelian_items')
-                                    ->view('filament.forms.components.items-table'),
-                            ];
+                // === SECTION INPUT PEMBELIAN ===
+                Forms\Components\Section::make('Input Item Pembelian')
+                    ->description(function (Forms\Get $get) {
+                        $itemsCompleted = $get('items_completed') ?? false;
+                        if ($itemsCompleted) {
+                            return '✅ Item sudah dikonfirmasi selesai - Form dinonaktifkan';
                         }
+                        return 'Tambahkan item pembelian satu per satu';
+                    })
+                    ->schema([
+                        Forms\Components\Grid::make(5)->schema([
+                            Forms\Components\TextInput::make('temp_bukti')
+                                ->label('Bukti')
+                                ->placeholder('INV-001, PO-123...')
+                                ->maxLength(255)
+                                ->live()
+                                ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                    $set('temp_bukti', strtoupper($state ?? ''));
+                                })
+                                ->extraAttributes(['style' => 'text-transform: uppercase;'])
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                        // EDIT OPERATION: Use Repeater
-                        return [
-                            Forms\Components\Repeater::make('pembelian_items')
-                                ->label('Items')
-                                ->schema([
-                                    Forms\Components\Grid::make(5)->schema([
-                                        Forms\Components\TextInput::make('bukti')
-                                            ->label('No. Bukti')
-                                            ->placeholder('INV...')
-                                            ->maxLength(255)
-                                            ->extraAttributes(['style' => 'text-transform: uppercase;'])
-                                            ->dehydrateStateUsing(fn($state) => strtoupper($state)),
+                            Forms\Components\Textarea::make('temp_keterangan')
+                                ->label('Keterangan')
+                                ->placeholder('Deskripsi item...')
+                                ->rows(1)
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                                        Forms\Components\TextInput::make('keterangan')
-                                            ->label('Keterangan Item')
-                                            ->placeholder('Pilih akun...')
-                                            ->required(),
+                            Forms\Components\Select::make('temp_kode_proyek_id')
+                                ->label('Kode Proyek')
+                                ->placeholder('Pilih...')
+                                ->options(KodeProyek::pluck('name', 'id'))
+                                ->searchable()
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                                        Forms\Components\Select::make('kode_proyek_id')
-                                            ->label('Proyek')
-                                            ->options(KodeProyek::pluck('name', 'id'))
-                                            ->searchable(),
+                            Forms\Components\Select::make('temp_nomor_bantu_debit_id')
+                                ->label('Kode Rekening')
+                                ->placeholder('Pilih akun pembelian...')
+                                ->options(function () {
+                                    return NomorBantu::with(['rekening.kelompok'])
+                                        ->get()
+                                        ->mapWithKeys(function ($n) {
+                                            $code = $n->rekening->kelompok->no_kel .
+                                                $n->rekening->no_rek .
+                                                str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
+                                            return [$n->id => "[$code] {$n->nm_bantu}"];
+                                        });
+                                })
+                                ->searchable()
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                                        Forms\Components\Select::make('nomor_bantu_debit_id')
-                                            ->label('Akun Debit')
-                                            ->placeholder('Pilih akun...')
-                                            ->options(function () {
-                                                return NomorBantu::with(['rekening.kelompok'])
-                                                    ->get()
-                                                    ->mapWithKeys(function ($n) {
-                                                        $code = $n->rekening->kelompok->no_kel .
-                                                            $n->rekening->no_rek .
-                                                            str_pad($n->no_bantu, 2, '0', STR_PAD_LEFT);
-                                                        return [$n->id => "[$code] {$n->nm_bantu}"];
-                                                    });
-                                            })
-                                            ->searchable()
-                                            ->required(),
-
-                                        Forms\Components\TextInput::make('jumlah')
-                                            ->label('Jumlah (Rp)')
-                                            ->prefix('Rp')
-                                            ->numeric()
-                                            ->required()
-                                            ->extraAttributes([
-                                                'style' => 'text-align: right;',
-                                            ]),
-                                    ]),
+                            Forms\Components\TextInput::make('temp_jumlah')
+                                ->label('Jumlah (Rp)')
+                                ->prefix('Rp')
+                                ->placeholder('0')
+                                ->numeric()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, \'\').replace(/\B(?=(\d{3})+(?!\d))/g, \'.\');',
                                 ])
-                                ->columns(1)
-                                ->defaultItems(1)
-                                ->itemLabel(fn (array $state): ?string => $state['keterangan'] ?? null)
-                                ->reorderableWithButtons()
-                                ->collapsible()
-                                ->cloneable()
-                                ->addActionLabel('Tambah Baris Item'),
-                        ];
-                    }),
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
 
-                // Validasi balance tidak diperlukan di Pembelian karena single sided detail (all debit vs one header credit)
+
+                        ]),
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('add_item')
+                                ->label('Tambah Item')
+                                ->icon('heroicon-o-plus-circle')
+                                ->color('warning')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !($get('items_completed') ?? false))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $tempData = [
+                                        'bukti' => $get('temp_bukti'),
+                                        'keterangan' => $get('temp_keterangan'),
+                                        'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'nomor_bantu_debit_id' => $get('temp_nomor_bantu_debit_id'),
+                                        'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
+                                    ];
+
+                                    // Validate required fields
+                                    if (empty($tempData['keterangan']) || empty($tempData['nomor_bantu_debit_id']) || empty($tempData['jumlah'])) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Data tidak lengkap!')
+                                            ->body('Keterangan, Kode Rekening, dan Jumlah harus diisi.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $currentItems = $get('pembelian_items') ?? [];
+                                    $currentItems[] = array_merge($tempData, ['id' => count($currentItems) + 1]);
+                                    $set('pembelian_items', $currentItems);
+
+                                    // Clear form
+                                    $set('temp_bukti', '');
+                                    $set('temp_keterangan', '');
+                                    $set('temp_kode_proyek_id', null);
+                                    $set('temp_nomor_bantu_debit_id', null);
+                                    $set('temp_jumlah', '');
+
+                                    // Reset konfirmasi selesai karena ada item baru
+                                    $set('items_completed', false);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Item berhasil ditambahkan!')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation(false),
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Info saat form disabled
+                        Forms\Components\Placeholder::make('form_disabled_info')
+                            ->label('')
+                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" jika ingin menambah item lagi.')
+                            ->visible(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                            ->columnSpanFull(),
+                    ]),
+
+                // === SECTION PREVIEW ITEMS ===
+                Forms\Components\Section::make('Daftar Item Pembelian')
+                    ->description('Preview item yang telah ditambahkan')
+                    ->schema([
+                        Forms\Components\ViewField::make('pembelian_items')
+                            ->view('filament.forms.components.items-table'),
+
+                        // Action untuk konfirmasi selesai menambah item
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('confirm_items_complete')
+                                ->label('Selesai')
+                                ->icon('heroicon-o-check-circle')
+                                ->color('warning')
+                                ->size('lg')
+                                ->visible(fn(Forms\Get $get) => !$get('items_completed') && !empty($get('pembelian_items')))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $items = $get('pembelian_items') ?? [];
+
+                                    if (empty($items)) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Tidak ada item!')
+                                            ->body('Tambahkan minimal 1 item pembelian terlebih dahulu.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $set('items_completed', true);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Item dikonfirmasi!')
+                                        ->body('Silakan klik tombol "Buat" untuk menyimpan jurnal pembelian.')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->requiresConfirmation()
+                                ->modalHeading('Konfirmasi Item Selesai')
+                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item pembelian? Setelah dikonfirmasi, Anda dapat menyimpan jurnal ini.')
+                                ->modalSubmitActionLabel('Ya, Selesai'),
+
+                            Forms\Components\Actions\Action::make('reset_items_confirmation')
+                                ->label('Reset Konfirmasi')
+                                ->icon('heroicon-o-arrow-path')
+                                ->color('warning')
+                                ->size('md')
+                                ->visible(fn(Forms\Get $get) => $get('items_completed'))
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $set('items_completed', false);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Konfirmasi direset')
+                                        ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
+                                        ->info()
+                                        ->send();
+                                })
+                        ])->alignment('center')->columnSpanFull(),
+
+                        // Status konfirmasi
+                        Forms\Components\Placeholder::make('items_status')
+                            ->label('')
+                            ->content(function (Forms\Get $get) {
+                                if ($get('items_completed')) {
+                                    return '✅ **Item dikonfirmasi selesai** - Siap untuk disimpan';
+                                } else {
+                                    $count = count($get('pembelian_items') ?? []);
+                                    if ($count > 0) {
+                                        return "⚠️ {$count} item ditambahkan - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                    }
+                                    return '📋 Belum ada item yang ditambahkan';
+                                }
+                            })
+                            ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')))
+                            ->columnSpanFull(),
+
+                        // Hidden field untuk status konfirmasi
+                        Forms\Components\Hidden::make('items_completed')
+                            ->default(false)
+                            ->dehydrated(true), // Diubah ke true agar bisa divalidasi
+                    ])
+                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')))
+                    ->collapsible(),
+
+                // === NOMOR REFERENSI (Auto-generate) ===
+                Forms\Components\Section::make('Nomor Referensi')
+                    ->schema([
+                        Forms\Components\Placeholder::make('no_reff_preview')
+                            ->label('Nomor Referensi')
+                            ->content('Nomor Reff Jurnal Pembelian Barang adalah = 1')
+                            ->columnSpanFull(),
+                    ])
+                    ->compact()
+                    ->collapsible()
+                    ->collapsed(),
+
+                // === STATUS SUBMIT ===
+                Forms\Components\Section::make('Status Validasi')
+                    ->schema([
+                        Forms\Components\Placeholder::make('submit_status')
+                            ->label('')
+                            ->content(function (Forms\Get $get) {
+                                $items = $get('pembelian_items') ?? [];
+                                $itemsCompleted = $get('items_completed') ?? false;
+                                $rekeningKredit = $get('rekening_kredit_id');
+                                $nomorBantuKredit = $get('nomor_bantu_kredit_id');
+                                $tanggal = $get('tanggal');
+
+                                $checks = [];
+                                $checks[] = $tanggal ? '✅ Tanggal diisi' : '❌ Tanggal belum diisi';
+                                $checks[] = $rekeningKredit ? '✅ Rekening kredit dipilih' : '❌ Rekening kredit belum dipilih';
+                                $checks[] = $nomorBantuKredit ? '✅ Nomor bantu kredit dipilih' : '❌ Nomor bantu kredit belum dipilih';
+                                $checks[] = !empty($items) ? '✅ Item ditambahkan (' . count($items) . ')' : '❌ Belum ada item';
+                                $checks[] = $itemsCompleted ? '✅ Item dikonfirmasi selesai' : '❌ Item belum dikonfirmasi selesai';
+
+                                $allValid = $tanggal && $rekeningKredit && $nomorBantuKredit && !empty($items) && $itemsCompleted;
+
+                                $status = $allValid ?
+                                    '🎉 **SIAP UNTUK DISIMPAN** - Semua validasi terpenuhi!' :
+                                    '⚠️ **BELUM SIAP** - Lengkapi langkah berikut:';
+
+                                return $status . "\n\n" . implode("\n", $checks);
+                            })
+                            ->live()
+                            ->columnSpanFull(),
+                    ])
+                    ->compact()
+                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')) || $get('rekening_kredit_id')),
             ]);
     }
     public static function table(Table $table): Table
@@ -486,43 +611,26 @@ class JurnalPembelianResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat Detail')
-                        ->icon('heroicon-o-eye'),
+                    Tables\Actions\Action::make('view_header')
+                        ->label('Lihat Jurnal')
+                        ->icon('heroicon-o-eye')
+                        ->url(fn($record) => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->openUrlInNewTab(false),
 
-                    Tables\Actions\EditAction::make()
-                        ->label('Edit')
+                    Tables\Actions\Action::make('edit_header')
+                        ->label('Edit Jurnal')
                         ->icon('heroicon-o-pencil')
-                        ->visible(function($record) {
+                        ->url(fn($record) => Pages\EditJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_confirmed;
+                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(function($record) {
-                            try {
-                                // Get header dari relationship atau langsung dari record
-                                $header = $record->jurnalPembelian ?? $record;
-                                
-                                // Pastikan header adalah JurnalPembelian dan belum dikonfirmasi
-                                if (!($header instanceof \App\Models\JurnalPembelian)) {
-                                    return false;
-                                }
-                                
-                                if ($header->is_confirmed) {
-                                    return false;
-                                }
-                                
-                                // Check permission - gunakan permission langsung tanpa policy
-                                return auth()->user()->can('confirm_jurnal::pembelian');
-                            } catch (\Exception $e) {
-                                \Log::error('Error checking confirm visibility: ' . $e->getMessage());
-                                return false;
-                            }
-                        })
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->modalHeading('Konfirmasi Jurnal')
                         ->modalDescription('Apakah Anda yakin ingin mengkonfirmasi jurnal ini? Setelah dikonfirmasi, data tidak dapat diedit lagi.')
@@ -537,30 +645,10 @@ class JurnalPembelianResource extends Resource
                         ),
 
                     Tables\Actions\Action::make('unconfirm')
-                        ->label('↶ Batal Konfirmasi')
+                        ->label('Batal Konfirmasi')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
-                        ->visible(function($record) {
-                            try {
-                                // Get header dari relationship atau langsung dari record
-                                $header = $record->jurnalPembelian ?? $record;
-                                
-                                // Pastikan header adalah JurnalPembelian dan sudah dikonfirmasi
-                                if (!($header instanceof \App\Models\JurnalPembelian)) {
-                                    return false;
-                                }
-                                
-                                if (!$header->is_confirmed) {
-                                    return false;
-                                }
-                                
-                                // Check permission - gunakan permission langsung tanpa policy
-                                return auth()->user()->can('unconfirm_jurnal::pembelian');
-                            } catch (\Exception $e) {
-                                \Log::error('Error checking unconfirm visibility: ' . $e->getMessage());
-                                return false;
-                            }
-                        })
+                        ->visible(false)
                         ->requiresConfirmation()
                         ->modalHeading('Batalkan Konfirmasi')
                         ->modalDescription('Apakah Anda yakin ingin membatalkan konfirmasi jurnal ini?')
@@ -578,26 +666,18 @@ class JurnalPembelianResource extends Resource
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
+                        ->visible(function ($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            return auth()->user()->can('postToLedger', $header);
+                        })
                         ->action(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            $header->load([
-                                'nomorBantuKredit.rekening.kelompok', 
-                                'kodeProyek', 
-                                'details.nomorBantuDebit.rekening.kelompok', 
-                                'details.kodeProyek',
-                                'confirmedBy'
-                            ]);
-                            
-                            // Get company data
-                            $company = \App\Models\Company::first();
+                            $header->load(['rekeningKredit.kelompok', 'nomorBantuKredit', 'kodeProyek', 'details.rekeningDebit.kelompok', 'details.nomorBantuDebit']);
                             
                             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.jurnal-pembelian-single', [
-                                'company' => $company,
                                 'jurnal' => $header,
                                 'generatedAt' => now()->format('d M Y H:i'),
-                            ])->setPaper('a4', 'portrait')
-                              ->setOption('isHtml5ParserEnabled', true)
-                              ->setOption('isRemoteEnabled', true);
+                            ])->setPaper('a4', 'portrait');
 
                             $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->no_reff ?? $header->id);
 
@@ -630,19 +710,27 @@ class JurnalPembelianResource extends Resource
                         })
                         ->visible(function($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return $header->is_confirmed && !$header->is_posted;
+                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
 
-                    Tables\Actions\DeleteAction::make()
-                        ->label('Hapus')
+                    Tables\Actions\Action::make('delete_header')
+                        ->label('Hapus Jurnal')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function($record) {
+                            $header = $record->jurnalPembelian ?? $record;
+                            $header->delete();
+                        })
                         ->visible(function($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_confirmed;
+                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
                 ])
-                    ->label('Action')
+                    ->label('Actions')
+                    ->color('warning')
+                    ->icon('heroicon-o-ellipsis-horizontal')
                     ->button()
-                    ->color('warning'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -654,7 +742,7 @@ class JurnalPembelianResource extends Resource
                         ->action(function (Collection $records, \App\Services\JournalPostingService $service) {
                             // Get unique headers from details
                             $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
-                            $validRecords = $headers->filter(fn($header) => $header->is_confirmed && !$header->is_posted);
+                            $validRecords = $headers->filter(fn($header) => !$header->is_posted && auth()->user()->can('postToLedger', $header));
 
                             if ($validRecords->isEmpty()) {
                                 Notification::make()
@@ -680,13 +768,14 @@ class JurnalPembelianResource extends Resource
                             // Get unique headers
                             $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
                             foreach ($headers as $header) {
-                                if (!$header->is_confirmed) {
+                                if (!$header->is_confirmed && auth()->user()->can('confirm', $header)) {
                                     $header->confirm();
                                 }
                             }
                         })
                         ->requiresConfirmation()
-                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi'),
+                        ->successNotificationTitle('Jurnal terpilih berhasil dikonfirmasi')
+                        ->visible(false),
 
                     Tables\Actions\BulkAction::make('unconfirm_selected')
                         ->label('↶ Batal Konfirmasi Terpilih')
@@ -696,13 +785,14 @@ class JurnalPembelianResource extends Resource
                             // Get unique headers
                             $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
                             foreach ($headers as $header) {
-                                if ($header->is_confirmed) {
+                                if ($header->is_confirmed && auth()->user()->can('unconfirm', $header)) {
                                     $header->unconfirm();
                                 }
                             }
                         })
                         ->requiresConfirmation()
-                        ->successNotificationTitle('Konfirmasi dibatalkan'),
+                        ->successNotificationTitle('Konfirmasi dibatalkan')
+                        ->visible(false),
                         
                     Tables\Actions\BulkAction::make('delete_selected')
                         ->label('Hapus Terpilih')
@@ -712,7 +802,7 @@ class JurnalPembelianResource extends Resource
                             // Get unique headers
                             $headers = $records->map(fn($record) => $record->jurnalPembelian ?? $record)->unique('id');
                             foreach ($headers as $header) {
-                                if (!$header->is_confirmed) {
+                                if (!$header->is_posted && auth()->user()->can('postToLedger', $header)) {
                                     $header->delete();
                                 }
                             }
@@ -720,13 +810,19 @@ class JurnalPembelianResource extends Resource
                         ->requiresConfirmation()
                         ->successNotificationTitle('Jurnal terpilih berhasil dihapus'),
                 ]),
-            ]);
+            ])
+            ->defaultSort('jurnal_pembelians.tanggal', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100])
+            ->recordUrl(
+                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id])
+            );
     }
 
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Accounting\Resources\JurnalPembelianResource\RelationManagers\DetailsRelationManager::class,
         ];
     }
 

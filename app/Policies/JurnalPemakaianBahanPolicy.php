@@ -121,4 +121,12 @@ class JurnalPemakaianBahanPolicy
     {
         return $user->can('unconfirm_jurnal::pemakaian::bahan');
     }
+
+    /**
+     * Determine whether the user can post to ledger.
+     */
+    public function postToLedger(User $user, JurnalPemakaianBahan $jurnalPemakaianBahan): bool
+    {
+        return $user->can('post_jurnal::pemakaian::bahan');
+    }
 }

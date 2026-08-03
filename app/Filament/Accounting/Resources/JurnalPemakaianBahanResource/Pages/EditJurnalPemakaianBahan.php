@@ -15,7 +15,7 @@ class EditJurnalPemakaianBahan extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')
@@ -30,7 +30,7 @@ class EditJurnalPemakaianBahan extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalPemakaianBahan->is_confirmed && auth()->user()->can('confirm', $record->jurnalPemakaianBahan)),
+                ->visible(false),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
@@ -44,7 +44,7 @@ class EditJurnalPemakaianBahan extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalPemakaianBahan->is_confirmed && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('unconfirm', $record->jurnalPemakaianBahan)),
+                ->visible(false),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -66,7 +66,7 @@ class EditJurnalPemakaianBahan extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalPemakaianBahan->is_confirmed && !$record->jurnalPemakaianBahan->is_posted),
+                ->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
         ];
     }
 }

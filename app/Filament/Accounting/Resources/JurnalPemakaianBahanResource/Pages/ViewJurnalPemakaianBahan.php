@@ -4,6 +4,7 @@ namespace App\Filament\Accounting\Resources\JurnalPemakaianBahanResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource;
 use App\Services\JournalPostingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -17,97 +18,35 @@ class ViewJurnalPemakaianBahan extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->label('Edit')
-                ->icon('heroicon-o-pencil')
-                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
-
-            Actions\Action::make('confirm')
-                ->label('✓ Konfirmasi')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->action(function ($record) {
-                    $record->jurnalPemakaianBahan->confirm();
-                    Notification::make()
-                        ->title('Jurnal berhasil dikonfirmasi')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
-
-            Actions\Action::make('unconfirm')
-                ->label('↶ Batal Konfirmasi')
-                ->icon('heroicon-o-x-circle')
-                ->color('warning')
-                ->action(function ($record) {
-                    $record->jurnalPemakaianBahan->unconfirm();
-                    Notification::make()
-                        ->title('Konfirmasi jurnal dibatalkan')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
+            Actions\Action::make("back_to_list")
+                ->label("Kembali ke List")
+                ->icon("heroicon-o-arrow-left")
+                ->color("gray")
+                ->url(fn() => static::getResource()::getUrl("index")),
 
             Actions\Action::make('exportPdf')
-                ->label('PDF')
+                ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
+                ->visible(fn($record) => $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan))
                 ->action(function ($record) {
-                    $jurnal = $record->jurnalPemakaianBahan;
-                    if (!$jurnal) {
-                        Notification::make()
-                            ->title('Data jurnal tidak ditemukan')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
-                    $jurnal->load(['details.rekeningDebit.kelompok', 'details.rekeningKredit.kelompok', 'details.nomorBantuDebit', 'details.nomorBantuKredit', 'details.kodeProyek', 'createdBy']);
+                    $header = $record->jurnalPemakaianBahan;
+                    $header->load(['details.rekeningDebit.kelompok', 'details.rekeningKredit.kelompok', 'details.nomorBantuDebit', 'details.nomorBantuKredit', 'kodeProyek']);
 
-                    $items = [];
-                    foreach ($jurnal->details as $detail) {
-                        if ($detail->rekening_debit_id) {
-                            $items[] = [
-                                'code' => ($detail->rekeningDebit->kelompok->no_kel ?? '') . ($detail->rekeningDebit->no_rek ?? '') . ($detail->nomorBantuDebit->no_bantu ?? ''),
-                                'name' => $detail->rekeningDebit->nama_rek ?? '-',
-                                'description' => $detail->keterangan ?? $jurnal->keterangan,
-                                'debit' => $detail->jumlah,
-                                'credit' => 0,
-                            ];
-                        }
-                        if ($detail->rekening_kredit_id) {
-                            $items[] = [
-                                'code' => ($detail->rekeningKredit->kelompok->no_kel ?? '') . ($detail->rekeningKredit->no_rek ?? '') . ($detail->nomorBantuKredit->no_bantu ?? ''),
-                                'name' => $detail->rekeningKredit->nama_rek ?? '-',
-                                'description' => $detail->keterangan ?? $jurnal->keterangan,
-                                'debit' => 0,
-                                'credit' => $detail->jumlah,
-                            ];
-                        }
-                    }
+                    $pdf = Pdf::loadView('reports.jurnal-pemakaian-bahan-detail', [
+                        'jurnal' => $header,
+                        'generatedAt' => now()->format('d M Y H:i'),
+                    ]);
 
-                    $voucher = [
-                        'title' => 'BUKTI JURNAL PEMAKAIAN BAHAN',
-                        'number' => $jurnal->bukti ?? $jurnal->no_reff,
-                        'date' => $jurnal->tanggal,
-                        'reference' => $jurnal->no_reff,
-                        'description' => $jurnal->keterangan,
-                        'payee' => 'Internal / Pemakaian Bahan',
-                        'created_by' => $jurnal->createdBy?->name,
-                        'items' => $items,
-                    ];
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
-                        'voucher' => $voucher,
-                        'company' => \App\Models\Company::first(),
-                    ])->setPaper('a4', 'portrait');
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->no_reff ?? $header->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        "voucher-pemakaian-bahan-{$jurnal->no_reff}.pdf"
+                        'jurnal-pemakaian-bahan-' . $safeFilename . '.pdf'
                     );
                 }),
+
+            Actions\EditAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -129,11 +68,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed && !$record->jurnalPemakaianBahan?->is_posted),
-
-            Actions\DeleteAction::make()
-                ->label('Hapus')
-                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_confirmed),
+                ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
         ];
     }
 

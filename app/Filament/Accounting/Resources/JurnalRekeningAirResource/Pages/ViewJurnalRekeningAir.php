@@ -4,6 +4,7 @@ namespace App\Filament\Accounting\Resources\JurnalRekeningAirResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalRekeningAirResource;
 use App\Services\JournalPostingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -17,45 +18,33 @@ class ViewJurnalRekeningAir extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->label('Edit')
-                ->icon('heroicon-o-pencil')
-                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
-
-            Actions\Action::make('confirm')
-                ->label('✓ Konfirmasi')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->action(function ($record) {
-                    $record->jurnalRekeningAir->confirm();
-                    Notification::make()
-                        ->title('Jurnal berhasil dikonfirmasi')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed && auth()->user()->can('confirm', $record->jurnalRekeningAir)),
-
-            Actions\Action::make('unconfirm')
-                ->label('↶ Batal Konfirmasi')
-                ->icon('heroicon-o-x-circle')
-                ->color('warning')
-                ->action(function ($record) {
-                    $record->jurnalRekeningAir->unconfirm();
-                    Notification::make()
-                        ->title('Konfirmasi jurnal dibatalkan')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted && auth()->user()->can('unconfirm', $record->jurnalRekeningAir)),
+            Actions\Action::make('back_to_list')
+                ->label('Kembali ke List')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
 
             Actions\Action::make('exportPdf')
-                ->label('PDF')
+                ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
-                ->url(fn($record) => route('jurnal-rekening-air.single-pdf', $record->id))
-                ->openUrlInNewTab(),
+                ->visible(fn($record) => auth()->user()->can('postToLedger', $record->jurnalRekeningAir))
+                ->action(function ($record) {
+                    $header = $record->jurnalRekeningAir;
+                    $header->load(['details.rekening.kelompok', 'details.nomorBantu', 'details.kodeProyek']);
+
+                    $pdf = Pdf::loadView('reports.jurnal-rekening-air-single', [
+                        'jurnal' => $header,
+                        'generatedAt' => now()->format('d M Y H:i'),
+                    ]);
+
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->no_reff ?? $header->id);
+
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        'jurnal-rekening-air-' . $safeFilename . '.pdf'
+                    );
+                }),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -77,11 +66,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalRekeningAir->is_confirmed && !$record->jurnalRekeningAir->is_posted),
-
-            Actions\DeleteAction::make()
-                ->label('Hapus')
-                ->visible(fn($record) => !$record->jurnalRekeningAir->is_confirmed),
+                ->visible(fn($record) => !$record->jurnalRekeningAir->is_posted && auth()->user()->can('postToLedger', $record->jurnalRekeningAir)),
         ];
     }
 

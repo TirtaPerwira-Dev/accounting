@@ -121,4 +121,12 @@ class JurnalRekeningAirPolicy
     {
         return $user->can('unconfirm_jurnal::rekening::air');
     }
+
+    /**
+     * Determine whether the user can post to ledger.
+     */
+    public function postToLedger(User $user, JurnalRekeningAir $jurnalRekeningAir): bool
+    {
+        return $user->can('post_jurnal::rekening::air');
+    }
 }

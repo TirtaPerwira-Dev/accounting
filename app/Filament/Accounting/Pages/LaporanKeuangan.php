@@ -380,26 +380,35 @@ class LaporanKeuangan extends Page implements HasForms
 
         // Jurnal Rekening Air
         $queryRA = JurnalRekeningAir::query()
-            ->with(['rekening', 'kelompok'])
+            ->with(['details.rekening.kelompok'])
             ->when($start, fn($q) => $q->whereDate('tanggal', '>=', $start))
             ->when($end, fn($q) => $q->whereDate('tanggal', '<=', $end))
             ->get();
 
-        foreach ($queryRA as $item) {
-            $allTransactions[] = [
-                'tanggal' => $item->tanggal,
-                'rekening_id' => $item->rekening_id,
-                'kode_rekening' => $item->rekening?->kode ?? '',
-                'nama_rekening' => $item->rekening?->nama_rek ?? '',
-                'kelompok_id' => $item->kelompok_id,
-                'posisi' => $item->kode, // D atau K
-                'rp' => $item->rp,
-                'jenis' => 'Rekening Air',
-            ];
+        foreach ($queryRA as $header) {
+            foreach ($header->details as $detail) {
+                if (!$detail->rekening_id) {
+                    continue;
+                }
+
+                $posisi = strtolower((string) $detail->position) === 'kredit' ? 'K' : 'D';
+
+                $allTransactions[] = [
+                    'tanggal' => $header->tanggal,
+                    'rekening_id' => $detail->rekening_id,
+                    'kode_rekening' => $detail->rekening?->no_rek ?? '',
+                    'nama_rekening' => $detail->rekening?->nama_rek ?? '',
+                    'kelompok_id' => $detail->kelompok_id ?? $detail->rekening?->kelompok_id,
+                    'posisi' => $posisi,
+                    'rp' => (float) ($detail->jumlah ?? 0),
+                    'jenis' => 'Rekening Air',
+                ];
+            }
         }
 
         // Jurnal Pemakaian Bahan
         $queryPB = JurnalPemakaianBahan::query()
+            ->with(['rekeningDebit.kelompok', 'rekeningKredit.kelompok'])
             ->when($start, fn($q) => $q->whereDate('tanggal', '>=', $start))
             ->when($end, fn($q) => $q->whereDate('tanggal', '<=', $end))
             ->get();

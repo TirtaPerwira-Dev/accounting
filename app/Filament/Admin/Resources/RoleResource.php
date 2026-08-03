@@ -41,11 +41,11 @@ class RoleResource extends Resource
             $name = $permission->name;
 
             // Categorize by accounting modules
-            if (str_contains($name, 'journal') || str_contains($name, 'penerimaan') || str_contains($name, 'pengeluaran')) {
+            if (str_contains($name, 'jurnal::') || str_contains($name, 'penerimaan') || str_contains($name, 'pengeluaran') || str_contains($name, 'confirm_jurnal') || str_contains($name, 'post_jurnal')) {
                 return '📊 Transaksi Jurnal';
-            } elseif (str_contains($name, 'kelompok') || str_contains($name, 'rekening') || str_contains($name, 'nomor_bantu')) {
+            } elseif (str_contains($name, 'kelompok') || str_contains($name, 'rekening') || str_contains($name, 'nomor_bantu') || str_contains($name, 'nomor::bantu')) {
                 return '🏦 Chart of Accounts';
-            } elseif (str_contains($name, 'opening_balance') || str_contains($name, 'company')) {
+            } elseif (str_contains($name, 'opening_balance') || str_contains($name, 'saldo::awal') || str_contains($name, 'company')) {
                 return '⚙️ Setup & Konfigurasi';
             } elseif (str_contains($name, '_user')) {
                 return '👥 Manajemen Pengguna';
@@ -145,6 +145,9 @@ class RoleResource extends Resource
                 'force_delete_any' => 'Hapus Permanen Semua',
                 'replicate' => 'Duplikasi',
                 'reorder' => 'Urutkan',
+                'confirm' => 'Konfirmasi',
+                'unconfirm' => 'Batalkan Konfirmasi',
+                'post' => 'Post Buku Besar',
                 'page' => 'Akses',
                 'widget' => 'Widget',
             ];

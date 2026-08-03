@@ -28,8 +28,6 @@ return new class extends Migration
                     ->comment('DATA field from SAKEP');
             }
 
-            // Add index for kel field
-            $table->index(['kelompok_id', 'kel'], 'rekenings_kelompok_kel_index');
         });
     }
 
@@ -39,8 +37,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('rekenings', function (Blueprint $table) {
-            $table->dropIndex('rekenings_kelompok_kel_index');
-
             if (Schema::hasColumn('rekenings', 'kel')) {
                 $table->dropColumn('kel');
             }

@@ -19,7 +19,7 @@ class EditJurnalPembelian extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')
@@ -27,30 +27,28 @@ class EditJurnalPembelian extends EditRecord
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->action(function ($record) {
-                    $header = $record->jurnalPembelian;
-                    $header->confirm();
+                    $record->confirm();
                     Notification::make()
                         ->title('Jurnal berhasil dikonfirmasi')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalPembelian->is_confirmed && auth()->user()->can('confirm', $record->jurnalPembelian)),
+                ->visible(false),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->action(function ($record) {
-                    $header = $record->jurnalPembelian;
-                    $header->unconfirm();
+                    $record->unconfirm();
                     Notification::make()
                         ->title('Konfirmasi jurnal dibatalkan')
                         ->success()
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalPembelian->is_confirmed && !$record->jurnalPembelian->is_posted && auth()->user()->can('unconfirm', $record->jurnalPembelian)),
+                ->visible(false),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -59,7 +57,7 @@ class EditJurnalPembelian extends EditRecord
                 ->requiresConfirmation()
                 ->action(function ($record, JournalPostingService $service) {
                     try {
-                        $service->post($record->jurnalPembelian);
+                        $service->post($record);
                         Notification::make()
                             ->title('Jurnal berhasil diposting ke Buku Besar')
                             ->success()
@@ -72,105 +70,96 @@ class EditJurnalPembelian extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalPembelian->is_confirmed && !$record->jurnalPembelian->is_posted),
+                ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
         ];
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $header = $this->record->jurnalPembelian;
+        // Jika record ini bagian dari group, load semua items dalam group
+        if ($this->record->group_transaksi) {
+            $groupItems = JurnalPembelian::where('group_transaksi', $this->record->group_transaksi)
+                ->orderBy('item_sequence')
+                ->get();
 
-        $data['tanggal'] = $header->tanggal;
-        $data['rekening_kredit_id'] = $header->nomorBantuKredit?->rekening_id;
-        $data['nomor_bantu_kredit_id'] = $header->nomor_bantu_kredit_id;
-        $data['nama_nomor_bantu_kredit'] = $header->nama_nomor_bantu_kredit;
-        $data['keterangan_header'] = $header->keterangan;
-
-        $data['pembelian_items'] = $header->details->map(function ($detail) {
-            return [
-                'bukti' => $detail->bukti,
-                'keterangan' => $detail->keterangan,
-                'jumlah' => $detail->jumlah,
-                'nomor_bantu_debit_id' => $detail->nomor_bantu_debit_id,
-                'kode_proyek_id' => $detail->kode_proyek_id,
-            ];
-        })->toArray();
+            // Convert ke format pembelian_items untuk form
+            $data['pembelian_items'] = $groupItems->map(function ($item) {
+                return [
+                    'bukti' => $item->bukti_item,
+                    'keterangan' => $item->keterangan_item,
+                    'jumlah' => $item->jumlah_item,
+                    'nomor_bantu_debit_id' => $item->nomor_bantu_debit_id,
+                    'kode_proyek_id' => $item->kode_proyek_id,
+                ];
+            })->toArray();
+        } else {
+            // Single item
+            $data['pembelian_items'] = [[
+                'bukti' => $this->record->bukti_item,
+                'keterangan' => $this->record->keterangan_item,
+                'jumlah' => $this->record->jumlah_item,
+                'nomor_bantu_debit_id' => $this->record->nomor_bantu_debit_id,
+                'kode_proyek_id' => $this->record->kode_proyek_id,
+            ]];
+        }
 
         return $data;
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
-            $pembelianItems = $data['pembelian_items'] ?? [];
-            unset($data['pembelian_items']);
+        // Extract pembelian items
+        $pembelianItems = $data['pembelian_items'] ?? [];
+        unset($data['pembelian_items']);
 
-            if (empty($pembelianItems)) {
-                throw new \Exception('Minimal harus ada 1 item pembelian');
+        if (empty($pembelianItems)) {
+            throw new \Exception('Minimal harus ada 1 item pembelian');
+        }
+
+        // Jika record ini bagian dari group, hapus semua records dalam group
+        if ($record->group_transaksi) {
+            JurnalPembelian::where('group_transaksi', $record->group_transaksi)->delete();
+        } else {
+            // Hapus single record
+            $record->delete();
+        }
+
+        // Generate group transaksi ID jika lebih dari 1 item
+        $groupTransaksi = count($pembelianItems) > 1 ? $record->group_transaksi ?? Str::uuid()->toString() : null;
+
+        $updatedRecords = [];
+
+        foreach ($pembelianItems as $index => $item) {
+            // Get nomor bantu info
+            $nomorBantu = null;
+            if (!empty($item['nomor_bantu_debit_id'])) {
+                $nomorBantu = NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_debit_id']);
             }
 
-            $header = $record->jurnalPembelian;
+            // Prepare data untuk setiap record
+            $recordData = array_merge($data, [
+                'bukti' => $item['bukti'] ?? null,
+                'bukti_item' => $item['bukti'] ?? null,
+                'keterangan_item' => $item['keterangan'],
+                'jumlah_item' => (float) ($item['jumlah'] ?? 0),
+                'kelompok_debit_id' => $nomorBantu?->rekening->kelompok_id,
+                'rekening_debit_id' => $nomorBantu?->rekening_id,
+                'nomor_bantu_debit_id' => $item['nomor_bantu_debit_id'] ?? null,
+                'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
+                'group_transaksi' => $groupTransaksi,
+                'item_sequence' => $index + 1,
+            ]);
 
-            // Hitung total dari semua items
-            $totalRp = collect($pembelianItems)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
-            
-            // Cek apakah ada item dengan Aktiva Tetap
-            $hasAktivaTetap = false;
-            foreach ($pembelianItems as $item) {
-                if (!empty($item['nomor_bantu_debit_id'])) {
-                    $nomorBantu = \App\Models\NomorBantu::with(['rekening'])->find($item['nomor_bantu_debit_id']);
-                    if ($nomorBantu && $nomorBantu->rekening && $nomorBantu->rekening->data === 'AT') {
-                        $hasAktivaTetap = true;
-                        break;
-                    }
-                }
+            // Set data_d jika ada rekening AT
+            if ($nomorBantu && $nomorBantu->rekening->data === 'AT') {
+                $recordData['data_d'] = 'AT';
             }
 
-            // Update header
-            $headerData = [
-                'tanggal' => $data['tanggal'],
-                'bukti' => $pembelianItems[0]['bukti'] ?? null,
-                'kode_proyek_id' => $pembelianItems[0]['kode_proyek_id'] ?? null,
-                'nomor_bantu_kredit_id' => $data['nomor_bantu_kredit_id'] ?? null,
-                'nama_nomor_bantu_kredit' => $data['nama_nomor_bantu_kredit'] ?? null,
-                'data_d' => $hasAktivaTetap ? 'AT' : null,
-                'rp' => $totalRp,
-                'keterangan' => $data['keterangan_header'] ?? $header->keterangan,
-            ];
+            $newRecord = JurnalPembelian::create($recordData);
+            $updatedRecords[] = $newRecord;
+        }
 
-            // Update data_k if changed
-            if ($headerData['nomor_bantu_kredit_id'] != $header->nomor_bantu_kredit_id) {
-                $nbKredit = \App\Models\NomorBantu::with('rekening')->find($headerData['nomor_bantu_kredit_id']);
-                $headerData['data_k'] = $nbKredit?->rekening?->data;
-            }
-
-            $header->update($headerData);
-
-            // Delete existing details
-            $header->details()->delete();
-
-            // Re-create details
-            $newDetails = [];
-            foreach ($pembelianItems as $item) {
-                $nomorBantu = null;
-                if (!empty($item['nomor_bantu_debit_id'])) {
-                    $nomorBantu = \App\Models\NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_debit_id']);
-                }
-
-                $newDetails[] = \App\Models\JurnalPembelianDetail::create([
-                    'jurnal_pembelian_id' => $header->id,
-                    'bukti' => $item['bukti'] ?? null,
-                    'keterangan' => $item['keterangan'] ?? null,
-                    'jumlah' => (float) ($item['jumlah'] ?? 0),
-                    'kelompok_debit_id' => $nomorBantu?->rekening?->kelompok_id,
-                    'rekening_debit_id' => $nomorBantu?->rekening_id,
-                    'nomor_bantu_debit_id' => $item['nomor_bantu_debit_id'] ?? null,
-                    'kode_proyek_id' => $item['kode_proyek_id'] ?? null,
-                ]);
-            }
-
-            // Return some detail record to satisfy Filament
-            return $newDetails[0];
-        });
+        // Return record pertama sebagai representasi grup
+        return $updatedRecords[0];
     }
 }

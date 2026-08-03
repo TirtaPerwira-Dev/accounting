@@ -26,40 +26,60 @@ class NotificationBell extends Component
         $dismissedJournals = session()->get('dismissed_journals', []);
         $dismissedLogs = session()->get('dismissed_logs', []);
 
-        if ($user->hasAnyRole(['kepala_bagian', 'kepala_sub_bagian', 'super_admin'])) {
-            $types = [
-                'Penerimaan Kas' => JurnalPenerimaanKas::class,
-                'Bayar Kas/Bank' => JurnalBayarKasBank::class,
-                'Pembelian' => JurnalPembelian::class,
-                'Memorial' => JurnalMemorial::class,
-                'Pemakaian Bahan' => JurnalPemakaianBahan::class,
-                'Rekening Air' => JurnalRekeningAir::class,
-            ];
+        $types = [
+            'Penerimaan Kas' => [
+                'model' => JurnalPenerimaanKas::class,
+                'view_permission' => 'view_any_jurnal::penerimaan::kas',
+                'post_permission' => 'post_jurnal::penerimaan::kas',
+            ],
+            'Bayar Kas/Bank' => [
+                'model' => JurnalBayarKasBank::class,
+                'view_permission' => 'view_any_jurnal::bayar::kas::bank',
+                'post_permission' => 'post_jurnal::bayar::kas::bank',
+            ],
+            'Pembelian' => [
+                'model' => JurnalPembelian::class,
+                'view_permission' => 'view_any_jurnal::pembelian',
+                'post_permission' => 'post_jurnal::pembelian',
+            ],
+            'Memorial' => [
+                'model' => JurnalMemorial::class,
+                'view_permission' => 'view_any_jurnal::memorial',
+                'post_permission' => 'post_jurnal::memorial',
+            ],
+            'Pemakaian Bahan' => [
+                'model' => JurnalPemakaianBahan::class,
+                'view_permission' => 'view_any_jurnal::pemakaian::bahan',
+                'post_permission' => 'post_jurnal::pemakaian::bahan',
+            ],
+            'Rekening Air' => [
+                'model' => JurnalRekeningAir::class,
+                'view_permission' => 'view_any_jurnal::rekening::air',
+                'post_permission' => 'post_jurnal::rekening::air',
+            ],
+        ];
 
-            foreach ($types as $label => $model) {
-                $dismissedIds = $dismissedJournals[$label] ?? [];
+        foreach ($types as $label => $meta) {
+            if (!$user->can($meta['view_permission'])) {
+                continue;
+            }
 
-                // Fetch unconfirmed
-                $unconfirmed = $model::where('is_confirmed', 0)
-                    ->whereNotIn('id', $dismissedIds)
-                    ->latest()->take(5)->get();
-                
-                // Fetch confirmed but unposted
-                $unposted = $model::where('is_confirmed', 1)
-                    ->where('is_posted', 0)
-                    ->whereNotIn('id', $dismissedIds)
-                    ->latest()->take(5)->get();
+            $model = $meta['model'];
+            $canPost = $user->can($meta['post_permission']);
 
-                if ($unconfirmed->count() > 0 || $unposted->count() > 0) {
-                    $pendingJournals[$label] = [
-                        'count' => $model::where(function($q) use ($dismissedIds) {
-                            $q->where('is_confirmed', 0)->orWhere(fn($sq) => $sq->where('is_confirmed', 1)->where('is_posted', 0));
-                        })->whereNotIn('id', $dismissedIds)->count(),
-                        'unconfirmed' => $unconfirmed,
-                        'unposted' => $unposted,
-                    ];
-                    $notificationsCount += $pendingJournals[$label]['count'];
-                }
+            $dismissedIds = $dismissedJournals[$label] ?? [];
+
+            $unposted = $model::where('is_posted', 0)
+                ->whereNotIn('id', $dismissedIds)
+                ->latest()->take(5)->get();
+
+            if ($unposted->count() > 0) {
+                $pendingJournals[$label] = [
+                    'count' => $model::where('is_posted', 0)->whereNotIn('id', $dismissedIds)->count(),
+                    'unposted' => $unposted,
+                    'can_post' => $canPost,
+                ];
+                $notificationsCount += $pendingJournals[$label]['count'];
             }
         }
 
@@ -118,7 +138,7 @@ class NotificationBell extends Component
         };
 
         if ($model) {
-            $ids = $model::where('is_confirmed', 0)->orWhere(fn($q) => $q->where('is_confirmed', 1)->where('is_posted', 0))->pluck('id')->toArray();
+            $ids = $model::where('is_posted', 0)->pluck('id')->toArray();
             $dismissed = session()->get('dismissed_journals', []);
             $dismissed[$type] = array_unique(array_merge($dismissed[$type] ?? [], $ids));
             session()->put('dismissed_journals', $dismissed);
@@ -151,30 +171,18 @@ class NotificationBell extends Component
         }
     }
 
-    public function confirmJournal($modelClass, $id)
-    {
-        $record = $modelClass::find($id);
-        if ($record) {
-            $record->confirm();
-            \Filament\Notifications\Notification::make()
-                ->title('Jurnal berhasil dikonfirmasi')
-                ->success()
-                ->send();
-        }
-    }
-
     public function postJournal($modelClass, $id)
     {
         $record = $modelClass::find($id);
         if ($record) {
-            if (!$record->is_confirmed) {
+            if (!auth()->user()->can('postToLedger', $record)) {
                 \Filament\Notifications\Notification::make()
-                    ->title('Jurnal harus dikonfirmasi terlebih dahulu')
+                    ->title('Anda tidak memiliki hak akses untuk posting jurnal ini')
                     ->danger()
                     ->send();
                 return;
             }
-            
+
             try {
                 $service = app(\App\Services\JournalPostingService::class);
                 $service->post($record);

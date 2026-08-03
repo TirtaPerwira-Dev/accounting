@@ -121,4 +121,12 @@ class JurnalPenerimaanKasPolicy
     {
         return $user->can('unconfirm_jurnal::penerimaan::kas');
     }
+
+    /**
+     * Determine whether the user can post to ledger.
+     */
+    public function postToLedger(User $user, JurnalPenerimaanKas $jurnalPenerimaanKas): bool
+    {
+        return $user->can('post_jurnal::penerimaan::kas');
+    }
 }

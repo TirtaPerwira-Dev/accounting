@@ -5,10 +5,11 @@ namespace App\Filament\Accounting\Resources\JurnalMemorialResource\Pages;
 use App\Filament\Accounting\Resources\JurnalMemorialResource;
 use App\Services\JournalPostingService;
 use Filament\Actions;
+use Filament\Infolists\Components;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ViewJurnalMemorial extends ViewRecord
 {
@@ -23,7 +24,9 @@ class ViewJurnalMemorial extends ViewRecord
             'jurnalMemorial.details.rekening.kelompok',
             'jurnalMemorial.details.nomorBantu',
             'jurnalMemorial.details.kodeProyek',
+            'jurnalMemorial.confirmedBy',
             'jurnalMemorial.createdBy',
+            'jurnalMemorial.postedBy',
         ]);
 
         return $data;
@@ -32,89 +35,36 @@ class ViewJurnalMemorial extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->label('Edit')
-                ->icon('heroicon-o-pencil')
-                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed),
-
-            Actions\Action::make('confirm')
-                ->label('✓ Konfirmasi')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->action(function ($record) {
-                    $record->jurnalMemorial->confirm();
-                    Notification::make()
-                        ->title('Jurnal berhasil dikonfirmasi')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed && auth()->user()->can('confirm', $record->jurnalMemorial)),
-
-            Actions\Action::make('unconfirm')
-                ->label('↶ Batal Konfirmasi')
-                ->icon('heroicon-o-x-circle')
-                ->color('warning')
-                ->action(function ($record) {
-                    $record->jurnalMemorial->unconfirm();
-                    Notification::make()
-                        ->title('Konfirmasi jurnal dibatalkan')
-                        ->success()
-                        ->send();
-                })
-                ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted && auth()->user()->can('unconfirm', $record->jurnalMemorial)),
+            Actions\EditAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
 
             Actions\Action::make('exportPdf')
-                ->label('PDF')
+                ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
+                ->visible(fn($record) => $record->jurnalMemorial && auth()->user()->can('postToLedger', $record->jurnalMemorial))
                 ->action(function ($record) {
-                    $parent = $record->jurnalMemorial;
-                    $parent->load([
-                        'details.rekening.kelompok',
-                        'details.nomorBantu',
-                        'details.kodeProyek',
-                        'createdBy',
+                    $header = $record->jurnalMemorial;
+                    if (!$header) {
+                        Notification::make()
+                            ->title('Data header jurnal tidak ditemukan')
+                            ->danger()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $header->load(['rekening.kelompok', 'nomorBantu', 'kodeProyek', 'details.rekening.kelompok', 'details.nomorBantu']);
+
+                    $pdf = Pdf::loadView('reports.jurnal-memorial-single', [
+                        'jurnal' => $header,
+                        'generatedAt' => now()->format('d M Y H:i'),
                     ]);
 
-                    $items = $parent->details->map(function ($item) use ($parent) {
-                        $code = '-';
-                        if ($item->rekening) {
-                            $code = ($item->rekening->kelompok->no_kel ?? '') . 
-                                    ($item->rekening->no_rek ?? '') . 
-                                    ($item->nomorBantu->no_bantu ?? '');
-                        }
-                        return [
-                            'code' => $code,
-                            'name' => $item->rekening->nama_rek ?? '-',
-                            'description' => $item->keterangan ?? $parent->keterangan,
-                            'debit' => $item->posisi === 'D' ? $item->jumlah : 0,
-                            'credit' => $item->posisi === 'K' ? $item->jumlah : 0,
-                        ];
-                    });
-
-                    $voucher = [
-                        'title' => 'BUKTI JURNAL MEMORIAL',
-                        'number' => $parent->bukti ?? $parent->no_reff,
-                        'date' => $parent->tanggal,
-                        'reference' => $parent->no_reff,
-                        'description' => $parent->keterangan,
-                        'payee' => 'Internal / Memorial',
-                        'created_by' => $parent->createdBy?->name,
-                        'items' => $items,
-                    ];
-
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.voucher', [
-                        'voucher' => $voucher,
-                        'company' => \App\Models\Company::first(),
-                    ])->setPaper('a4', 'portrait');
-
-                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $parent->bukti ?? $parent->id);
+                    $safeFilename = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $header->bukti ?? $header->id);
 
                     return response()->streamDownload(
                         fn() => print($pdf->output()),
-                        'voucher-memorial-' . $safeFilename . '.pdf'
+                        'jurnal-memorial-' . $safeFilename . '.pdf'
                     );
                 }),
 
@@ -125,6 +75,10 @@ class ViewJurnalMemorial extends ViewRecord
                 ->requiresConfirmation()
                 ->action(function ($record, JournalPostingService $service) {
                     try {
+                        if (!$record->jurnalMemorial) {
+                            throw new \RuntimeException('Data header jurnal tidak ditemukan.');
+                        }
+
                         $service->post($record->jurnalMemorial);
                         Notification::make()
                             ->title('Jurnal berhasil diposting ke Buku Besar')
@@ -138,203 +92,160 @@ class ViewJurnalMemorial extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalMemorial->is_confirmed && !$record->jurnalMemorial->is_posted),
-
-            Actions\DeleteAction::make()
-                ->label('Hapus')
-                ->visible(fn($record) => !$record->jurnalMemorial->is_confirmed),
+                ->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
         ];
     }
 
     public function infolist(Infolist $infolist): Infolist
     {
+        $header = $this->record->jurnalMemorial;
+
         return $infolist
             ->schema([
-                // ===================== INFORMASI JURNAL =====================
                 Components\Section::make('Informasi Jurnal')
-                    ->icon('heroicon-o-document-text')
+                    ->description('Informasi dasar transaksi jurnal memorial')
                     ->schema([
-                        Components\Grid::make(3)->schema([
-                            Components\TextEntry::make('jurnalMemorial.no_reff')
-                                ->label('No. Referensi')
-                                ->copyable()
-                                ->icon('heroicon-m-hashtag'),
+                        Components\Grid::make(3)
+                            ->schema([
+                                Components\TextEntry::make('jurnalMemorial.no_reff')
+                                    ->label('No. Referensi')
+                                    ->badge()
+                                    ->color('primary'),
 
-                            Components\TextEntry::make('jurnalMemorial.bukti')
-                                ->label('No. Bukti')
-                                ->weight('bold')
-                                ->copyable()
-                                ->icon('heroicon-m-document-magnifying-glass'),
+                                Components\TextEntry::make('jurnalMemorial.tanggal')
+                                    ->label('Tanggal')
+                                    ->date('d/m/Y')
+                                    ->badge()
+                                    ->color('info'),
 
-                            Components\TextEntry::make('jurnalMemorial.tanggal')
-                                ->label('Tanggal')
-                                ->date('d F Y')
-                                ->icon('heroicon-m-calendar-days'),
-                        ]),
+                                Components\IconEntry::make('jurnalMemorial.is_confirmed')
+                                    ->label('Status Konfirmasi')
+                                    ->boolean()
+                                    ->trueIcon('heroicon-o-check-circle')
+                                    ->falseIcon('heroicon-o-clock')
+                                    ->trueColor('success')
+                                    ->falseColor('warning'),
+                            ]),
+
+                        Components\TextEntry::make('jurnalMemorial.bukti')
+                            ->label('No. Bukti')
+                            ->copyable(),
 
                         Components\TextEntry::make('jurnalMemorial.keterangan')
                             ->label('Keterangan')
                             ->columnSpanFull()
                             ->placeholder('-'),
-                    ]),
+                    ])
+                    ->collapsible(),
 
-                // ===================== DETAIL TRANSAKSI =====================
-                Components\Section::make('Detail Transaksi')
-                    ->icon('heroicon-o-table-cells')
-                    ->description(function ($record) {
-                        $parentJurnal = $record->jurnalMemorial;
-                        $parentJurnal->loadMissing('details');
-                        return 'Total baris: ' . $parentJurnal->details->count();
-                    })
+                Components\Section::make('Akun Header Memorial')
+                    ->description('Akun utama di header transaksi memorial')
+                    ->schema([
+                        Components\Grid::make(3)
+                            ->schema([
+                                Components\TextEntry::make('header_kode_akun')
+                                    ->label('Kode Akun')
+                                    ->state(function () use ($header) {
+                                        if (!$header?->rekening) {
+                                            return '-';
+                                        }
+
+                                        $noKel = (int) ($header->rekening->kelompok?->no_kel ?? 0);
+                                        $noRek = (int) $header->rekening->no_rek;
+                                        $noBantu = $header->nomorBantu?->no_bantu;
+
+                                        return $noBantu
+                                            ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
+                                            : sprintf('%02d-%04d', $noKel, $noRek);
+                                    })
+                                    ->badge()
+                                    ->color('success'),
+
+                                Components\TextEntry::make('jurnalMemorial.rekening.nama_rek')
+                                    ->label('Nama Rekening')
+                                    ->placeholder('-')
+                                    ->weight('semibold'),
+
+                                Components\TextEntry::make('jurnalMemorial.kode')
+                                    ->label('Posisi Header')
+                                    ->badge()
+                                    ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
+                                    ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit'),
+                            ]),
+                    ])
+                    ->collapsible(),
+
+                Components\Section::make('Daftar Item Memorial')
+                    ->description(fn() => 'Total baris item: ' . ($header?->details?->count() ?? 0))
                     ->schema([
                         Components\RepeatableEntry::make('jurnalMemorial.details')
-                            ->label(false)
-                            ->grid(1)
+                            ->hiddenLabel()
                             ->schema([
-                                Components\Section::make()
+                                Components\Grid::make(3)
                                     ->schema([
-                                        Components\Grid::make(6)->schema([
+                                        Components\TextEntry::make('kode_akun')
+                                            ->label('Kode/Nama Rekening')
+                                            ->state(function ($record) {
+                                                if (!$record?->rekening) {
+                                                    return '-';
+                                                }
 
-                                            // KODE PROYEK
-                                            Components\TextEntry::make('kodeProyek.name')
-                                                ->label('Proyek')
-                                                ->default('-')
-                                                ->formatStateUsing(fn($record) => $record->kodeProyek ? 
-                                                    $record->kodeProyek->kode . ' - ' . $record->kodeProyek->name : '-')
-                                                ->columnSpan(2),
+                                                $noKel = (int) ($record->rekening->kelompok?->no_kel ?? 0);
+                                                $noRek = (int) $record->rekening->no_rek;
+                                                $noBantu = $record->nomorBantu?->no_bantu;
+                                                $kode = $noBantu
+                                                    ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
+                                                    : sprintf('%02d-%04d', $noKel, $noRek);
 
-                                            // REKENING
-                                            Components\TextEntry::make('rekening.nama_rek')
-                                                ->label('Rekening')
-                                                ->formatStateUsing(fn($record) => $record->rekening ?
-                                                    $record->rekening->kelompok->no_kel . '-' .
-                                                    $record->rekening->no_rek . ' - ' .
-                                                    $record->rekening->nama_rek : '-')
-                                                ->columnSpan(4),
+                                                return '[' . $kode . '] ' . ($record->rekening->nama_rek ?? '-');
+                                            })
+                                            ->weight('medium'),
 
-                                            // NOMOR BANTU
-                                            Components\TextEntry::make('nomorBantu.nm_bantu')
-                                                ->label('Nomor Bantu')
-                                                ->default('-')
-                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                                                    $record->nomorBantu->no_bantu . ' - ' .
-                                                    $record->nomorBantu->nm_bantu : '-')
-                                                ->columnSpan(3),
+                                        Components\TextEntry::make('kodeProyek.name')
+                                            ->label('Proyek')
+                                            ->placeholder('-'),
 
-                                            // POSISI D/K (BADGE)
-                                            Components\TextEntry::make('posisi')
-                                                ->label('Posisi')
-                                                ->badge()
-                                                ->size('lg')
-                                                ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
-                                                ->formatStateUsing(fn($state) => $state === 'D' ? 'DEBIT' : 'KREDIT')
-                                                ->columnSpan(1),
+                                        Components\TextEntry::make('jumlah')
+                                            ->label('Nominal')
+                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                                            ->alignRight()
+                                            ->weight('bold')
+                                            ->color('success'),
 
-                                            // JUMLAH
-                                            Components\TextEntry::make('jumlah')
-                                                ->label('Jumlah')
-                                                ->money('IDR')
-                                                ->size('lg')
-                                                ->weight('bold')
-                                                ->alignEnd()
-                                                ->columnSpan(2)
-                                                ->color(fn($record) => $record->posisi === 'D' ? 'danger' : 'success'),
+                                        Components\TextEntry::make('posisi')
+                                            ->label('Posisi')
+                                            ->badge()
+                                            ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
+                                            ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit'),
 
-                                            // KETERANGAN ITEM
-                                            Components\TextEntry::make('keterangan')
-                                                ->label('Keterangan Item')
-                                                ->placeholder('-')
-                                                ->columnSpanFull(),
-                                        ]),
-                                    ])
-                                    ->collapsible()
-                                    ->collapsed(false)
-                                    ->description(fn($record) => $record->posisi === 'D'
-                                        ? 'Transaksi Debit — Mengurangi saldo rekening'
-                                        : 'Transaksi Kredit — Menambah saldo rekening')
-                                    ->icon(fn($record) => $record->posisi === 'D'
-                                        ? 'heroicon-o-arrow-up-right'
-                                        : 'heroicon-o-arrow-down-right')
-                                    ->iconColor(fn($record) => $record->posisi === 'D' ? 'danger' : 'success'),
+                                        Components\TextEntry::make('keterangan')
+                                            ->label('Keterangan')
+                                            ->columnSpanFull()
+                                            ->placeholder('-'),
+                                    ]),
                             ])
+                            ->grid(1)
                             ->columnSpanFull(),
-                    ]),
+                    ])
+                    ->collapsible(),
 
-                // ===================== RINGKASAN TOTAL =====================
-                Components\Section::make('Ringkasan')
-                    ->icon('heroicon-o-calculator')
+                Components\Section::make('Total Transaksi')
                     ->schema([
-                        Components\Grid::make(3)->schema([
-                            Components\TextEntry::make('total_debit')
-                                ->label('Total Debit')
-                                ->state(function ($record) {
-                                    $parentJurnal = $record->jurnalMemorial;
-                                    $parentJurnal->loadMissing('details');
-                                    return $parentJurnal->details->where('posisi', 'D')->sum('jumlah');
-                                })
-                                ->money('IDR')
-                                ->color('danger')
-                                ->size('xl')
-                                ->weight('bold'),
+                        Components\Grid::make(2)
+                            ->schema([
+                                Components\TextEntry::make('jurnalMemorial.rp')
+                                    ->label('Total Nilai Memorial')
+                                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                                    ->size('xl')
+                                    ->weight('bold')
+                                    ->color('primary'),
 
-                            Components\TextEntry::make('total_kredit')
-                                ->label('Total Kredit')
-                                ->state(function ($record) {
-                                    $parentJurnal = $record->jurnalMemorial;
-                                    $parentJurnal->loadMissing('details');
-                                    return $parentJurnal->details->where('posisi', 'K')->sum('jumlah');
-                                })
-                                ->money('IDR')
-                                ->color('success')
-                                ->size('xl')
-                                ->weight('bold'),
-
-                            Components\TextEntry::make('balance_status')
-                                ->label('Status Jurnal')
-                                ->state(function ($record) {
-                                    $parentJurnal = $record->jurnalMemorial;
-                                    $parentJurnal->loadMissing('details');
-                                    $debit = $parentJurnal->details->where('posisi', 'D')->sum('jumlah');
-                                    $kredit = $parentJurnal->details->where('posisi', 'K')->sum('jumlah');
-                                    return $debit === $kredit && $debit > 0 ? 'JURNAL BALANCE' : 'TIDAK BALANCE';
-                                })
-                                ->badge()
-                                ->color(fn($state) => str_contains($state, 'BALANCE') ? 'success' : 'danger')
-                                ->size('xl'),
-                        ]),
-                    ]),
-
-                // ===================== STATUS & AUDIT =====================
-                Components\Section::make('Status & Audit')
-                    ->icon('heroicon-o-shield-check')
-                    ->schema([
-                        Components\Grid::make(4)->schema([
-                            Components\IconEntry::make('jurnalMemorial.is_confirmed')
-                                ->label('Status Konfirmasi')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-clock')
-                                ->trueColor('success')
-                                ->falseColor('warning'),
-
-                            Components\TextEntry::make('jurnalMemorial.confirmed_at')
-                                ->label('Dikonfirmasi Pada')
-                                ->dateTime('d F Y H:i')
-                                ->placeholder('Belum dikonfirmasi'),
-
-                            Components\IconEntry::make('jurnalMemorial.is_posted')
-                                ->label('Status Posting')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-x-circle')
-                                ->trueColor('success')
-                                ->falseColor('gray'),
-
-                            Components\TextEntry::make('jurnalMemorial.created_at')
-                                ->label('Dibuat Pada')
-                                ->dateTime('d F Y H:i'),
-                        ]),
-                    ]),
+                                Components\TextEntry::make('jurnalMemorial.created_at')
+                                    ->label('Dibuat Pada')
+                                    ->dateTime('d/m/Y H:i'),
+                            ]),
+                    ])
+                    ->compact(),
             ]);
     }
 }

@@ -107,4 +107,9 @@ class Kelompok extends Model
     {
         return self::KEL_VALUES[$this->kel] ?? $this->kel;
     }
+
+    public function getNomorKelompokAttribute(): string
+    {
+        return $this->no_kel;
+    }
 }

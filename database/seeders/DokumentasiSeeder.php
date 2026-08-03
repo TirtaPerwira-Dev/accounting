@@ -406,6 +406,194 @@ class DokumentasiSeeder extends Seeder
                 'created_by' => $admin->id ?? 1,
                 'published_at' => now(),
             ],
+            [
+                'judul' => 'Tutorial Alur Penggunaan Sistem Berdasarkan Role',
+                'kategori' => 'Governance Role',
+                'deskripsi' => 'Panduan lengkap alur kerja dari input sampai posting buku besar dengan pembatasan role terbaru',
+                'konten' => '<h2>Tujuan Dokumen</h2>
+<p>Dokumen ini menjelaskan alur operasional harian sistem akuntansi dan batasan tindakan setiap role agar proses tetap terkontrol, auditable, dan sesuai prinsip pemisahan tugas.</p>
+
+<h2>Skema Role Resmi</h2>
+<ul>
+<li><strong>super_admin</strong>: akses penuh, termasuk mengatur role dan permission.</li>
+<li><strong>staff</strong> (termasuk varian staff): hanya input draft (create/update), tidak boleh confirm/post.</li>
+<li><strong>kepala_sub_bagian</strong> (termasuk varian): input + confirm + unconfirm + post.</li>
+<li><strong>kepala_bagian</strong> dan <strong>direktur</strong>: view only (monitoring dan review), tanpa aksi mutasi data.</li>
+</ul>
+
+<h2>Alur Umum Proses Jurnal</h2>
+<ol>
+<li><strong>Input Draft</strong> oleh staff:
+<ul>
+<li>Isi header transaksi: tanggal, no bukti/referensi, uraian.</li>
+<li>Isi detail transaksi sampai lengkap.</li>
+<li>Validasi internal form: item lengkap dan balance (untuk jurnal yang mensyaratkan debit=kredit).</li>
+</ul>
+</li>
+<li><strong>Review & Confirm</strong> oleh kepala sub bagian:
+<ul>
+<li>Cek kelengkapan dokumen sumber.</li>
+<li>Cek akun, nomor bantu, kode proyek, dan nilai nominal.</li>
+<li>Lakukan confirm bila sudah benar.</li>
+</ul>
+</li>
+<li><strong>Posting Buku Besar</strong> oleh kepala sub bagian:
+<ul>
+<li>Pastikan jurnal sudah confirmed.</li>
+<li>Klik Post ke Buku Besar.</li>
+<li>Sistem akan menolak jika tidak punya permission post_jurnal::*.</li>
+</ul>
+</li>
+<li><strong>Monitoring</strong> oleh kepala bagian/direktur:
+<ul>
+<li>Memantau status pending/confirmed/posted.</li>
+<li>Meninjau laporan dan audit trail.</li>
+</ul>
+</li>
+</ol>
+
+<h2>Alur Per Modul Jurnal</h2>
+<h3>1. Jurnal Pembelian</h3>
+<ul>
+<li>Staff input item pembelian dan akun lawan (utang/beban/aset).</li>
+<li>Kasub verifikasi bukti, supplier, dan nilai transaksi.</li>
+<li>Kasub confirm lalu post ke buku besar.</li>
+</ul>
+
+<h3>2. Jurnal Rekening Air</h3>
+<ul>
+<li>Staff input detail pendapatan/tagihan.</li>
+<li>Sistem validasi keseimbangan debit/kredit sebelum finalisasi item.</li>
+<li>Kasub confirm dan post.</li>
+</ul>
+
+<h3>3. Jurnal Penerimaan Kas</h3>
+<ul>
+<li>Staff input sumber penerimaan dan kas/bank tujuan.</li>
+<li>Kasub memastikan bukti penerimaan valid.</li>
+<li>Kasub confirm dan post.</li>
+</ul>
+
+<h3>4. Jurnal Bayar Kas/Bank</h3>
+<ul>
+<li>Staff input detail pembayaran dan akun kas/bank sumber.</li>
+<li>Kasub cek otorisasi pengeluaran dan bukti pendukung.</li>
+<li>Kasub confirm dan post.</li>
+</ul>
+
+<h3>5. Jurnal Memorial</h3>
+<ul>
+<li>Staff input jurnal penyesuaian/koreksi.</li>
+<li>Kasub verifikasi justifikasi akuntansi dan balance.</li>
+<li>Kasub confirm dan post.</li>
+</ul>
+
+<h3>6. Jurnal Pemakaian Bahan</h3>
+<ul>
+<li>Staff input pemakaian persediaan bahan operasional.</li>
+<li>Kasub cek dasar pemakaian dan akun pembebanan.</li>
+<li>Kasub confirm dan post.</li>
+</ul>
+
+<h2>Aturan Kontrol</h2>
+<ul>
+<li>Draft hanya boleh diubah sebelum confirm.</li>
+<li>Jurnal posted tidak boleh diubah langsung; gunakan jurnal koreksi jika perlu penyesuaian.</li>
+<li>Semua aksi confirm/post tercatat pada audit log.</li>
+</ul>
+
+<h2>Checklist Operasional Harian</h2>
+<ol>
+<li>Staff menyelesaikan seluruh input harian.</li>
+<li>Kasub melakukan review batch dan confirm.</li>
+<li>Kasub melakukan posting batch ke buku besar.</li>
+<li>Kepala bagian/direktur meninjau dashboard dan laporan.</li>
+</ol>',
+                'urutan' => 15,
+                'is_published' => true,
+                'is_manual_book' => true,
+                'created_by' => $admin->id,
+                'published_at' => now(),
+            ],
+            [
+                'judul' => 'Matriks Batasan Role dan Permission (Operasional)',
+                'kategori' => 'Governance Role',
+                'deskripsi' => 'Matriks detail hak aksi per role untuk seluruh proses jurnal',
+                'konten' => '<h2>Matriks Hak Aksi</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; width:100%;">
+<thead>
+<tr>
+<th>Role</th>
+<th>Lihat Jurnal</th>
+<th>Input/Edit Draft</th>
+<th>Confirm/Unconfirm</th>
+<th>Post Buku Besar</th>
+<th>Kelola Role/Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>super_admin</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Ya</td>
+</tr>
+<tr>
+<td>staff (semua varian)</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Tidak</td>
+<td>Tidak</td>
+<td>Tidak</td>
+</tr>
+<tr>
+<td>kepala_sub_bagian (semua varian)</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Ya</td>
+<td>Tidak</td>
+</tr>
+<tr>
+<td>kepala_bagian</td>
+<td>Ya</td>
+<td>Tidak</td>
+<td>Tidak</td>
+<td>Tidak</td>
+<td>Tidak</td>
+</tr>
+<tr>
+<td>direktur_umum / direktur_utama</td>
+<td>Ya</td>
+<td>Tidak</td>
+<td>Tidak</td>
+<td>Tidak</td>
+<td>Tidak</td>
+</tr>
+</tbody>
+</table>
+
+<h2>Catatan Implementasi Permission</h2>
+<ul>
+<li>Permission post dipisah per modul: <code>post_jurnal::*</code>.</li>
+<li>Confirm/unconfirm dipisah per modul: <code>confirm_jurnal::*</code> dan <code>unconfirm_jurnal::*</code>.</li>
+<li>Aksi posting divalidasi di UI dan backend service.</li>
+</ul>
+
+<h2>Aturan Perubahan Role</h2>
+<ol>
+<li>Hanya super_admin yang dapat mengubah role dan permission.</li>
+<li>Perubahan role harus disertai catatan alasan.</li>
+<li>Lakukan uji akses minimal pada 1 akun uji sebelum dipakai produksi.</li>
+</ol>',
+                'urutan' => 16,
+                'is_published' => true,
+                'is_manual_book' => true,
+                'created_by' => $admin->id,
+                'published_at' => now(),
+            ],
         ];
 
         foreach ($dokumentasiData as $data) {

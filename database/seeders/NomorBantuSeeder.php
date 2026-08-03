@@ -1192,7 +1192,7 @@ class NomorBantuSeeder extends Seeder
             ['rek_key' => '50.5002', 'no_bantu' => '128', 'nm_bantu' => 'Forga tahun 2025', 'kel' => '2', 'kode' => 'K'],
             ['rek_key' => '50.5001', 'no_bantu' => '270', 'nm_bantu' => 'CV.Cipta Graha Estetika-PWT', 'kel' => '2', 'kode' => 'K'],
 
-            ['rek_key' => '60.6204', 'no_bantu' => '10', 'nm_bantu' => 'Resiko Piutang', 'kel' => '2', 'kode' => 'K'],
+            ['rek_key' => '62.6204', 'no_bantu' => '10', 'nm_bantu' => 'Resiko Piutang', 'kel' => '2', 'kode' => 'K'],
             ['rek_key' => '62.6203', 'no_bantu' => '10', 'nm_bantu' => 'Cadangan Dana Produksi', 'kel' => '2', 'kode' => 'K'],
             ['rek_key' => '62.6203', 'no_bantu' => '20', 'nm_bantu' => 'Cad.Dn Sosial Pend.& Kesj Kary', 'kel' => '2', 'kode' => 'K'],
             ['rek_key' => '62.6203', 'no_bantu' => '30', 'nm_bantu' => 'Cad. Dana Pensiun dan Sokongan', 'kel' => '2', 'kode' => 'K'],

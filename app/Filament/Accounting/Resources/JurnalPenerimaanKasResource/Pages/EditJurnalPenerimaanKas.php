@@ -15,7 +15,7 @@ class EditJurnalPenerimaanKas extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')
@@ -29,7 +29,7 @@ class EditJurnalPenerimaanKas extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('confirm', $record->jurnalPenerimaanKas)),
+                ->visible(false),
 
             Actions\Action::make('unconfirm')
                 ->label('↶ Batal Konfirmasi')
@@ -43,7 +43,7 @@ class EditJurnalPenerimaanKas extends EditRecord
                         ->send();
                 })
                 ->requiresConfirmation()
-                ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('unconfirm', $record->jurnalPenerimaanKas)),
+                ->visible(false),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -65,7 +65,7 @@ class EditJurnalPenerimaanKas extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => $record->jurnalPenerimaanKas->is_confirmed && !$record->jurnalPenerimaanKas->is_posted),
+                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
         ];
     }
 
