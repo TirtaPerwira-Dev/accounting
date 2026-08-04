@@ -151,7 +151,7 @@ class ViewJurnalPembelian extends ViewRecord
                                     ->schema([
                                         Components\TextEntry::make('nama_akun_debit')
                                             ->label('Kode/Nama Rekening')
-                                            ->formatStateUsing(fn ($state, $record) => "[$record->kode_sakep_debit] $state")
+                                            ->formatStateUsing(fn($state, $record) => "[$record->kode_sakep_debit] $state")
                                             ->weight('medium'),
 
                                         Components\TextEntry::make('kodeProyek.name')

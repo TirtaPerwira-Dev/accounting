@@ -19,17 +19,17 @@ class ViewJurnalBayarKasBank extends ViewRecord
     {
         // Load grouped items berdasarkan no_voucher untuk ditampilkan di infolist
         $record = $this->getRecord();
-        
+
         if ($record->no_voucher) {
             $groupedItems = \App\Models\JurnalBayarKasBank::query()
                 ->with(['kelompok', 'rekening.kelompok', 'nomorBantu', 'kodeProyek'])
                 ->where('no_voucher', $record->no_voucher)
                 ->orderBy('item_sequence')
                 ->get();
-            
+
             $record->setRelation('loadedGroupedItems', $groupedItems);
         }
-        
+
         return $data;
     }
 
@@ -167,11 +167,11 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                             ->label('Rekening Tujuan')
                                             ->formatStateUsing(function ($record) {
                                                 if (!$record->rekening) return '-';
-                                                
+
                                                 $noKel = $record->rekening->kelompok?->no_kel ?? '';
                                                 $noRek = $record->rekening->no_rek ?? '';
                                                 $namaRek = $record->rekening->nama_rek ?? '';
-                                                
+
                                                 return ($noKel ? $noKel . '-' : '') . $noRek . ' - ' . $namaRek;
                                             })
                                             ->icon('heroicon-m-inbox-stack')

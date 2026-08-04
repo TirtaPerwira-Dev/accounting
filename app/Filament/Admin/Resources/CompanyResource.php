@@ -171,12 +171,12 @@ class CompanyResource extends Resource
                             ])
                             ->columnSpan(2),
 
-                            Forms\Components\TextInput::make('config.default_dibayar_kepada')
-                                ->label('Default Boleh Dibayar Kepada')
-                                ->placeholder('Contoh: Direktur Utama / Bendahara')
-                                ->maxLength(255)
-                                ->helperText('Nilai ini akan menjadi default di form Jurnal Bayar Kas/Bank pada field "Boleh dibayar kepada".')
-                                ->columnSpan(2),
+                        Forms\Components\TextInput::make('config.default_dibayar_kepada')
+                            ->label('Default Boleh Dibayar Kepada')
+                            ->placeholder('Contoh: Direktur Utama / Bendahara')
+                            ->maxLength(255)
+                            ->helperText('Nilai ini akan menjadi default di form Jurnal Bayar Kas/Bank pada field "Boleh dibayar kepada".')
+                            ->columnSpan(2),
                     ])
                     ->columns(3),
 

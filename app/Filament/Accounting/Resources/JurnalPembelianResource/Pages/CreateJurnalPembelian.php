@@ -99,7 +99,7 @@ class CreateJurnalPembelian extends CreateRecord
 
             // Hitung total dari semua items
             $totalRp = collect($pembelianItems)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
-            
+
             // Cek apakah ada item dengan Aktiva Tetap (Data 'AT')
             $hasAktivaTetap = false;
             foreach ($pembelianItems as $item) {

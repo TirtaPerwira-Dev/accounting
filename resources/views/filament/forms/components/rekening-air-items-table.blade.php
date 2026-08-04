@@ -51,13 +51,13 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div class="fi-ta-empty-state-heading-ctn">
                 <h4 class="fi-ta-empty-state-heading text-base font-semibold leading-6 text-gray-950 dark:text-white">
                     Belum Ada Item Transaksi
                 </h4>
             </div>
-            
+
             <div class="fi-ta-empty-state-description-ctn">
                 <p class="fi-ta-empty-state-description text-sm text-gray-500 dark:text-gray-400">
                     Gunakan form di atas untuk menambah item transaksi

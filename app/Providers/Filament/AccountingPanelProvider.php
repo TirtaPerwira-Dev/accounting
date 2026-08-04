@@ -110,7 +110,7 @@ class AccountingPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 \Filament\View\PanelsRenderHook::GLOBAL_SEARCH_AFTER,
-                fn (): string => \Illuminate\Support\Facades\Blade::render('@livewire(\'notification-bell\')'),
+                fn(): string => \Illuminate\Support\Facades\Blade::render('@livewire(\'notification-bell\')'),
             );
     }
 }
