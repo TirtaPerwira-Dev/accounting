@@ -107,7 +107,7 @@ class JurnalBayarKasBankPolicy
     }
 
     /**
-     * Determine whether the user can confirm the model.
+     * Determine whether the user can confirm.
      */
     public function confirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
     {
@@ -115,7 +115,7 @@ class JurnalBayarKasBankPolicy
     }
 
     /**
-     * Determine whether the user can unconfirm the model.
+     * Determine whether the user can unconfirm.
      */
     public function unconfirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
     {

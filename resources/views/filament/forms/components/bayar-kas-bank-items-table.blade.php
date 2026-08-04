@@ -11,6 +11,20 @@
     $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input', '0'));
     $selisihTotalItem = $totalItemInput - $totalItemCount;
     $selisihNominal = $nominalInput - (float) $total;
+    $isSelisihTotalItemZero = $selisihTotalItem === 0;
+    $isSelisihNominalZero = abs($selisihNominal) < 0.01;
+    $selisihTotalItemLabelClass = $isSelisihTotalItemZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalLabelClass = $isSelisihNominalZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihTotalItemValueClass = $isSelisihTotalItemZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalValueClass = $isSelisihNominalZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
 
     // Get options for display
     $rekeningOptions = collect();
@@ -260,7 +274,7 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemLabelClass }}">
                                         Selisih Total Item Input:
                                     </div>
                                 </div>
@@ -271,7 +285,7 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <span class="text-xs font-mono text-gray-700 dark:text-gray-300">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
+                                    <span class="{{ $selisihTotalItemValueClass }}">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
                                 </div>
                             </div>
                         </div>
@@ -282,7 +296,7 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalLabelClass }}">
                                         Selisih Nominal Input:
                                     </div>
                                 </div>
@@ -293,7 +307,7 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <span class="text-xs font-mono text-gray-700 dark:text-gray-300">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
+                                    <span class="{{ $selisihNominalValueClass }}">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

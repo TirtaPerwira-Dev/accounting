@@ -4,9 +4,8 @@ namespace App\Filament\Accounting\Resources\JurnalBayarKasBankResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalBayarKasBankResource;
 use App\Models\JurnalBayarKasBank;
-use App\Models\NomorBantu;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateJurnalBayarKasBank extends CreateRecord
 {
@@ -74,7 +73,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
         }
     }
 
-    protected function handleRecordCreation(array $data): \App\Models\JurnalBayarKasBankDetail
+    protected function handleRecordCreation(array $data): Model
     {
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
             $items = $data['pembayaran_items'] ?? [];
@@ -86,57 +85,75 @@ class CreateJurnalBayarKasBank extends CreateRecord
                 throw new \Exception('Minimal harus ada 1 item pembayaran');
             }
 
-            // Hitung total
-            $totalRp = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $bankRekeningId = $data['rekening_id'] ?? null;
+            $bankNomorBantuId = $data['nomor_bantu_id'] ?? null;
 
-            // Fetch kelompok_id for the bank/cash account
-            $rekeningBank = \App\Models\Rekening::find($data['rekening_id']);
+            $bankRekening = \App\Models\Rekening::find($bankRekeningId);
+            if (!$bankRekening) {
+                throw new \Exception('Rekening kas/bank tidak valid. Silakan pilih ulang kode rekening bank.');
+            }
 
-            // Create Header
-            $headerData = [
-                'no_voucher' => $data['no_voucher'] ?? null,
-                'tanggal' => $data['tanggal_check'],
-                'tanggal_check' => $data['tanggal_check'],
-                'no_reff' => '4',
-                'kelompok_id' => $rekeningBank?->kelompok_id,
-                'rekening_id' => $data['rekening_id'] ?? null,
-                'nomor_bantu_id' => $data['nomor_bantu_id'] ?? null,
-                'no_cek' => $data['no_cek'] ?? null,
-                'beban_bagian' => $data['beban_bagian'] ?? null,
-                'dibayar_kepada' => $data['dibayar_kepada'] ?? null,
-                'rp' => $totalRp,
-                'keterangan' => $items[0]['keterangan'] ?? 'Jurnal Bayar Kas/Bank',
-                'kode' => 'K', // Kas/Bank berkurang (Kredit)
-                'company_id' => 1,
-                'created_by' => auth()->id(),
-                'is_confirmed' => false,
-            ];
+            $createdJournals = [];
 
-            $header = \App\Models\JurnalBayarKasBank::create($headerData);
-
-            $createdDetails = [];
-            foreach ($items as $item) {
-                // Key mapping untuk custom staging: 'rekening' instead of 'rekening_id'
+            foreach ($items as $index => $item) {
                 $rekeningId = $item['rekening'] ?? $item['rekening_id'] ?? null;
                 $nomorBantuId = $item['nomor_bantu'] ?? $item['nomor_bantu_id'] ?? null;
                 $kodeProyekId = $item['kode_proyek'] ?? $item['kode_proyek_id'] ?? null;
+                $jumlah = (float) ($item['jumlah'] ?? 0);
 
-                $rekening = \App\Models\Rekening::find($rekeningId);
+                if (!$rekeningId || $jumlah <= 0) {
+                    continue;
+                }
 
-                $createdDetails[] = \App\Models\JurnalBayarKasBankDetail::create([
-                    'jurnal_bayar_kas_bank_id' => $header->id,
-                    'no_voucher' => $header->no_voucher,
-                    'keterangan' => $item['keterangan'] ?? null,
-                    'jumlah' => (float) ($item['jumlah'] ?? 0),
-                    'dibayar_kepada' => $header->dibayar_kepada,
-                    'kelompok_id' => $rekening?->kelompok_id,
+                $rekeningItem = \App\Models\Rekening::find($rekeningId);
+                if (!$rekeningItem) {
+                    continue;
+                }
+
+                // 1 item repeater = 1 record jurnal pada tabel utama.
+                $jurnal = JurnalBayarKasBank::create([
+                    'no_voucher' => $data['no_voucher'] ?? null,
+                    'bukti' => $data['no_voucher'] ?? null,
+                    'tanggal' => $data['tanggal_check'],
+                    'tanggal_check' => $data['tanggal_check'],
+                    'no_reff' => '4',
+                    'kelompok_id' => $rekeningItem->kelompok_id,
                     'rekening_id' => $rekeningId,
                     'nomor_bantu_id' => $nomorBantuId,
+                    'nama_bank' => $data['nama_bank'] ?? null,
+                    'no_cek' => $data['no_cek'] ?? null,
+                    'beban_bagian' => $data['beban_bagian'] ?? null,
+                    'dibayar_kepada' => $data['dibayar_kepada'] ?? null,
+                    'rp' => $jumlah,
+                    'keterangan' => $item['keterangan'] ?? 'Jurnal Bayar Kas/Bank',
+                    'kode' => 'D',
+                    'item_sequence' => $index + 1,
+                    'company_id' => 1,
+                    'created_by' => auth()->id(),
+                    'is_confirmed' => false,
+                ]);
+
+                // Simpan akun lawan (kas/bank) sebagai detail agar posting tetap seimbang.
+                \App\Models\JurnalBayarKasBankDetail::create([
+                    'jurnal_bayar_kas_bank_id' => $jurnal->id,
+                    'no_voucher' => $jurnal->no_voucher,
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'jumlah' => $jumlah,
+                    'dibayar_kepada' => $jurnal->dibayar_kepada,
+                    'kelompok_id' => $bankRekening->kelompok_id,
+                    'rekening_id' => $bankRekeningId,
+                    'nomor_bantu_id' => $bankNomorBantuId,
                     'kode_proyek_id' => $kodeProyekId,
                 ]);
+
+                $createdJournals[] = $jurnal;
             }
 
-            return $createdDetails[0];
+            if (empty($createdJournals)) {
+                throw new \Exception('Tidak ada item jurnal yang valid untuk disimpan.');
+            }
+
+            return $createdJournals[0];
         });
     }
 
