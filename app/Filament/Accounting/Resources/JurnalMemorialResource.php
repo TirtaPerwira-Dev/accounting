@@ -38,7 +38,7 @@ class JurnalMemorialResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalMemorial::where('is_confirmed', 0)->count();
+        return (string) \App\Models\JurnalMemorial::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -82,9 +82,83 @@ class JurnalMemorialResource extends Resource
                         Forms\Components\Hidden::make('no_reff'),
                     ]),
 
-                // SECTION 2: FORM TAMBAH ITEM MEMORIAL
-                Forms\Components\Section::make('Tambah Item Jurnal Memorial')
-                    ->description('Isi form di bawah ini lalu klik "Tambah Item"')
+                // SECTION 2: CARI DATA SUMBER
+                Forms\Components\Section::make('Cari Data Memorial')
+                    ->description('Cari data memorial terlebih dahulu, lalu pilih item untuk dimuat ke form edit debit/kredit.')
+                    ->schema([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('search_memorial_item')
+                                ->label('Cari Bukti / Rekening / Nomor Bantu')
+                                ->placeholder('Contoh: MEM-001, 1102, bank, 020')
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(fn(Forms\Set $set) => $set('selected_memorial_source', null))
+                                ->dehydrated(false),
+
+                            Forms\Components\Select::make('selected_memorial_source')
+                                ->label('Hasil Pencarian Item Sumber')
+                                ->placeholder('Pilih item sumber...')
+                                ->searchable()
+                                ->options(function (Forms\Get $get): array {
+                                    $keyword = trim((string) ($get('search_memorial_item') ?? ''));
+                                    if ($keyword === '') {
+                                        return [];
+                                    }
+
+                                    return \App\Models\JurnalMemorialDetail::query()
+                                        ->with(['jurnalMemorial', 'rekening', 'nomorBantu'])
+                                        ->where(function ($query) use ($keyword) {
+                                            $query->where('bukti', 'like', "%{$keyword}%")
+                                                ->orWhere('keterangan', 'like', "%{$keyword}%")
+                                                ->orWhereHas('rekening', function ($rekeningQuery) use ($keyword) {
+                                                    $rekeningQuery->where('no_rek', 'like', "%{$keyword}%")
+                                                        ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                                                })
+                                                ->orWhereHas('nomorBantu', function ($nbQuery) use ($keyword) {
+                                                    $nbQuery->where('no_bantu', 'like', "%{$keyword}%")
+                                                        ->orWhere('nm_bantu', 'like', "%{$keyword}%");
+                                                });
+                                        })
+                                        ->latest('id')
+                                        ->limit(100)
+                                        ->get()
+                                        ->mapWithKeys(function ($item) {
+                                            $noRek = str_pad((string) ($item->rekening?->no_rek ?? ''), 4, '0', STR_PAD_LEFT);
+                                            $noBantu = $item->nomorBantu ? str_pad((string) $item->nomorBantu->no_bantu, 3, '0', STR_PAD_LEFT) : '---';
+                                            $posisi = strtoupper((string) $item->posisi);
+                                            $jumlah = number_format((float) $item->jumlah, 0, ',', '.');
+                                            $bukti = $item->bukti ?: ($item->jurnalMemorial?->bukti ?? '-');
+
+                                            return [
+                                                $item->id => "{$bukti} | {$noRek}-{$noBantu} | {$posisi} | Rp {$jumlah}",
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->live()
+                                ->afterStateUpdated(function (Forms\Set $set, $state): void {
+                                    if (!$state) {
+                                        return;
+                                    }
+
+                                    $source = \App\Models\JurnalMemorialDetail::find($state);
+                                    if (!$source) {
+                                        return;
+                                    }
+
+                                    $set('temp_rekening', $source->rekening_id);
+                                    $set('temp_nomor_bantu', $source->nomor_bantu_id);
+                                    $set('temp_kode_proyek', $source->kode_proyek_id);
+                                    $set('temp_position', strtoupper((string) $source->posisi) === 'K' ? 'kredit' : 'debit');
+                                    $set('temp_jumlah', number_format((float) $source->jumlah, 0, ',', '.'));
+                                    $set('temp_keterangan', $source->keterangan);
+                                })
+                                ->dehydrated(false),
+                        ]),
+                    ]),
+
+                // SECTION 3: FORM TAMBAH ITEM MEMORIAL
+                Forms\Components\Section::make('Edit Data dan Debit/Kredit')
+                    ->description('Setelah memilih data sumber, sesuaikan akun, nominal, dan posisi debit/kredit lalu tambahkan item.')
                     ->schema([
                         // Form Input untuk menambah item
                         Forms\Components\Grid::make(5)->schema([
@@ -116,7 +190,13 @@ class JurnalMemorialResource extends Resource
                             Forms\Components\Select::make('temp_kode_proyek')
                                 ->label('Kode Proyek')
                                 ->options(function () {
-                                    return KodeProyek::pluck('name', 'id');
+                                    return KodeProyek::query()
+                                        ->select(['id', 'kode', 'name'])
+                                        ->orderBy('kode')
+                                        ->get()
+                                        ->mapWithKeys(fn($proyek) => [
+                                            $proyek->id => $proyek->kode . ' - ' . $proyek->name,
+                                        ]);
                                 })
                                 ->searchable()
                                 ->placeholder('Pilih Proyek')
@@ -152,9 +232,13 @@ class JurnalMemorialResource extends Resource
                             Forms\Components\TextInput::make('temp_jumlah')
                                 ->label('Jumlah')
                                 ->prefix('Rp')
-                                ->numeric()
                                 ->default(0)
                                 ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                ])
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
                         ]),
@@ -180,7 +264,7 @@ class JurnalMemorialResource extends Resource
                                     $tempNomorBantu = $get('temp_nomor_bantu');
                                     $tempKodeProyek = $get('temp_kode_proyek');
                                     $tempPosition = $get('temp_position') ?? 'debit';
-                                    $tempJumlah = $get('temp_jumlah') ?? 0;
+                                    $tempJumlah = (float) preg_replace('/[^0-9]/', '', (string) ($get('temp_jumlah') ?? '0'));
                                     $tempKeterangan = $get('temp_keterangan');
 
                                     if (!$tempRekening || !$tempJumlah || $tempJumlah <= 0) {
@@ -523,7 +607,7 @@ class JurnalMemorialResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
+                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && !$record->jurnalMemorial->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
@@ -610,7 +694,7 @@ class JurnalMemorialResource extends Resource
                         })
                         ->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
+                    Tables\Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && !$record->jurnalMemorial->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
                 ])
                     ->label('Action')
                     ->button()

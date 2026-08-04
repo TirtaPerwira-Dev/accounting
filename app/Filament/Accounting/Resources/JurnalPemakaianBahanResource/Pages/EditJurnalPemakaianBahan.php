@@ -15,7 +15,7 @@ class EditJurnalPemakaianBahan extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
+            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && !$record->jurnalPemakaianBahan->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')

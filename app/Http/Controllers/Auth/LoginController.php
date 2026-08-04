@@ -47,7 +47,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        $fallback = ($validated['panel'] ?? 'admin') === 'accounting' ? '/accounting' : '/';
+        $fallback = ($validated['panel'] ?? 'admin') === 'accounting' ? '/accounting' : '/admin';
 
         return redirect()->intended($fallback);
     }

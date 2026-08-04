@@ -1,6 +1,16 @@
 @php
     $items = $getState() ?? [];
     $total = collect($items)->sum('jumlah');
+    $totalItemCount = is_array($items) ? count($items) : 0;
+
+    // ViewField blade tidak selalu menyediakan helper $get, jadi ambil dari state Livewire.
+    $livewire = $getLivewire();
+    $formData = data_get($livewire, 'data', []);
+
+    $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input', '0'));
+    $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input', '0'));
+    $selisihTotalItem = $totalItemInput - $totalItemCount;
+    $selisihNominal = $nominalInput - (float) $total;
 
     // Get options for display
     $rekeningOptions = collect();
@@ -8,7 +18,26 @@
     $kodeProyekOptions = collect();
 
     try {
+        $rekeningIds = collect($items)
+            ->map(fn($item) => $item['rekening_id'] ?? $item['rekening'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $nomorBantuIds = collect($items)
+            ->map(fn($item) => $item['nomor_bantu_id'] ?? $item['nomor_bantu'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $kodeProyekIds = collect($items)
+            ->map(fn($item) => $item['kode_proyek_id'] ?? $item['kode_proyek'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
         $rekeningOptions = \App\Models\Rekening::with('kelompok')
+            ->whereIn('id', $rekeningIds)
             ->get()
             ->mapWithKeys(function ($rekening) {
                 $code = $rekening->kelompok->no_kel . '-' . $rekening->no_rek;
@@ -16,12 +45,13 @@
             });
 
         $nomorBantuOptions = \App\Models\NomorBantu::with(['rekening.kelompok'])
+            ->whereIn('id', $nomorBantuIds)
             ->get()
             ->mapWithKeys(function ($n) {
                 return [$n->id => "{$n->no_bantu} - {$n->nm_bantu}"];
             });
 
-        $kodeProyekOptions = \App\Models\KodeProyek::pluck('name', 'id');
+        $kodeProyekOptions = \App\Models\KodeProyek::whereIn('id', $kodeProyekIds)->pluck('name', 'id');
     } catch (Exception $e) {
         // Handle any database errors gracefully
     }
@@ -88,7 +118,7 @@
                     </th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 whitespace-nowrap dark:divide-white/5">
+            <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                 @foreach($items as $index => $item)
                 <tr class="fi-ta-row [@media(hover:hover)]:transition [@media(hover:hover)]:duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                     <td class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
@@ -143,8 +173,9 @@
                         <div class="fi-ta-col-wrp px-3 py-4">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex">
-                                    <div class="fi-ta-text-item text-sm leading-6 text-gray-950 dark:text-white">
-                                        <span class="text-gray-600 dark:text-gray-400 text-xs max-w-xs truncate">
+                                    <div class="fi-ta-text-item text-sm leading-6 text-gray-950 dark:text-white w-full">
+                                        <span class="text-gray-600 dark:text-gray-400 text-xs block max-w-xl whitespace-normal break-all leading-5"
+                                            style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;">
                                             {{ $item['keterangan'] ?: '-' }}
                                         </span>
                                     </div>
@@ -219,6 +250,50 @@
                                             Rp {{ number_format($total, 0, ',', '.') }}
                                         </span>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                        Selisih Total Item Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="text-xs font-mono text-gray-700 dark:text-gray-300">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                        Selisih Nominal Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="text-xs font-mono text-gray-700 dark:text-gray-300">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

@@ -6,23 +6,64 @@ use App\Filament\Accounting\Resources\JurnalPemakaianBahanResource;
 use App\Models\JurnalPemakaianBahan;
 use App\Models\Rekening;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
-use Livewire\Attributes\On;
 
 class CreateJurnalPemakaianBahan extends CreateRecord
 {
     protected static string $resource = JurnalPemakaianBahanResource::class;
 
-    #[On('remove-jpbik-item')]
-    public function removeJpbikItem($index)
+    public function removeItem($index)
     {
-        $data = $this->form->getState();
-        $items = $data['detail_rekening'] ?? [];
+        try {
+            $items = $this->data['detail_rekening'] ?? [];
 
-        if (isset($items[$index])) {
-            unset($items[$index]);
-            $items = array_values($items); // Reindex array
-            $this->form->fill(['detail_rekening' => $items]);
+            if (isset($items[$index])) {
+                array_splice($items, $index, 1);
+                $this->data['detail_rekening'] = $items;
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Item berhasil dihapus!')
+                    ->success()
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal menghapus item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function editItem($index)
+    {
+        try {
+            $items = $this->data['detail_rekening'] ?? [];
+
+            if (!isset($items[$index])) {
+                return;
+            }
+
+            $item = $items[$index];
+            $this->data['temp_rekening'] = $item['rekening'] ?? $item['rekening_id'] ?? null;
+            $this->data['temp_nomor_bantu'] = $item['nomor_bantu'] ?? $item['nomor_bantu_id'] ?? null;
+            $this->data['temp_kode_proyek'] = $item['kode_proyek'] ?? $item['kode_proyek_id'] ?? null;
+            $this->data['temp_position'] = $item['position'] ?? 'debit';
+            $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
+            $this->data['temp_keterangan'] = $item['keterangan'] ?? null;
+
+            array_splice($items, $index, 1);
+            $this->data['detail_rekening'] = $items;
+
+            \Filament\Notifications\Notification::make()
+                ->title('Item dimuat untuk diedit')
+                ->info()
+                ->send();
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal memuat item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
     }
 
@@ -71,6 +112,7 @@ class CreateJurnalPemakaianBahan extends CreateRecord
         $header = JurnalPemakaianBahan::create($headerData);
 
         // Create detail records
+        $createdDetails = [];
         foreach ($items as $item) {
             $rekening = null;
             if (!empty($item['rekening'])) {
@@ -100,10 +142,10 @@ class CreateJurnalPemakaianBahan extends CreateRecord
                 $detailData['nomor_bantu_kredit_id'] = $item['nomor_bantu'] ?? null;
             }
 
-            \App\Models\JurnalPemakaianBahanDetail::create($detailData);
+            $createdDetails[] = \App\Models\JurnalPemakaianBahanDetail::create($detailData);
         }
 
-        return $header;
+        return $createdDetails[0];
     }
 
     protected function getRedirectUrl(): string

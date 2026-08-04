@@ -15,7 +15,7 @@ class EditJurnalMemorial extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
+            Actions\DeleteAction::make()->visible(fn($record) => $record->jurnalMemorial && !$record->jurnalMemorial->is_posted && !$record->jurnalMemorial->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalMemorial)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')

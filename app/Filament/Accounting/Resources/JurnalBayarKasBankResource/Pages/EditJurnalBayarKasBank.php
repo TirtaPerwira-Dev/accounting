@@ -15,7 +15,7 @@ class EditJurnalBayarKasBank extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+            Actions\DeleteAction::make()->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
             Actions\ViewAction::make(),
 
             Actions\Action::make('confirm')

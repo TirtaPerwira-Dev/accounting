@@ -41,7 +41,7 @@ class JurnalPenerimaanKasResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalPenerimaanKas::where('is_confirmed', 0)->count();
+        return (string) \App\Models\JurnalPenerimaanKas::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -664,7 +664,7 @@ class JurnalPenerimaanKasResource extends Resource
                     Tables\Actions\EditAction::make()
                         ->label('Edit Jurnal')
                         ->icon('heroicon-o-pencil-square')
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
 
                     Tables\Actions\Action::make('exportPdf')
                         ->label('PDF')
@@ -722,7 +722,7 @@ class JurnalPenerimaanKasResource extends Resource
                         ->label('Hapus Item')
                         ->modalHeading('Hapus Item Transaksi')
                         ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->no_reff}")
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
                         ->after(function ($record) {
                             // Check if parent jurnal still has details
                             $parent = $record->jurnalPenerimaanKas;

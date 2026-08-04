@@ -42,7 +42,8 @@ class JurnalKoreksi extends Page implements HasForms
             'tanggal' => now()->toDateString(),
             'bukti' => 'KOR-' . now()->format('Ymd-His'),
             'sumber_jurnal' => 'memorial',
-            'sisi_sumber' => 'auto',
+            'search_by' => 'nomor_rekening',
+            'source_search_results' => [],
             'jumlah_koreksi' => 0,
         ]);
     }
@@ -51,14 +52,15 @@ class JurnalKoreksi extends Page implements HasForms
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Cari Item Sumber (Semua Jurnal)')
-                    ->description('Cari item jurnal berdasarkan tipe jurnal dan kode akun, lalu pilih item yang ingin dikoreksi.')
+                Forms\Components\Section::make('Section 1: Cari Item Sumber')
+                    ->description('Pilih sumber jurnal dan kata kunci rekening, lalu klik tombol Cari.')
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\Select::make('sumber_jurnal')
                                     ->label('Sumber Jurnal')
                                     ->options([
+                                        'all' => 'Semua Sumber (Rekening / Nomor Bantu)',
                                         'memorial' => 'Jurnal Memorial',
                                         'rekening_air' => 'Jurnal Rekening Air',
                                         'penerimaan_kas' => 'Jurnal Penerimaan Kas',
@@ -71,7 +73,7 @@ class JurnalKoreksi extends Page implements HasForms
                                     ->live()
                                     ->afterStateUpdated(function (Forms\Set $set): void {
                                         $set('item_sumber', null);
-                                        $set('sisi_sumber', 'auto');
+                                        $set('source_search_results', []);
                                         $set('source_kelompok_id', null);
                                         $set('source_rekening_id', null);
                                         $set('source_nomor_bantu_id', null);
@@ -80,41 +82,88 @@ class JurnalKoreksi extends Page implements HasForms
                                         $set('source_jumlah', null);
                                     }),
 
-                                Forms\Components\TextInput::make('search_kode_akun')
-                                    ->label('Cari Kode Akun / Nama Akun')
-                                    ->placeholder('Contoh: 1101, kas, pendapatan')
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(fn(Forms\Set $set) => $set('item_sumber', null)),
-
-                                Forms\Components\Select::make('sisi_sumber')
-                                    ->label('Sisi Item')
+                                Forms\Components\Select::make('search_by')
+                                    ->label('Cari Berdasarkan')
                                     ->options([
-                                        'auto' => 'Otomatis',
-                                        'debit' => 'Debit',
-                                        'kredit' => 'Kredit',
+                                        'nomor_rekening' => 'Nomor Rekening',
+                                        'nomor_bantu' => 'Nomor Bantu',
+                                        'nama_akun' => 'Nama Akun',
+                                        'nomor_voucher' => 'Nomor Voucher / No Bukti',
+                                        'nomor_invoice' => 'Nomor Invoice / Dokumen',
                                     ])
-                                    ->default('auto')
-                                    ->helperText('Untuk jurnal dengan dua sisi akun, Anda bisa tentukan sisi sumber secara manual.')
+                                    ->default('nomor_rekening')
+                                    ->required()
                                     ->live()
-                                    ->afterStateUpdated(fn(Forms\Set $set) => $set('item_sumber', null)),
+                                    ->afterStateUpdated(function (Forms\Set $set): void {
+                                        $set('item_sumber', null);
+                                        $set('source_search_results', []);
+                                    }),
+
+                                Forms\Components\TextInput::make('search_kode_akun')
+                                    ->label('Kata Kunci Pencarian')
+                                    ->placeholder('Contoh: 1101, 020, kas, VCR-001, INV-001')
+                                    ->helperText('Gunakan pilihan "Cari Berdasarkan" agar pencarian sesuai field jurnal.')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Forms\Set $set): void {
+                                        $set('item_sumber', null);
+                                        $set('source_search_results', []);
+                                    }),
                             ]),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('search_source_items')
+                                ->label('Cari')
+                                ->icon('heroicon-o-magnifying-glass')
+                                ->color('info')
+                                ->action(function (Forms\Get $get, Forms\Set $set): void {
+                                    $type = $get('sumber_jurnal');
+                                    $keyword = trim((string) ($get('search_kode_akun') ?? ''));
+                                    $searchBy = (string) ($get('search_by') ?? 'nomor_rekening');
+
+                                    if (!$type || $keyword === '') {
+                                        Notification::make()
+                                            ->title('Filter belum lengkap')
+                                            ->body('Pilih sumber jurnal dan isi kata kunci pencarian terlebih dahulu.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $options = $type === 'all'
+                                        ? $this->getAllSourceItemOptions($keyword, $searchBy)
+                                        : $this->getSourceItemOptions($type, $keyword, $searchBy, null);
+
+                                    $set('source_search_results', $options);
+                                    $set('item_sumber', null);
+
+                                    if (empty($options)) {
+                                        Notification::make()
+                                            ->title('Data tidak ditemukan')
+                                            ->body('Tidak ada item posted yang sesuai filter pencarian.')
+                                            ->warning()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    Notification::make()
+                                        ->title('Pencarian berhasil')
+                                        ->body(count($options) . ' item ditemukan. Lanjutkan pilih item di Section 2.')
+                                        ->success()
+                                        ->send();
+                                }),
+                        ])->alignment('start'),
+                    ]),
+
+                Forms\Components\Section::make('Section 2: Hasil Pencarian Item Sumber')
+                    ->description('Data hasil pencarian dari section pertama ditampilkan di sini untuk dipilih.')
+                    ->schema([
 
                         Forms\Components\Select::make('item_sumber')
                             ->label('Item Sumber yang Dikoreksi')
                             ->required()
                             ->searchable()
-                            ->options(function (Forms\Get $get): array {
-                                $type = $get('sumber_jurnal');
-                                if (!$type) {
-                                    return [];
-                                }
-
-                                return $this->getSourceItemOptions(
-                                    $type,
-                                    $get('search_kode_akun'),
-                                    $get('sisi_sumber')
-                                );
-                            })
+                            ->options(fn(Forms\Get $get): array => $get('source_search_results') ?? [])
                             ->live()
                             ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
                                 $source = $this->resolveSelectedSource($state);
@@ -147,9 +196,25 @@ class JurnalKoreksi extends Page implements HasForms
 
                                 return "Akun: {$kode} {$nama} | Posisi: {$posisi} | Jumlah: Rp {$jumlah}";
                             }),
-                    ]),
 
-                Forms\Components\Section::make('Akun Koreksi')
+                        Forms\Components\Placeholder::make('jurnal_t_preview')
+                            ->label('Simulasi Jurnal T (Debit | Kredit)')
+                            ->content(function (Forms\Get $get): string {
+                                $source = $this->resolveSelectedSource($get('item_sumber'));
+                                if (!$source) {
+                                    return 'Belum ada item sumber yang dipilih.';
+                                }
+
+                                $sourcePosisi = strtoupper((string) ($source['posisi'] ?? '-'));
+                                $koreksiPosisi = $sourcePosisi === 'D' ? 'K' : 'D';
+                                $jumlah = number_format((float) ($get('jumlah_koreksi') ?? $source['jumlah'] ?? 0), 0, ',', '.');
+
+                                return "Sumber ({$sourcePosisi}) Rp {$jumlah} | Koreksi ({$koreksiPosisi}) Rp {$jumlah}";
+                            }),
+                    ])
+                    ->visible(fn(Forms\Get $get): bool => !empty($get('source_search_results'))),
+
+                Forms\Components\Section::make('Section 3: Input Koreksi')
                     ->description('Pilih akun tujuan koreksi. Sistem akan membuat jurnal memorial koreksi (reversal + akun koreksi).')
                     ->schema([
                         Forms\Components\Grid::make(2)
@@ -335,36 +400,68 @@ class JurnalKoreksi extends Page implements HasForms
             'tanggal' => now()->toDateString(),
             'bukti' => 'KOR-' . now()->format('Ymd-His'),
             'sumber_jurnal' => $data['sumber_jurnal'] ?? 'memorial',
+            'search_by' => $data['search_by'] ?? 'nomor_rekening',
             'search_kode_akun' => $data['search_kode_akun'] ?? null,
-            'sisi_sumber' => $data['sisi_sumber'] ?? 'auto',
+            'source_search_results' => [],
             'jumlah_koreksi' => 0,
         ]);
     }
 
-    private function getSourceItemOptions(string $type, ?string $keyword, ?string $side): array
+    private function getAllSourceItemOptions(?string $keyword, ?string $searchBy): array
+    {
+        if (!$keyword) {
+            return [];
+        }
+
+        return array_slice(array_merge(
+            $this->getMemorialSourceOptions($keyword, $searchBy),
+            $this->getRekeningAirSourceOptions($keyword, $searchBy),
+            $this->getPenerimaanKasSourceOptions($keyword, $searchBy),
+            $this->getBayarKasBankSourceOptions($keyword, $searchBy),
+            $this->getPembelianSourceOptions($keyword, $searchBy),
+            $this->getPemakaianBahanSourceOptions($keyword, null, $searchBy),
+        ), 0, 100, true);
+    }
+
+    private function getSourceItemOptions(string $type, ?string $keyword, ?string $searchBy, ?string $side): array
     {
         return match ($type) {
-            'memorial' => $this->getMemorialSourceOptions($keyword),
-            'rekening_air' => $this->getRekeningAirSourceOptions($keyword),
-            'penerimaan_kas' => $this->getPenerimaanKasSourceOptions($keyword),
-            'bayar_kas_bank' => $this->getBayarKasBankSourceOptions($keyword),
-            'pembelian' => $this->getPembelianSourceOptions($keyword),
-            'pemakaian_bahan' => $this->getPemakaianBahanSourceOptions($keyword, $side),
+            'memorial' => $this->getMemorialSourceOptions($keyword, $searchBy),
+            'rekening_air' => $this->getRekeningAirSourceOptions($keyword, $searchBy),
+            'penerimaan_kas' => $this->getPenerimaanKasSourceOptions($keyword, $searchBy),
+            'bayar_kas_bank' => $this->getBayarKasBankSourceOptions($keyword, $searchBy),
+            'pembelian' => $this->getPembelianSourceOptions($keyword, $searchBy),
+            'pemakaian_bahan' => $this->getPemakaianBahanSourceOptions($keyword, $side, $searchBy),
             default => [],
         };
     }
 
-    private function getMemorialSourceOptions(?string $keyword): array
+    private function getMemorialSourceOptions(?string $keyword, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
+
         return JurnalMemorialDetail::query()
             ->with(['rekening.kelompok', 'nomorBantu', 'jurnalMemorial'])
-            ->whereHas('rekening', function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalMemorial', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->where('no_rek', 'like', "%{$keyword}%")
-                    ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                match ($searchBy) {
+                    'nomor_rekening' => $query->whereHas('rekening', fn($q) => $q->where('no_rek', 'like', "%{$digits}%")),
+                    'nomor_bantu' => $query->whereHas('nomorBantu', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%")),
+                    'nama_akun' => $query->whereHas('rekening', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%")),
+                    'nomor_voucher', 'nomor_invoice' => $query
+                        ->where('bukti', 'like', "%{$keyword}%")
+                        ->orWhereHas('jurnalMemorial', fn($q) => $q->where('bukti', 'like', "%{$keyword}%")),
+                    default => $query->whereHas('rekening', function ($q) use ($keyword, $digits) {
+                        $q->where('no_rek', 'like', "%{$digits}%")
+                            ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                    }),
+                };
             })
             ->latest('id')
             ->limit(100)
@@ -384,17 +481,30 @@ class JurnalKoreksi extends Page implements HasForms
             ->toArray();
     }
 
-    private function getRekeningAirSourceOptions(?string $keyword): array
+    private function getRekeningAirSourceOptions(?string $keyword, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
+
         return JurnalRekeningAirDetail::query()
             ->with(['rekening.kelompok', 'nomorBantu', 'jurnalRekeningAir'])
-            ->whereHas('rekening', function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalRekeningAir', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->where('no_rek', 'like', "%{$keyword}%")
-                    ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                match ($searchBy) {
+                    'nomor_rekening' => $query->whereHas('rekening', fn($q) => $q->where('no_rek', 'like', "%{$digits}%")),
+                    'nomor_bantu' => $query->whereHas('nomorBantu', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%")),
+                    'nama_akun' => $query->whereHas('rekening', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%")),
+                    'nomor_voucher', 'nomor_invoice' => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('bukti', 'like', "%{$keyword}%")),
+                    default => $query->whereHas('rekening', function ($q) use ($keyword, $digits) {
+                        $q->where('no_rek', 'like', "%{$digits}%")
+                            ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                    }),
+                };
             })
             ->latest('id')
             ->limit(100)
@@ -414,17 +524,32 @@ class JurnalKoreksi extends Page implements HasForms
             ->toArray();
     }
 
-    private function getPenerimaanKasSourceOptions(?string $keyword): array
+    private function getPenerimaanKasSourceOptions(?string $keyword, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
+
         return JurnalPenerimaanKasDetail::query()
             ->with(['rekening.kelompok', 'nomorBantu', 'jurnalPenerimaanKas'])
-            ->whereHas('rekening', function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalPenerimaanKas', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->where('no_rek', 'like', "%{$keyword}%")
-                    ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                match ($searchBy) {
+                    'nomor_rekening' => $query->whereHas('rekening', fn($q) => $q->where('no_rek', 'like', "%{$digits}%")),
+                    'nomor_bantu' => $query->whereHas('nomorBantu', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%")),
+                    'nama_akun' => $query->whereHas('rekening', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%")),
+                    'nomor_voucher', 'nomor_invoice' => $query
+                        ->where('nomor_bukti', 'like', "%{$keyword}%")
+                        ->orWhereHas('jurnalPenerimaanKas', fn($q) => $q->where('nomor_bukti', 'like', "%{$keyword}%")),
+                    default => $query->whereHas('rekening', function ($q) use ($keyword, $digits) {
+                        $q->where('no_rek', 'like', "%{$digits}%")
+                            ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                    }),
+                };
             })
             ->latest('id')
             ->limit(100)
@@ -444,17 +569,35 @@ class JurnalKoreksi extends Page implements HasForms
             ->toArray();
     }
 
-    private function getBayarKasBankSourceOptions(?string $keyword): array
+    private function getBayarKasBankSourceOptions(?string $keyword, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
+
         return JurnalBayarKasBankDetail::query()
             ->with(['rekening.kelompok', 'nomorBantu', 'jurnalBayarKasBank'])
-            ->whereHas('rekening', function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalBayarKasBank', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->where('no_rek', 'like', "%{$keyword}%")
-                    ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                match ($searchBy) {
+                    'nomor_rekening' => $query->whereHas('rekening', fn($q) => $q->where('no_rek', 'like', "%{$digits}%")),
+                    'nomor_bantu' => $query->whereHas('nomorBantu', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%")),
+                    'nama_akun' => $query->whereHas('rekening', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%")),
+                    'nomor_voucher', 'nomor_invoice' => $query
+                        ->where('no_voucher', 'like', "%{$keyword}%")
+                        ->orWhereHas('jurnalBayarKasBank', function ($q) use ($keyword) {
+                            $q->where('no_voucher', 'like', "%{$keyword}%")
+                                ->orWhere('bukti', 'like', "%{$keyword}%");
+                        }),
+                    default => $query->whereHas('rekening', function ($q) use ($keyword, $digits) {
+                        $q->where('no_rek', 'like', "%{$digits}%")
+                            ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                    }),
+                };
             })
             ->latest('id')
             ->limit(100)
@@ -474,17 +617,32 @@ class JurnalKoreksi extends Page implements HasForms
             ->toArray();
     }
 
-    private function getPembelianSourceOptions(?string $keyword): array
+    private function getPembelianSourceOptions(?string $keyword, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
+
         return JurnalPembelianDetail::query()
             ->with(['rekeningDebit.kelompok', 'nomorBantuDebit', 'jurnalPembelian'])
-            ->whereHas('rekeningDebit', function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalPembelian', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->where('no_rek', 'like', "%{$keyword}%")
-                    ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                match ($searchBy) {
+                    'nomor_rekening' => $query->whereHas('rekeningDebit', fn($q) => $q->where('no_rek', 'like', "%{$digits}%")),
+                    'nomor_bantu' => $query->whereHas('nomorBantuDebit', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%")),
+                    'nama_akun' => $query->whereHas('rekeningDebit', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%")),
+                    'nomor_voucher', 'nomor_invoice' => $query
+                        ->where('bukti', 'like', "%{$keyword}%")
+                        ->orWhereHas('jurnalPembelian', fn($q) => $q->where('bukti', 'like', "%{$keyword}%")),
+                    default => $query->whereHas('rekeningDebit', function ($q) use ($keyword, $digits) {
+                        $q->where('no_rek', 'like', "%{$digits}%")
+                            ->orWhere('nama_rek', 'like', "%{$keyword}%");
+                    }),
+                };
             })
             ->latest('id')
             ->limit(100)
@@ -504,8 +662,9 @@ class JurnalKoreksi extends Page implements HasForms
             ->toArray();
     }
 
-    private function getPemakaianBahanSourceOptions(?string $keyword, ?string $side): array
+    private function getPemakaianBahanSourceOptions(?string $keyword, ?string $side, ?string $searchBy): array
     {
+        $keyword = trim((string) $keyword);
         $side = in_array($side, ['debit', 'kredit'], true) ? $side : 'auto';
 
         return JurnalPemakaianBahanDetail::query()
@@ -516,16 +675,43 @@ class JurnalKoreksi extends Page implements HasForms
                 'nomorBantuKredit',
                 'jurnalPemakaianBahan',
             ])
-            ->where(function ($query) use ($keyword) {
-                if (!$keyword) {
+            ->whereHas('jurnalPemakaianBahan', fn($query) => $query->where('is_posted', true))
+            ->where(function ($query) use ($keyword, $searchBy) {
+                if ($keyword === '') {
                     return;
                 }
 
-                $query->whereHas('rekeningDebit', function ($q) use ($keyword) {
-                    $q->where('no_rek', 'like', "%{$keyword}%")
+                $digits = preg_replace('/\D/', '', $keyword);
+
+                if ($searchBy === 'nomor_rekening') {
+                    $query->whereHas('rekeningDebit', fn($q) => $q->where('no_rek', 'like', "%{$digits}%"))
+                        ->orWhereHas('rekeningKredit', fn($q) => $q->where('no_rek', 'like', "%{$digits}%"));
+                    return;
+                }
+
+                if ($searchBy === 'nomor_bantu') {
+                    $query->whereHas('nomorBantuDebit', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%"))
+                        ->orWhereHas('nomorBantuKredit', fn($q) => $q->where('no_bantu', 'like', "%{$digits}%"));
+                    return;
+                }
+
+                if ($searchBy === 'nama_akun') {
+                    $query->whereHas('rekeningDebit', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%"))
+                        ->orWhereHas('rekeningKredit', fn($q) => $q->where('nama_rek', 'like', "%{$keyword}%"));
+                    return;
+                }
+
+                if (in_array($searchBy, ['nomor_voucher', 'nomor_invoice'], true)) {
+                    $query->where('bukti', 'like', "%{$keyword}%")
+                        ->orWhereHas('jurnalPemakaianBahan', fn($q) => $q->where('bukti', 'like', "%{$keyword}%"));
+                    return;
+                }
+
+                $query->whereHas('rekeningDebit', function ($q) use ($keyword, $digits) {
+                    $q->where('no_rek', 'like', "%{$digits}%")
                         ->orWhere('nama_rek', 'like', "%{$keyword}%");
-                })->orWhereHas('rekeningKredit', function ($q) use ($keyword) {
-                    $q->where('no_rek', 'like', "%{$keyword}%")
+                })->orWhereHas('rekeningKredit', function ($q) use ($keyword, $digits) {
+                    $q->where('no_rek', 'like', "%{$digits}%")
                         ->orWhere('nama_rek', 'like', "%{$keyword}%");
                 });
             })

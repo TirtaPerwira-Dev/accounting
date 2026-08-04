@@ -36,7 +36,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+            Actions\EditAction::make()->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
 
             Actions\Action::make('post_to_ledger')
                 ->label('Post ke Buku Besar')
@@ -257,51 +257,16 @@ class ViewJurnalBayarKasBank extends ViewRecord
                     ->icon('heroicon-o-list-bullet')
                     ->collapsible(),
 
-                // Section 3: Status & Approval (Simplified)
-                Components\Section::make('Status Transaksi')
+                Components\Section::make('Riwayat Input dan Posting')
                     ->schema([
-                        Components\Grid::make(4)
-                            ->schema([
-                                Components\TextEntry::make('is_confirmed')
-                                    ->label('Status Konfirmasi')
-                                    ->badge()
-                                    ->formatStateUsing(fn($state) => $state ? '✓ Dikonfirmasi' : '⏳ Pending')
-                                    ->color(fn($state) => $state ? 'success' : 'warning'),
-
-                                Components\TextEntry::make('is_posted')
-                                    ->label('Status Posting')
-                                    ->badge()
-                                    ->formatStateUsing(fn($state) => $state ? '✓ Diposting' : '⏳ Belum')
-                                    ->color(fn($state) => $state ? 'success' : 'gray'),
-
-                                Components\TextEntry::make('confirmed_at')
-                                    ->label('Dikonfirmasi')
-                                    ->dateTime('d/m/Y H:i')
-                                    ->placeholder('-')
-                                    ->icon('heroicon-m-clock'),
-
-                                Components\TextEntry::make('posted_at')
-                                    ->label('Diposting')
-                                    ->dateTime('d/m/Y H:i')
-                                    ->placeholder('-')
-                                    ->icon('heroicon-m-clock'),
-                            ]),
-
-                        Components\Grid::make(3)
+                        Components\Grid::make(2)
                             ->schema([
                                 Components\TextEntry::make('createdBy.name')
-                                    ->label('Dibuat Oleh')
+                                    ->label('Diinput Oleh')
                                     ->placeholder('-')
                                     ->icon('heroicon-m-user')
                                     ->badge()
                                     ->color('gray'),
-
-                                Components\TextEntry::make('confirmedBy.name')
-                                    ->label('Dikonfirmasi Oleh')
-                                    ->placeholder('-')
-                                    ->icon('heroicon-o-check-badge')
-                                    ->badge()
-                                    ->color('success'),
 
                                 Components\TextEntry::make('postedBy.name')
                                     ->label('Diposting Oleh')
@@ -311,7 +276,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                     ->color('info'),
                             ]),
                     ])
-                    ->icon('heroicon-o-shield-check')
+                    ->icon('heroicon-o-clock')
                     ->compact()
                     ->collapsible()
                     ->collapsed(),

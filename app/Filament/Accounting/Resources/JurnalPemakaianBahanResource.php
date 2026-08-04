@@ -39,7 +39,7 @@ class JurnalPemakaianBahanResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalPemakaianBahan::where('is_confirmed', 0)->count();
+        return (string) \App\Models\JurnalPemakaianBahan::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -156,9 +156,13 @@ class JurnalPemakaianBahanResource extends Resource
                             Forms\Components\TextInput::make('temp_jumlah')
                                 ->label('Jumlah')
                                 ->prefix('Rp')
-                                ->numeric()
                                 ->default(0)
                                 ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                ])
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
                         ]),
@@ -184,7 +188,7 @@ class JurnalPemakaianBahanResource extends Resource
                                     $tempNomorBantu = $get('temp_nomor_bantu');
                                     $tempKodeProyek = $get('temp_kode_proyek');
                                     $tempPosition = $get('temp_position') ?? 'debit';
-                                    $tempJumlah = $get('temp_jumlah') ?? 0;
+                                    $tempJumlah = (float) preg_replace('/[^0-9]/', '', (string) ($get('temp_jumlah') ?? '0'));
                                     $tempKeterangan = $get('temp_keterangan');
 
                                     if (!$tempRekening || !$tempJumlah || $tempJumlah <= 0) {
@@ -545,7 +549,7 @@ class JurnalPemakaianBahanResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
+                    Tables\Actions\EditAction::make()->visible(fn($record) => $record->jurnalPemakaianBahan && !$record->jurnalPemakaianBahan->is_posted && !$record->jurnalPemakaianBahan->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('Konfirmasi')
@@ -624,7 +628,7 @@ class JurnalPemakaianBahanResource extends Resource
                         })
                         ->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
+                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->jurnalPemakaianBahan?->is_posted && !$record->jurnalPemakaianBahan?->is_confirmed && $record->jurnalPemakaianBahan && auth()->user()->can('postToLedger', $record->jurnalPemakaianBahan)),
                 ])
                     ->label('Action')
                     ->button()

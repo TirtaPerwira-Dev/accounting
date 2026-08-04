@@ -37,6 +37,7 @@ use App\Filament\Admin\Widgets\RecentAuthenticationLogTableWidget;
 use App\Filament\Admin\Widgets\ActivityLogEventChartWidget;
 use App\Filament\Admin\Widgets\UserRoleChartWidget;
 use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Auth;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -45,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('/')
+            ->path('admin')
             ->login([LoginController::class, 'show'])
             ->authGuard('web')
             ->registration(CustomRegister::class)
@@ -59,7 +60,7 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Accounting Panel')
                     ->url('/accounting')
                     ->icon('heroicon-o-calculator')
-                    ->visible(fn(): bool => auth()->check() && auth()->user()->hasRole('super_admin')),
+                    ->visible(fn(): bool => Auth::check() && Auth::user()?->hasRole('super_admin')),
             ])
             ->colors([
                 'primary' => Color::Amber,

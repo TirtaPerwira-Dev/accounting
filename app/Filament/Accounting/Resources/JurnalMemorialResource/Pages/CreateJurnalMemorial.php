@@ -4,27 +4,23 @@ namespace App\Filament\Accounting\Resources\JurnalMemorialResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalMemorialResource;
 use App\Models\JurnalMemorial;
-use App\Models\Rekening;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
-use Livewire\Attributes\On;
 
 class CreateJurnalMemorial extends CreateRecord
 {
     protected static string $resource = JurnalMemorialResource::class;
 
     /**
-     * Listener untuk menghapus item dari staging area
+     * Method untuk menghapus item dari staging area
      */
-    #[On('remove-memorial-item')]
-    public function removeMemorialItem($index)
+    public function removeItem($index)
     {
         try {
-            $items = $this->data['memorial_items'] ?? [];
+            $items = $this->data['detail_rekening'] ?? [];
 
             if (isset($items[$index])) {
                 array_splice($items, $index, 1);
-                $this->data['memorial_items'] = $items;
+                $this->data['detail_rekening'] = $items;
 
                 \Filament\Notifications\Notification::make()
                     ->title('Item berhasil dihapus!')
@@ -41,13 +37,50 @@ class CreateJurnalMemorial extends CreateRecord
     }
 
     /**
+     * Method untuk memuat item agar dapat diedit
+     */
+    public function editItem($index)
+    {
+        try {
+            $items = $this->data['detail_rekening'] ?? [];
+
+            if (!isset($items[$index])) {
+                return;
+            }
+
+            $item = $items[$index];
+
+            $this->data['temp_rekening'] = $item['rekening'] ?? $item['rekening_id'] ?? null;
+            $this->data['temp_nomor_bantu'] = $item['nomor_bantu'] ?? $item['nomor_bantu_id'] ?? null;
+            $this->data['temp_kode_proyek'] = $item['kode_proyek'] ?? $item['kode_proyek_id'] ?? null;
+            $this->data['temp_position'] = $item['position'] ?? 'debit';
+            $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
+            $this->data['temp_keterangan'] = $item['keterangan'] ?? null;
+
+            array_splice($items, $index, 1);
+            $this->data['detail_rekening'] = $items;
+
+            \Filament\Notifications\Notification::make()
+                ->title('Item dimuat untuk diedit')
+                ->info()
+                ->send();
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Gagal memuat item')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
      * Handle custom record creation
      */
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
-            $items = $data['memorial_items'] ?? [];
-            unset($data['memorial_items']);
+            $items = $data['detail_rekening'] ?? [];
+            unset($data['detail_rekening']);
 
             if (empty($items)) {
                 throw new \Exception('Minimal harus ada 1 item memorial');
@@ -98,7 +131,7 @@ class CreateJurnalMemorial extends CreateRecord
                 ]);
             }
 
-            return $header; // Returning the header for memorial resource
+            return $createdDetails[0];
         });
     }
 

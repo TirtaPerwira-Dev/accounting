@@ -41,7 +41,7 @@ class JurnalRekeningAirResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalRekeningAir::where('is_confirmed', 0)->count();
+        return (string) \App\Models\JurnalRekeningAir::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -136,7 +136,7 @@ class JurnalRekeningAirResource extends Resource
                                     return Rekening::with('kelompok')
                                         ->get()
                                         ->mapWithKeys(fn($rekening) => [
-                                            $rekening->id => "{$rekening->kelompok->no_kel}-{$rekening->no_rek} - {$rekening->nama_rek}"
+                                            $rekening->id => "{$rekening->no_rek} - {$rekening->nama_rek}"
                                         ]);
                                 })
                                 ->searchable()

@@ -5,7 +5,7 @@ namespace App\Filament\Accounting\Resources;
 use App\Filament\Accounting\Resources\JurnalBayarKasBankResource\Pages;
 use App\Filament\Widgets\JurnalBayarKasBankStatsWidget;
 use App\Models\JurnalBayarKasBank;
-use App\Models\Kelompok;
+use App\Models\Company;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
@@ -40,7 +40,7 @@ class JurnalBayarKasBankResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::where('is_confirmed', 0)->count();
+        return (string) static::getModel()::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -104,7 +104,7 @@ class JurnalBayarKasBankResource extends Resource
                                 ->searchable()
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                     if (!$state) return;
                                     [$rekeningId, $nomorBantuId] = explode('|', $state);
                                     $rekening = Rekening::find($rekeningId);
@@ -119,7 +119,6 @@ class JurnalBayarKasBankResource extends Resource
                                     }
 
                                     $set('nama_bank', $namaBank);
-                                    $set('dibayar_kepada', $namaBank);
                                     $set('rekening_id', $rekeningId);
                                     $set('nomor_bantu_id', $nomorBantuId > 0 ? $nomorBantuId : null);
                                 }),
@@ -145,39 +144,33 @@ class JurnalBayarKasBankResource extends Resource
                             // Boleh dibayar kepada
                             Forms\Components\TextInput::make('dibayar_kepada')
                                 ->label('Boleh dibayar kepada')
+                                ->default(function (): ?string {
+                                    return Company::first()?->getConfigValue('default_dibayar_kepada');
+                                })
                                 ->maxLength(255),
+                        ]),
 
-                            Forms\Components\TextInput::make('nominal_input')
-                                ->label('Nominal Pembayaran (Rp)')
-                                ->prefix('Rp')
-                                ->numeric()
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('total_item_input')
+                                ->label('Total Item Input (Jumlah Item)')
                                 ->default(0)
                                 ->live()
                                 ->extraAttributes([
                                     'inputmode' => 'numeric',
                                     'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
                                 ]),
-                        ]),
 
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\Placeholder::make('total_item_pembayaran')
-                                ->label('Total Item Pembayaran')
-                                ->content(function (Forms\Get $get): string {
-                                    $items = $get('pembayaran_items') ?? [];
-                                    $total = collect($items)->sum('jumlah');
-
-                                    return 'Rp ' . number_format((float) $total, 0, ',', '.');
-                                }),
-                            Forms\Components\Placeholder::make('selisih_nominal')
-                                ->label('Selisih Nominal')
-                                ->content(function (Forms\Get $get): string {
-                                    $nominal = (float) ($get('nominal_input') ?? 0);
-                                    $items = $get('pembayaran_items') ?? [];
-                                    $total = (float) collect($items)->sum('jumlah');
-                                    $selisih = $nominal - $total;
-
-                                    return 'Rp ' . number_format($selisih, 0, ',', '.');
-                                }),
+                            Forms\Components\TextInput::make('nominal_input')
+                                ->label('Nominal Pembayaran (Rp)')
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                ]),
                         ]),
 
                         // Hidden fields for backend
@@ -211,12 +204,33 @@ class JurnalBayarKasBankResource extends Resource
                             // Rekening
                             Forms\Components\Select::make('temp_rekening_id')
                                 ->label('Rekening')
-                                ->options(function () {
-                                    return Rekening::with('kelompok')
+                                ->options([])
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    return Rekening::query()
+                                        ->with('kelompok')
+                                        ->where(function ($query) use ($search) {
+                                            $query->where('nama_rek', 'like', "%{$search}%")
+                                                ->orWhere('no_rek', 'like', '%' . preg_replace('/\D/', '', $search) . '%');
+                                        })
+                                        ->orderBy('no_rek')
+                                        ->limit(50)
                                         ->get()
                                         ->mapWithKeys(fn($rekening) => [
-                                            $rekening->id => "{$rekening->kelompok->no_kel}-{$rekening->no_rek} - {$rekening->nama_rek}"
-                                        ]);
+                                            $rekening->id => "{$rekening->no_rek} - {$rekening->nama_rek}"
+                                        ])
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (!$value) {
+                                        return null;
+                                    }
+
+                                    $rekening = Rekening::with('kelompok')->find($value);
+                                    if (!$rekening) {
+                                        return null;
+                                    }
+
+                                    return "{$rekening->no_rek} - {$rekening->nama_rek}";
                                 })
                                 ->searchable()
                                 ->live()
@@ -254,10 +268,10 @@ class JurnalBayarKasBankResource extends Resource
                                 ->label('Jumlah (Rp)')
                                 ->prefix('Rp')
                                 ->placeholder('0')
-                                ->numeric()
                                 ->extraAttributes([
                                     'inputmode' => 'numeric',
                                     'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
                                 ])
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
@@ -425,33 +439,6 @@ class JurnalBayarKasBankResource extends Resource
                     ->visible(fn(Forms\Get $get) => !empty($get('pembayaran_items')))
                     ->collapsible(),
 
-                // SECTION 4: RINGKASAN
-                Forms\Components\Section::make('Ringkasan Transaksi')
-                    ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Placeholder::make('total_amount')
-                                    ->label('Total Pembayaran')
-                                    ->content(function (callable $get) {
-                                        $details = $get('pembayaran_items') ?? [];
-                                        $total = collect($details)->sum('jumlah');
-                                        return 'Rp ' . number_format($total, 0, ',', '.');
-                                    }),
-
-                                Forms\Components\Placeholder::make('status_balance')
-                                    ->label('⚖️ Status')
-                                    ->content(function (callable $get) {
-                                        $details = $get('pembayaran_items') ?? [];
-                                        $total = collect($details)->sum('jumlah');
-                                        $isBalance = $total > 0;
-                                        return $isBalance ? '✅ Valid' : '⚠️ Belum ada item';
-                                    }),
-                            ]),
-                    ])
-                    ->compact()
-                    ->collapsible()
-                    ->collapsed(),
-
                 Forms\Components\Section::make('Nomor Referensi')
                     ->schema([
                         Forms\Components\Placeholder::make('no_reff_preview')
@@ -536,14 +523,6 @@ class JurnalBayarKasBankResource extends Resource
                     ->falseColor('gray')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
-
                 Tables\Columns\TextColumn::make('no_reff')
                     ->label('No Reff')
                     ->searchable(),
@@ -616,10 +595,6 @@ class JurnalBayarKasBankResource extends Resource
                     ->action(fn() => Excel::download(new JurnalBayarKasBankTemplateExport(), 'template-jurnal-bayar-kas-bank.xlsx')),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('is_confirmed')
-                    ->label('Status')
-                    ->options([1 => 'Dikonfirmasi', 0 => 'Pending']),
-
                 Tables\Filters\TernaryFilter::make('is_posted')
                     ->label('Status Posting')
                     ->placeholder('Semua Status')
@@ -640,7 +615,7 @@ class JurnalBayarKasBankResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+                    Tables\Actions\EditAction::make()->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
 
                     Tables\Actions\Action::make('confirm')
                         ->label('✓ Konfirmasi')
@@ -717,7 +692,7 @@ class JurnalBayarKasBankResource extends Resource
                         })
                         ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
 
-                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+                    Tables\Actions\DeleteAction::make()->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
                 ])
                     ->label('Action')
                     ->button()

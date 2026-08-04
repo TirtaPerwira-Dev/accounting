@@ -54,7 +54,7 @@ class CreateJurnalPenerimaanKas extends CreateRecord
                 // Populate temp fields
                 $this->data['temp_nomor_bukti'] = $item['nomor_bukti'] ?? null;
                 $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? $item['kode_proyek'] ?? null;
-                $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
+                $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
                 $this->data['temp_rekening_id'] = $item['rekening_id'] ?? $item['rekening'] ?? null;
                 $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? $item['nomor_bantu'] ?? null;
                 $this->data['temp_keterangan_item'] = $item['keterangan_item'] ?? null;

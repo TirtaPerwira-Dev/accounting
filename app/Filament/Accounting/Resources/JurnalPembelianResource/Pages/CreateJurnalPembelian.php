@@ -42,22 +42,34 @@ class CreateJurnalPembelian extends CreateRecord
     /**
      * Method untuk edit item
      */
-    public function editItem($index, $item)
+    public function editItem($index)
     {
         try {
+            $items = $this->data['pembelian_items'] ?? [];
+
+            if (!isset($items[$index])) {
+                return;
+            }
+
+            $item = $items[$index];
+
             // Populate form fields
             $this->data['temp_bukti'] = $item['bukti'] ?? null;
             $this->data['temp_keterangan'] = $item['keterangan'] ?? null;
             $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? null;
             $this->data['temp_nomor_bantu_debit_id'] = $item['nomor_bantu_debit_id'] ?? null;
-            $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
+            $this->data['temp_rekening_debit_id'] = $item['rekening_debit_id'] ?? null;
+
+            if (!$this->data['temp_rekening_debit_id'] && !empty($item['nomor_bantu_debit_id'])) {
+                $nomorBantu = NomorBantu::find($item['nomor_bantu_debit_id']);
+                $this->data['temp_rekening_debit_id'] = $nomorBantu?->rekening_id;
+            }
+
+            $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
 
             // Remove item from list
-            $items = $this->data['pembelian_items'] ?? [];
-            if (isset($items[$index])) {
-                array_splice($items, $index, 1);
-                $this->data['pembelian_items'] = $items;
-            }
+            array_splice($items, $index, 1);
+            $this->data['pembelian_items'] = $items;
 
             \Filament\Notifications\Notification::make()
                 ->title('Item dimuat untuk diedit')

@@ -21,7 +21,12 @@
                 return [$n->id => "[$code] {$n->nm_bantu}"];
             });
 
-        $kodeProyekOptions = \App\Models\KodeProyek::pluck('name', 'id');
+        $kodeProyekOptions = \App\Models\KodeProyek::query()
+            ->select(['id', 'kode', 'name'])
+            ->get()
+            ->mapWithKeys(fn($proyek) => [
+                $proyek->id => $proyek->kode . ' - ' . $proyek->name,
+            ]);
     } catch (Exception $e) {
         // Handle any database errors gracefully
     }
@@ -193,7 +198,7 @@
                                     <div class="fi-ta-actions flex shrink-0 items-center gap-3">
                                         <button
                                             type="button"
-                                            wire:click="editItem({{ $index }}, {{ json_encode($item) }})"
+                                            wire:click="editItem({{ $index }})"
                                             onclick="if(@this.get('items_completed')) { alert('Items sudah dikonfirmasi selesai. Klik Reset Konfirmasi untuk mengubah item.'); return false; }"
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-gray fi-btn-color-gray fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-primary-500 ring-1 ring-gray-950/10 dark:ring-white/20"
                                             title="Edit item"

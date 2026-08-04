@@ -47,22 +47,27 @@ class CreateJurnalRekeningAir extends CreateRecord
     /**
      * Method untuk edit item
      */
-    public function editItem($index, $item)
+    public function editItem($index)
     {
         try {
+            $items = $this->data['rekening_air_items'] ?? [];
+
+            if (!isset($items[$index])) {
+                return;
+            }
+
+            $item = $items[$index];
+
             // Populate form fields
             $this->data['temp_rekening_id'] = $item['rekening_id'] ?? $item['rekening'] ?? null;
             $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? $item['nomor_bantu'] ?? null;
             $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? $item['kode_proyek'] ?? null;
             $this->data['temp_position'] = $item['position'] ?? 'debit';
-            $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
+            $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
 
             // Remove item from list
-            $items = $this->data['rekening_air_items'] ?? [];
-            if (isset($items[$index])) {
-                array_splice($items, $index, 1);
-                $this->data['rekening_air_items'] = $items;
-            }
+            array_splice($items, $index, 1);
+            $this->data['rekening_air_items'] = $items;
 
             \Filament\Notifications\Notification::make()
                 ->title('Item dimuat untuk diedit')

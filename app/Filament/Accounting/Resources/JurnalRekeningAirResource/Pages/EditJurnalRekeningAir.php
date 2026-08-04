@@ -17,7 +17,7 @@ class EditJurnalRekeningAir extends EditRecord
         return [
             Actions\ViewAction::make(),
             Actions\DeleteAction::make()
-                ->visible(fn() => $this->record->canBeEdited() && !$this->record->is_posted && auth()->user()->can('postToLedger', $this->record)),
+                ->visible(fn() => $this->record->canBeEdited() && !$this->record->is_posted && !$this->record->is_confirmed && auth()->user()->can('postToLedger', $this->record)),
 
             Actions\Action::make('confirm')
                 ->label('✓ Konfirmasi')

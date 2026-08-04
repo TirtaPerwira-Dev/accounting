@@ -55,7 +55,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
             $this->data['temp_kode_proyek_id'] = $item['kode_proyek_id'] ?? $item['kode_proyek'] ?? null;
             $this->data['temp_rekening_id'] = $item['rekening_id'] ?? $item['rekening'] ?? null;
             $this->data['temp_nomor_bantu_id'] = $item['nomor_bantu_id'] ?? $item['nomor_bantu'] ?? null;
-            $this->data['temp_jumlah'] = $item['jumlah'] ?? 0;
+            $this->data['temp_jumlah'] = number_format((float) ($item['jumlah'] ?? 0), 0, ',', '.');
             $this->data['temp_keterangan'] = $item['keterangan'] ?? null;
 
             array_splice($items, $index, 1);
@@ -79,6 +79,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
             $items = $data['pembayaran_items'] ?? [];
             unset($data['pembayaran_items']);
+            unset($data['total_item_input']);
             unset($data['nominal_input']);
 
             if (empty($items)) {

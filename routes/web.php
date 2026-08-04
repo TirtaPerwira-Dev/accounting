@@ -7,12 +7,22 @@ use App\Http\Controllers\NomorBantuExportController;
 use App\Http\Controllers\PdfPreviewController;
 use App\Models\JurnalPenerimaanKas;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
-Route::redirect('/', '/login');
+Route::get('/', function () {
+    if (!Auth::check()) {
+        return redirect('/login');
+    }
+
+    return Auth::user()->hasRole('super_admin')
+        ? redirect('/admin')
+        : redirect('/accounting');
+});
+
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/auth/login', [LoginController::class, 'authenticate'])->name('auth.custom.login');
 
-// Default Laravel welcome removed - Filament admin panel is now at '/'
+// Default Laravel welcome removed - Filament admin panel is now at '/admin'
 // Route::get('/', function () {
 //     return view('welcome');
 // });

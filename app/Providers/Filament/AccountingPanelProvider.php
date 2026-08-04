@@ -28,6 +28,7 @@ use App\Filament\Widgets\DraftJournalsTable;
 use App\Filament\Widgets\LiquidityRatioChart;
 use App\Filament\Widgets\TransactionTypeChart;
 use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Auth;
 
 class AccountingPanelProvider extends PanelProvider
 {
@@ -41,9 +42,9 @@ class AccountingPanelProvider extends PanelProvider
             ->userMenuItems([
                 'admin' => MenuItem::make()
                     ->label('Admin Panel')
-                    ->url('/')
+                    ->url('/admin')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->visible(fn(): bool => auth()->check() && auth()->user()->hasRole('super_admin')),
+                    ->visible(fn(): bool => Auth::check() && Auth::user()?->hasRole('super_admin')),
             ])
             ->colors([
                 'primary' => Color::Blue,

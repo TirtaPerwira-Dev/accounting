@@ -39,8 +39,8 @@ class JurnalPembelianResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        // Count dari header (jurnal_pembelians) yang belum dikonfirmasi
-        return (string) JurnalPembelian::where('is_confirmed', 0)->count();
+        // Count dari header (jurnal_pembelians) yang belum diposting
+        return (string) JurnalPembelian::where('is_posted', 0)->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -199,7 +199,7 @@ class JurnalPembelianResource extends Resource
                         return 'Tambahkan item pembelian satu per satu';
                     })
                     ->schema([
-                        Forms\Components\Grid::make(5)->schema([
+                        Forms\Components\Grid::make(6)->schema([
                             Forms\Components\TextInput::make('temp_bukti')
                                 ->label('Bukti')
                                 ->placeholder('INV-001, PO-123...')
@@ -222,38 +222,108 @@ class JurnalPembelianResource extends Resource
                             Forms\Components\Select::make('temp_kode_proyek_id')
                                 ->label('Kode Proyek')
                                 ->placeholder('Pilih...')
-                                ->options(KodeProyek::pluck('name', 'id'))
+                                ->options(function () {
+                                    return KodeProyek::query()
+                                        ->select(['id', 'kode', 'name'])
+                                        ->orderBy('kode')
+                                        ->get()
+                                        ->mapWithKeys(fn($proyek) => [
+                                            $proyek->id => $proyek->kode . ' - ' . $proyek->name,
+                                        ]);
+                                })
                                 ->searchable()
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                                 ->dehydrated(false),
 
-                            Forms\Components\Select::make('temp_nomor_bantu_debit_id')
-                                ->label('Kode Rekening (4 digit) - Nomor Bantu (3 digit)')
-                                ->placeholder('Pilih akun pembelian...')
+                            Forms\Components\Select::make('temp_rekening_debit_id')
+                                ->label('Kode Rekening')
+                                ->placeholder('Pilih rekening...')
                                 ->options(function () {
-                                    return NomorBantu::with(['rekening.kelompok'])
+                                    return \App\Models\Rekening::query()
+                                        ->orderBy('no_rek')
+                                        ->limit(300)
                                         ->get()
-                                        ->mapWithKeys(function ($n) {
-                                            $code = str_pad((string) $n->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
-                                                str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
-                                            return [$n->id => "[$code] {$n->nm_bantu}"];
+                                        ->mapWithKeys(function ($rekening) {
+                                            $noRek = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                            return [$rekening->id => "{$noRek} - {$rekening->nama_rek}"];
                                         });
                                 })
                                 ->getSearchResultsUsing(function (string $search): array {
+                                    $digits = preg_replace('/\D/', '', $search);
+
+                                    return \App\Models\Rekening::query()
+                                        ->where(function ($query) use ($search, $digits) {
+                                            $query->where('nama_rek', 'like', "%{$search}%")
+                                                ->orWhere('no_rek', 'like', "%{$digits}%");
+                                        })
+                                        ->orderBy('no_rek')
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function ($rekening) {
+                                            $noRek = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                            return [$rekening->id => "{$noRek} - {$rekening->nama_rek}"];
+                                        })
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (!$value) {
+                                        return null;
+                                    }
+
+                                    $rekening = \App\Models\Rekening::find($value);
+                                    if (!$rekening) {
+                                        return null;
+                                    }
+
+                                    $noRek = str_pad((string) $rekening->no_rek, 4, '0', STR_PAD_LEFT);
+                                    return "{$noRek} - {$rekening->nama_rek}";
+                                })
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function (Forms\Set $set) {
+                                    $set('temp_nomor_bantu_debit_id', null);
+                                })
+                                ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
+                                ->dehydrated(false),
+
+                            Forms\Components\Select::make('temp_nomor_bantu_debit_id')
+                                ->label('Nomor Bantu')
+                                ->placeholder('Pilih nomor bantu...')
+                                ->options(function (Forms\Get $get) {
+                                    $rekeningId = $get('temp_rekening_debit_id');
+                                    if (!$rekeningId) {
+                                        return [];
+                                    }
+
+                                    return NomorBantu::query()
+                                        ->where('rekening_id', $rekeningId)
+                                        ->orderBy('no_bantu')
+                                        ->limit(200)
+                                        ->get()
+                                        ->mapWithKeys(function ($n) {
+                                            $noBantu = str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
+                                            return [$n->id => "{$noBantu} - {$n->nm_bantu}"];
+                                        });
+                                })
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    $digits = preg_replace('/\D/', '', $search);
+
                                     $keyword = preg_replace('/\D/', '', $search);
 
                                     return NomorBantu::with(['rekening'])
-                                        ->whereHas('rekening', function ($q) use ($keyword) {
-                                            $q->where('no_rek', 'like', '%' . $keyword . '%');
+                                        ->where(function ($query) use ($search, $digits, $keyword) {
+                                            $query->where('nm_bantu', 'like', "%{$search}%")
+                                                ->orWhere('no_bantu', 'like', "%{$digits}%")
+                                                ->orWhereHas('rekening', function ($q) use ($keyword) {
+                                                    $q->where('no_rek', 'like', '%' . $keyword . '%');
+                                                });
                                         })
-                                        ->orderBy('rekening_id')
                                         ->orderBy('no_bantu')
                                         ->limit(50)
                                         ->get()
                                         ->mapWithKeys(function ($n) {
-                                            $code = str_pad((string) $n->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
-                                                str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
-                                            return [$n->id => "[{$code}] {$n->nm_bantu}"];
+                                            $noBantu = str_pad((string) $n->no_bantu, 3, '0', STR_PAD_LEFT);
+                                            return [$n->id => "{$noBantu} - {$n->nm_bantu}"];
                                         })
                                         ->toArray();
                                 })
@@ -267,10 +337,9 @@ class JurnalPembelianResource extends Resource
                                         return null;
                                     }
 
-                                    $code = str_pad((string) $nomorBantu->rekening->no_rek, 4, '0', STR_PAD_LEFT) . '-' .
-                                        str_pad((string) $nomorBantu->no_bantu, 3, '0', STR_PAD_LEFT);
+                                    $noBantu = str_pad((string) $nomorBantu->no_bantu, 3, '0', STR_PAD_LEFT);
 
-                                    return "[{$code}] {$nomorBantu->nm_bantu}";
+                                    return "{$noBantu} - {$nomorBantu->nm_bantu}";
                                 })
                                 ->searchable()
                                 ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
@@ -303,15 +372,16 @@ class JurnalPembelianResource extends Resource
                                         'bukti' => $get('temp_bukti'),
                                         'keterangan' => $get('temp_keterangan'),
                                         'kode_proyek_id' => $get('temp_kode_proyek_id'),
+                                        'rekening_debit_id' => $get('temp_rekening_debit_id'),
                                         'nomor_bantu_debit_id' => $get('temp_nomor_bantu_debit_id'),
                                         'jumlah' => (float) preg_replace('/[^0-9]/', '', $get('temp_jumlah') ?? '0'),
                                     ];
 
                                     // Validate required fields
-                                    if (empty($tempData['keterangan']) || empty($tempData['nomor_bantu_debit_id']) || empty($tempData['jumlah'])) {
+                                    if (empty($tempData['keterangan']) || empty($tempData['rekening_debit_id']) || empty($tempData['nomor_bantu_debit_id']) || empty($tempData['jumlah'])) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Data tidak lengkap!')
-                                            ->body('Keterangan, Kode Rekening, dan Jumlah harus diisi.')
+                                            ->body('Keterangan, Kode Rekening, Nomor Bantu, dan Jumlah harus diisi.')
                                             ->danger()
                                             ->send();
                                         return;
@@ -325,6 +395,7 @@ class JurnalPembelianResource extends Resource
                                     $set('temp_bukti', '');
                                     $set('temp_keterangan', '');
                                     $set('temp_kode_proyek_id', null);
+                                    $set('temp_rekening_debit_id', null);
                                     $set('temp_nomor_bantu_debit_id', null);
                                     $set('temp_jumlah', '');
 
@@ -684,7 +755,7 @@ class JurnalPembelianResource extends Resource
                         ->url(fn($record) => Pages\EditJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
                         ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
+                            return !$header->is_posted && !$header->is_confirmed && auth()->user()->can('postToLedger', $header);
                         }),
 
                     Tables\Actions\Action::make('confirm')
@@ -771,7 +842,7 @@ class JurnalPembelianResource extends Resource
                         })
                         ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
+                            return !$header->is_posted && !$header->is_confirmed && auth()->user()->can('postToLedger', $header);
                         }),
 
                     Tables\Actions\Action::make('delete_header')

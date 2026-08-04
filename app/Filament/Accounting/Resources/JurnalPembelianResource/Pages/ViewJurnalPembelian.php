@@ -36,7 +36,7 @@ class ViewJurnalPembelian extends ViewRecord
     {
         return [
             Actions\EditAction::make()
-                ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+                ->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
 
             Actions\Action::make('exportPdf')
                 ->label('Export PDF')
@@ -70,7 +70,7 @@ class ViewJurnalPembelian extends ViewRecord
                 ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
 
             Actions\DeleteAction::make()
-                ->visible(fn($record) => !$record->is_posted && auth()->user()->can('postToLedger', $record)),
+                ->visible(fn($record) => !$record->is_posted && !$record->is_confirmed && auth()->user()->can('postToLedger', $record)),
         ];
     }
 
