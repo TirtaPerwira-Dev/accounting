@@ -234,30 +234,77 @@ class JurnalBayarKasBank extends Model
     {
         $entries = [];
 
-        // 1. Entry untuk Kas/Bank (Kredit) - Total RP
-        $entries[] = [
-            'tanggal' => $this->tanggal,
-            'bukti' => $this->bukti,
-            'rekening_id' => $this->rekening_id,
-            'nomor_bantu_id' => $this->nomor_bantu_id,
-            'debit' => 0,
-            'kredit' => $this->rp,
-            'keterangan' => $this->keterangan,
-            'kode_proyek_id' => $this->kode_proyek_id,
-            'no_reff' => $this->no_reff,
-        ];
+        $amount = (float) $this->rp;
+        $details = $this->details;
 
-        // 2. Entries untuk setiap detail (Debit)
-        foreach ($this->details as $detail) {
+        // Format baru: record utama = akun debit item pembayaran, detail = akun kredit kas/bank.
+        if (($this->kode ?? 'K') === 'D') {
+            if ($amount > 0) {
+                $entries[] = [
+                    'tanggal' => $this->tanggal,
+                    'bukti' => $this->bukti,
+                    'rekening_id' => $this->rekening_id,
+                    'nomor_bantu_id' => $this->nomor_bantu_id,
+                    'debit' => $amount,
+                    'kredit' => 0,
+                    'keterangan' => $this->keterangan,
+                    'kode_proyek_id' => $this->kode_proyek_id,
+                    'no_reff' => $this->no_reff,
+                ];
+            }
+
+            foreach ($details as $detail) {
+                $detailAmount = (float) $detail->jumlah;
+                if ($detailAmount <= 0) {
+                    continue;
+                }
+
+                $entries[] = [
+                    'tanggal' => $this->tanggal,
+                    'bukti' => $this->bukti,
+                    'rekening_id' => $detail->rekening_id,
+                    'nomor_bantu_id' => $detail->nomor_bantu_id,
+                    'debit' => 0,
+                    'kredit' => $detailAmount,
+                    'keterangan' => $detail->keterangan ?? $this->keterangan,
+                    'kode_proyek_id' => $detail->kode_proyek_id,
+                    'no_reff' => $this->no_reff,
+                ];
+            }
+
+            return $entries;
+        }
+
+        // Format lama (backward compatibility): record utama = kas/bank kredit, detail = item debit.
+        if ($amount > 0) {
+            $entries[] = [
+                'tanggal' => $this->tanggal,
+                'bukti' => $this->bukti,
+                'rekening_id' => $this->rekening_id,
+                'nomor_bantu_id' => $this->nomor_bantu_id,
+                'debit' => 0,
+                'kredit' => $amount,
+                'keterangan' => $this->keterangan,
+                'kode_proyek_id' => $this->kode_proyek_id,
+                'no_reff' => $this->no_reff,
+            ];
+        }
+
+        foreach ($details as $detail) {
+            $detailAmount = (float) $detail->jumlah;
+            if ($detailAmount <= 0) {
+                continue;
+            }
+
             $entries[] = [
                 'tanggal' => $this->tanggal,
                 'bukti' => $this->bukti,
                 'rekening_id' => $detail->rekening_id,
                 'nomor_bantu_id' => $detail->nomor_bantu_id,
-                'debit' => $detail->debit, // Biaya/Hutang biasanya di debit jika itu pembayaran
-                'kredit' => $detail->credit,
+                'debit' => $detailAmount,
+                'kredit' => 0,
                 'keterangan' => $detail->keterangan ?? $this->keterangan,
-                'kode_proyek_id' => $this->kode_proyek_id,
+                'kode_proyek_id' => $detail->kode_proyek_id,
                 'no_reff' => $this->no_reff,
             ];
         }

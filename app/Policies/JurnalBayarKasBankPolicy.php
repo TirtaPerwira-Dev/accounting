@@ -105,28 +105,4 @@ class JurnalBayarKasBankPolicy
     {
         return $user->can('reorder_jurnal::bayar::kas::bank');
     }
-
-    /**
-     * Determine whether the user can confirm the model.
-     */
-    public function confirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
-    {
-        return $user->can('confirm_jurnal::bayar::kas::bank');
-    }
-
-    /**
-     * Determine whether the user can unconfirm the model.
-     */
-    public function unconfirm(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
-    {
-        return $user->can('unconfirm_jurnal::bayar::kas::bank');
-    }
-
-    /**
-     * Determine whether the user can post to ledger.
-     */
-    public function postToLedger(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
-    {
-        return $user->can('post_jurnal::bayar::kas::bank');
-    }
 }

@@ -39,10 +39,12 @@ class JournalPostingService
                 throw new \Exception("Jurnal tidak seimbang! Total Debit: {$totalDebit}, Total Kredit: {$totalCredit}");
             }
 
+            $reference = $this->buildUniqueReference($record);
+
             $journal = Journal::create([
                 'company_id' => $record->company_id ?? 1,
                 'transaction_date' => $record->tanggal->toDateString(),
-                'reference' => $record->no_reff ?? ($record->bukti ?? $record->nomor_bukti),
+                'reference' => $reference,
                 'description' => $record->keterangan ?? "Posting from " . class_basename($record),
                 'transaction_type' => $this->inferTransactionType($record),
                 'total_amount' => $totalDebit,
@@ -126,5 +128,43 @@ class JournalPostingService
 
         // Default to penerimaan if we can't be sure, or add more logic
         return Journal::TYPE_PENERIMAAN;
+    }
+
+    /**
+     * Build a unique journal reference while preserving source no_reff as base.
+     */
+    protected function buildUniqueReference(Model $record): string
+    {
+        $companyId = (int) ($record->company_id ?? 1);
+        $baseReference = (string) (
+            $record->no_reff
+            ?? $record->bukti
+            ?? $record->nomor_bukti
+            ?? class_basename($record)
+        );
+
+        $baseReference = trim($baseReference);
+        if ($baseReference === '') {
+            $baseReference = class_basename($record);
+        }
+
+        // Suffix id sumber agar multi-record dari no_reff sama tetap unik.
+        $candidate = $baseReference . '-' . ($record->id ?? uniqid());
+        $maxLength = 50;
+        $candidate = substr($candidate, 0, $maxLength);
+
+        if (!Journal::where('company_id', $companyId)->where('reference', $candidate)->exists()) {
+            return $candidate;
+        }
+
+        $counter = 1;
+        do {
+            $suffix = '-' . $counter;
+            $trimmedBase = substr($candidate, 0, $maxLength - strlen($suffix));
+            $reference = $trimmedBase . $suffix;
+            $counter++;
+        } while (Journal::where('company_id', $companyId)->where('reference', $reference)->exists());
+
+        return $reference;
     }
 }
