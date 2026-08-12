@@ -130,8 +130,10 @@ class CreateJurnalRekeningAir extends CreateRecord
                 throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
             }
 
-            $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input'] ?? '0'));
-            $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input'] ?? '0'));
+            $totalItemInputDebit = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input_debit'] ?? '0'));
+            $totalItemInputKredit = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input_kredit'] ?? '0'));
+            $nominalInputDebit = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input_debit'] ?? '0'));
+            $nominalInputKredit = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input_kredit'] ?? '0'));
 
             // Create Header
             $header = \App\Models\JurnalRekeningAir::create([
@@ -141,8 +143,13 @@ class CreateJurnalRekeningAir extends CreateRecord
                 'rp' => $totalDebit,
                 'keterangan' => $data['keterangan'] ?? ('Jurnal Rekening Air ' . $data['bukti']),
                 'lampiran' => $data['lampiran'] ?? null,
-                'total_item_input' => $totalItemInput,
-                'nominal_input' => $nominalInput,
+                // Legacy fields tetap diisi untuk kompatibilitas lama.
+                'total_item_input' => $totalItemInputDebit,
+                'nominal_input' => $nominalInputDebit,
+                'total_item_input_debit' => $totalItemInputDebit,
+                'total_item_input_kredit' => $totalItemInputKredit,
+                'nominal_input_debit' => $nominalInputDebit,
+                'nominal_input_kredit' => $nominalInputKredit,
                 'company_id' => 1,
                 'created_by' => Auth::id(),
                 'is_confirmed' => true,

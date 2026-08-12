@@ -2,13 +2,16 @@
     $items = $getState() ?? [];
     $totalDebit = 0;
     $totalKredit = 0;
-    $totalItemCount = is_array($items) ? count($items) : 0;
+    $totalItemDebit = 0;
+    $totalItemKredit = 0;
 
     $livewire = $getLivewire();
     $formData = data_get($livewire, 'data', []);
     $itemsCompleted = (bool) data_get($formData, 'items_completed', false);
-    $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input', '0'));
-    $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input', '0'));
+    $totalItemInputDebit = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input_debit', data_get($formData, 'total_item_input', '0')));
+    $totalItemInputKredit = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input_kredit', '0'));
+    $nominalInputDebit = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input_debit', data_get($formData, 'nominal_input', '0')));
+    $nominalInputKredit = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input_kredit', '0'));
 
     // Calculate totals from items
     if (is_array($items) && !empty($items)) {
@@ -16,27 +19,45 @@
             $position = strtolower(trim((string) ($item['position'] ?? '')));
             if ($position === 'debit') {
                 $totalDebit += $item['jumlah'] ?? 0;
+                $totalItemDebit++;
             } elseif ($position === 'kredit') {
                 $totalKredit += $item['jumlah'] ?? 0;
+                $totalItemKredit++;
             }
         }
     }
 
     $isBalance = abs($totalDebit - $totalKredit) <= 0.01 && $totalDebit > 0 && $totalKredit > 0;
-    $selisihTotalItem = $totalItemInput - $totalItemCount;
-    $selisihNominal = $nominalInput - (float) $totalDebit;
-    $isSelisihTotalItemZero = $selisihTotalItem === 0;
-    $isSelisihNominalZero = abs($selisihNominal) < 0.01;
-    $selisihTotalItemLabelClass = $isSelisihTotalItemZero
+    $selisihTotalItemDebit = $totalItemInputDebit - $totalItemDebit;
+    $selisihTotalItemKredit = $totalItemInputKredit - $totalItemKredit;
+    $selisihNominalDebit = $nominalInputDebit - (float) $totalDebit;
+    $selisihNominalKredit = $nominalInputKredit - (float) $totalKredit;
+    $isSelisihTotalItemDebitZero = $selisihTotalItemDebit === 0;
+    $isSelisihTotalItemKreditZero = $selisihTotalItemKredit === 0;
+    $isSelisihNominalDebitZero = abs($selisihNominalDebit) < 0.01;
+    $isSelisihNominalKreditZero = abs($selisihNominalKredit) < 0.01;
+    $selisihTotalItemDebitLabelClass = $isSelisihTotalItemDebitZero
         ? 'text-xs font-semibold text-success-700 dark:text-success-400'
         : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
-    $selisihNominalLabelClass = $isSelisihNominalZero
+    $selisihTotalItemKreditLabelClass = $isSelisihTotalItemKreditZero
         ? 'text-xs font-semibold text-success-700 dark:text-success-400'
         : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
-    $selisihTotalItemValueClass = $isSelisihTotalItemZero
+    $selisihNominalDebitLabelClass = $isSelisihNominalDebitZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalKreditLabelClass = $isSelisihNominalKreditZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihTotalItemDebitValueClass = $isSelisihTotalItemDebitZero
         ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
         : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
-    $selisihNominalValueClass = $isSelisihNominalZero
+    $selisihTotalItemKreditValueClass = $isSelisihTotalItemKreditZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalDebitValueClass = $isSelisihNominalDebitZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalKreditValueClass = $isSelisihNominalKreditZero
         ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
         : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
 
@@ -329,8 +350,8 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemLabelClass }}">
-                                        Selisih Total Item Input:
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemDebitLabelClass }}">
+                                        Selisih Total Item Input Debet:
                                     </div>
                                 </div>
                             </div>
@@ -340,7 +361,7 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <span class="{{ $selisihTotalItemValueClass }}">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
+                                    <span class="{{ $selisihTotalItemDebitValueClass }}">{{ number_format($selisihTotalItemDebit, 0, ',', '.') }} item</span>
                                 </div>
                             </div>
                         </div>
@@ -351,8 +372,8 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalLabelClass }}">
-                                        Selisih Nominal Input:
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemKreditLabelClass }}">
+                                        Selisih Total Item Input Kredit:
                                     </div>
                                 </div>
                             </div>
@@ -362,7 +383,51 @@
                         <div class="fi-ta-col-wrp px-3 py-2">
                             <div class="fi-ta-text grid w-full gap-y-1">
                                 <div class="flex justify-end">
-                                    <span class="{{ $selisihNominalValueClass }}">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
+                                    <span class="{{ $selisihTotalItemKreditValueClass }}">{{ number_format($selisihTotalItemKredit, 0, ',', '.') }} item</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalDebitLabelClass }}">
+                                        Selisih Nominal Input Debet:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihNominalDebitValueClass }}">Rp {{ number_format($selisihNominalDebit, 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalKreditLabelClass }}">
+                                        Selisih Nominal Input Kredit:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihNominalKreditValueClass }}">Rp {{ number_format($selisihNominalKredit, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>
