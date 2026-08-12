@@ -346,88 +346,31 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemDebitLabelClass }}">
-                                        Selisih Total Item Input Debet:
+                    <td colspan="7" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-3">
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div class="rounded-lg border border-danger-200 bg-danger-50/40 px-3 py-2 dark:border-danger-800 dark:bg-danger-900/10">
+                                    <div class="mb-1 text-xs font-semibold text-danger-700 dark:text-danger-300">Debet (D)</div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-700 dark:text-gray-300">Selisih Total Item</span>
+                                        <span class="{{ $selisihTotalItemDebitValueClass }}">{{ number_format($selisihTotalItemDebit, 0, ',', '.') }} item</span>
+                                    </div>
+                                    <div class="mt-1 flex items-center justify-between text-xs">
+                                        <span class="text-gray-700 dark:text-gray-300">Selisih Nominal</span>
+                                        <span class="{{ $selisihNominalDebitValueClass }}">Rp {{ number_format($selisihNominalDebit, 0, ',', '.') }}</span>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <span class="{{ $selisihTotalItemDebitValueClass }}">{{ number_format($selisihTotalItemDebit, 0, ',', '.') }} item</span>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemKreditLabelClass }}">
-                                        Selisih Total Item Input Kredit:
+
+                                <div class="rounded-lg border border-success-200 bg-success-50/40 px-3 py-2 dark:border-success-800 dark:bg-success-900/10">
+                                    <div class="mb-1 text-xs font-semibold text-success-700 dark:text-success-300">Kredit (K)</div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-700 dark:text-gray-300">Selisih Total Item</span>
+                                        <span class="{{ $selisihTotalItemKreditValueClass }}">{{ number_format($selisihTotalItemKredit, 0, ',', '.') }} item</span>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <span class="{{ $selisihTotalItemKreditValueClass }}">{{ number_format($selisihTotalItemKredit, 0, ',', '.') }} item</span>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalDebitLabelClass }}">
-                                        Selisih Nominal Input Debet:
+                                    <div class="mt-1 flex items-center justify-between text-xs">
+                                        <span class="text-gray-700 dark:text-gray-300">Selisih Nominal</span>
+                                        <span class="{{ $selisihNominalKreditValueClass }}">Rp {{ number_format($selisihNominalKredit, 0, ',', '.') }}</span>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <span class="{{ $selisihNominalDebitValueClass }}">Rp {{ number_format($selisihNominalDebit, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalKreditLabelClass }}">
-                                        Selisih Nominal Input Kredit:
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
-                        <div class="fi-ta-col-wrp px-3 py-2">
-                            <div class="fi-ta-text grid w-full gap-y-1">
-                                <div class="flex justify-end">
-                                    <span class="{{ $selisihNominalKreditValueClass }}">Rp {{ number_format($selisihNominalKredit, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

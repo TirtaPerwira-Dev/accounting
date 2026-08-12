@@ -99,49 +99,59 @@ class JurnalRekeningAirResource extends Resource
                             ->columnSpanFull()
                             ->required(),
 
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\TextInput::make('total_item_input_debit')
-                                ->label('Total Item Input Debet (Jumlah Item)')
-                                ->default(0)
-                                ->live()
-                                ->extraAttributes([
-                                    'inputmode' => 'numeric',
-                                    'style' => 'text-align: right;',
-                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
-                                ]),
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\Fieldset::make('Debet (D)')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('total_item_input_debit')
+                                                ->label('Total Item Input Debet (Jumlah Item)')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
+                                                ]),
 
-                            Forms\Components\TextInput::make('total_item_input_kredit')
-                                ->label('Total Item Input Kredit (Jumlah Item)')
-                                ->default(0)
-                                ->live()
-                                ->extraAttributes([
-                                    'inputmode' => 'numeric',
-                                    'style' => 'text-align: right;',
-                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
-                                ]),
+                                            Forms\Components\TextInput::make('nominal_input_debit')
+                                                ->label('Nominal Debet (Rp)')
+                                                ->prefix('Rp')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                                ]),
+                                        ]),
 
-                            Forms\Components\TextInput::make('nominal_input_debit')
-                                ->label('Nominal Debet (Rp)')
-                                ->prefix('Rp')
-                                ->default(0)
-                                ->live()
-                                ->extraAttributes([
-                                    'inputmode' => 'numeric',
-                                    'style' => 'text-align: right;',
-                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
-                                ]),
+                                    Forms\Components\Fieldset::make('Kredit (K)')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('total_item_input_kredit')
+                                                ->label('Total Item Input Kredit (Jumlah Item)')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
+                                                ]),
 
-                            Forms\Components\TextInput::make('nominal_input_kredit')
-                                ->label('Nominal Kredit (Rp)')
-                                ->prefix('Rp')
-                                ->default(0)
-                                ->live()
-                                ->extraAttributes([
-                                    'inputmode' => 'numeric',
-                                    'style' => 'text-align: right;',
-                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                            Forms\Components\TextInput::make('nominal_input_kredit')
+                                                ->label('Nominal Kredit (Rp)')
+                                                ->prefix('Rp')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                                ]),
+                                        ]),
                                 ]),
-                        ]),
+                            ])
+                            ->compact(),
 
                         Forms\Components\FileUpload::make('lampiran')
                             ->label('Lampiran (PDF)')
