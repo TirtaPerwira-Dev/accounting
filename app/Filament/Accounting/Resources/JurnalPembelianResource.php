@@ -187,6 +187,13 @@ class JurnalPembelianResource extends Resource
                             }),
                         Forms\Components\Hidden::make('no_reff')->default('1'),
                         Forms\Components\Hidden::make('company_id')->default(1),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-pembelian')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ]),
 
                 // === SECTION INPUT PEMBELIAN ===

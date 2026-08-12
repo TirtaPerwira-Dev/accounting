@@ -2,6 +2,13 @@
     $items = $getState() ?? [];
     $totalDebit = 0;
     $totalKredit = 0;
+    $totalItemCount = is_array($items) ? count($items) : 0;
+
+    $livewire = $getLivewire();
+    $formData = data_get($livewire, 'data', []);
+    $itemsCompleted = (bool) data_get($formData, 'items_completed', false);
+    $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input', '0'));
+    $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input', '0'));
 
     // Calculate totals from items
     if (is_array($items) && !empty($items)) {
@@ -16,6 +23,22 @@
     }
 
     $isBalance = abs($totalDebit - $totalKredit) <= 0.01 && $totalDebit > 0 && $totalKredit > 0;
+    $selisihTotalItem = $totalItemInput - $totalItemCount;
+    $selisihNominal = $nominalInput - (float) $totalDebit;
+    $isSelisihTotalItemZero = $selisihTotalItem === 0;
+    $isSelisihNominalZero = abs($selisihNominal) < 0.01;
+    $selisihTotalItemLabelClass = $isSelisihTotalItemZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalLabelClass = $isSelisihNominalZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihTotalItemValueClass = $isSelisihTotalItemZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalValueClass = $isSelisihNominalZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
 
     // Get options for display
     $rekeningOptions = collect();
@@ -223,7 +246,7 @@
                                         <button
                                             type="button"
                                             wire:click="editItem({{ $index }})"
-                                            @disabled($get('items_completed'))
+                                            @disabled($itemsCompleted)
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-gray fi-btn-color-gray fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-primary-500 ring-1 ring-gray-950/10 dark:ring-white/20"
                                             title="Edit item"
                                         >
@@ -236,7 +259,7 @@
                                             type="button"
                                             wire:click="removeItem({{ $index }})"
                                             onclick="return confirm('Apakah Anda yakin ingin menghapus item ini?');"
-                                            @disabled($get('items_completed'))
+                                            @disabled($itemsCompleted)
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-danger fi-btn-color-danger fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-danger-600 hover:bg-danger-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-danger-400 dark:hover:bg-danger-500/10 dark:focus-visible:ring-primary-500 ring-1 ring-danger-600/20 dark:ring-danger-400/30"
                                             title="Hapus item"
                                         >
@@ -296,6 +319,50 @@
                                             ⚠️ Tidak Balance
                                         </span>
                                     @endif
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemLabelClass }}">
+                                        Selisih Total Item Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihTotalItemValueClass }}">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalLabelClass }}">
+                                        Selisih Nominal Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihNominalValueClass }}">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

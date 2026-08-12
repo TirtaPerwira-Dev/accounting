@@ -77,6 +77,9 @@ class EditJurnalPenerimaanKas extends EditRecord
         $data['kas_bank_id'] = $header->kas_bank_id;
         $data['tanggal'] = $header->tanggal;
         $data['keterangan'] = $header->keterangan;
+        $data['lampiran'] = $header->lampiran;
+        $data['total_item_input'] = $header->total_item_input;
+        $data['nominal_input'] = $header->nominal_input;
 
         $data['penerimaan_items'] = $header->details->map(function ($detail) {
             return [
@@ -106,6 +109,8 @@ class EditJurnalPenerimaanKas extends EditRecord
 
             // Calculate total
             $totalAmount = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input'] ?? '0'));
+            $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input'] ?? '0'));
 
             // Update Header
             $header->update([
@@ -114,6 +119,9 @@ class EditJurnalPenerimaanKas extends EditRecord
                 'tanggal' => $data['tanggal'],
                 'nomor_bukti' => $items[0]['nomor_bukti'] ?? $header->nomor_bukti,
                 'keterangan' => $data['keterangan'],
+                'lampiran' => $data['lampiran'] ?? null,
+                'total_item_input' => $totalItemInput,
+                'nominal_input' => $nominalInput,
                 'total_amount' => $totalAmount,
             ]);
 

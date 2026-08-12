@@ -84,6 +84,13 @@ class JurnalPemakaianBahanResource extends Resource
                         ]),
 
                         Forms\Components\Hidden::make('no_reff'),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jpbik')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ]),
 
                 // SECTION 2: FORM TAMBAH ITEM PEMAKAIAN BAHAN

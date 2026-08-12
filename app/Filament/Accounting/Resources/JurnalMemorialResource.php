@@ -80,6 +80,13 @@ class JurnalMemorialResource extends Resource
                         ]),
 
                         Forms\Components\Hidden::make('no_reff'),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-memorial')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ]),
 
                 // SECTION 2: CARI DATA SUMBER

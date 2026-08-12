@@ -21,6 +21,9 @@ class JurnalRekeningAir extends Model
         'tanggal',
         'bukti',
         'keterangan',
+        'lampiran',
+        'total_item_input',
+        'nominal_input',
         'rekening_air_items',
         'rp',
         'is_confirmed',
@@ -38,6 +41,8 @@ class JurnalRekeningAir extends Model
     protected $casts = [
         'tanggal' => 'date',
         'rp' => 'decimal:2',
+        'nominal_input' => 'decimal:2',
+        'total_item_input' => 'integer',
         'rekening_air_items' => 'array', // Cast JSON to array
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',

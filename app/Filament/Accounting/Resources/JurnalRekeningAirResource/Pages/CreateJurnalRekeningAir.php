@@ -130,6 +130,9 @@ class CreateJurnalRekeningAir extends CreateRecord
                 throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
             }
 
+            $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input'] ?? '0'));
+            $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input'] ?? '0'));
+
             // Create Header
             $header = \App\Models\JurnalRekeningAir::create([
                 'bukti' => $data['bukti'],
@@ -137,6 +140,9 @@ class CreateJurnalRekeningAir extends CreateRecord
                 'no_reff' => '2',
                 'rp' => $totalDebit,
                 'keterangan' => $data['keterangan'] ?? ('Jurnal Rekening Air ' . $data['bukti']),
+                'lampiran' => $data['lampiran'] ?? null,
+                'total_item_input' => $totalItemInput,
+                'nominal_input' => $nominalInput,
                 'company_id' => 1,
                 'created_by' => Auth::id(),
                 'is_confirmed' => true,

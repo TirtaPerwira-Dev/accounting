@@ -173,6 +173,14 @@ class JurnalBayarKasBankResource extends Resource
                                 ]),
                         ]),
 
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-bayar-kas-bank')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.')
+                            ->nullable(),
+
                         // Hidden fields for backend
                         Forms\Components\Hidden::make('no_reff')->default('4'),
                         Forms\Components\Hidden::make('rekening_id'),
@@ -526,6 +534,11 @@ class JurnalBayarKasBankResource extends Resource
                 Tables\Columns\TextColumn::make('no_reff')
                     ->label('No Reff')
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('keterangan')
+                    ->label('Keterangan')
+                    ->limit(40)
+                    ->wrap(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import')

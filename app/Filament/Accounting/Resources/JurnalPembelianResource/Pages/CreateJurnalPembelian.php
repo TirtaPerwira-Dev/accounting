@@ -148,6 +148,7 @@ class CreateJurnalPembelian extends CreateRecord
                 'data_d' => $hasAktivaTetap ? 'AT' : null,
                 'rp' => $totalRp,
                 'keterangan' => $data['keterangan_header'] ?? ('Jurnal Pembelian Barang - ' . count($pembelianItems) . ' item(s)'),
+                'lampiran' => $data['lampiran'] ?? null,
                 'company_id' => 1,
                 'created_by' => auth()->id(),
                 'is_confirmed' => true,

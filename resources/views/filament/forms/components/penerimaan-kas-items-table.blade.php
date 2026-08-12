@@ -1,6 +1,29 @@
 @php
     $items = $getState() ?? [];
     $total = collect($items)->sum('jumlah');
+    $totalItemCount = is_array($items) ? count($items) : 0;
+
+    $livewire = $getLivewire();
+    $formData = data_get($livewire, 'data', []);
+    $itemsCompleted = (bool) data_get($formData, 'items_completed', false);
+    $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'total_item_input', '0'));
+    $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) data_get($formData, 'nominal_input', '0'));
+    $selisihTotalItem = $totalItemInput - $totalItemCount;
+    $selisihNominal = $nominalInput - (float) $total;
+    $isSelisihTotalItemZero = $selisihTotalItem === 0;
+    $isSelisihNominalZero = abs($selisihNominal) < 0.01;
+    $selisihTotalItemLabelClass = $isSelisihTotalItemZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalLabelClass = $isSelisihNominalZero
+        ? 'text-xs font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-semibold text-danger-700 dark:text-danger-400';
+    $selisihTotalItemValueClass = $isSelisihTotalItemZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
+    $selisihNominalValueClass = $isSelisihNominalZero
+        ? 'text-xs font-mono font-semibold text-success-700 dark:text-success-400'
+        : 'text-xs font-mono font-semibold text-danger-700 dark:text-danger-400';
 
     // Get options for display
     $rekeningOptions = collect();
@@ -188,7 +211,7 @@
                                     <button
                                         type="button"
                                         wire:click="editItem({{ $index }})"
-                                        @disabled($get('items_completed'))
+                                        @disabled($itemsCompleted)
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-custom fi-ac-action fi-ac-link-action"
                                         style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);"
                                         title="Edit item">
@@ -201,7 +224,7 @@
                                     <button
                                         type="button"
                                         wire:click="removeItem({{ $index }})"
-                                        @disabled($get('items_completed'))
+                                        @disabled($itemsCompleted)
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-danger fi-ac-action fi-ac-link-action"
                                         title="Hapus item">
                                         <svg class="fi-link-icon h-5 w-5 text-danger-500 dark:text-danger-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -253,6 +276,50 @@
                                         </svg>
                                         {{ count($items) }} item sumber penerimaan • Total: Rp {{ number_format($total, 0, ',', '.') }}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihTotalItemLabelClass }}">
+                                        Selisih Total Item Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihTotalItemValueClass }}">{{ number_format($selisihTotalItem, 0, ',', '.') }} item</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <div class="fi-ta-text-item inline-flex items-center gap-1.5 {{ $selisihNominalLabelClass }}">
+                                        Selisih Nominal Input:
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" class="fi-ta-cell p-0 first-of-type:ps-1 last-of-type:pe-1 sm:first-of-type:ps-3 sm:last-of-type:pe-3">
+                        <div class="fi-ta-col-wrp px-3 py-2">
+                            <div class="fi-ta-text grid w-full gap-y-1">
+                                <div class="flex justify-end">
+                                    <span class="{{ $selisihNominalValueClass }}">Rp {{ number_format($selisihNominal, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

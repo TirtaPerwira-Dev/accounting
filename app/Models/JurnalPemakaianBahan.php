@@ -29,6 +29,7 @@ class JurnalPemakaianBahan extends Model
         'data_kredit',
         'rp',
         'keterangan',
+        'lampiran',
         'keterangan_1',
         'keterangan_2',
         'keterangan_3',

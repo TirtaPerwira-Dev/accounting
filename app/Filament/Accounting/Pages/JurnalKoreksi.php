@@ -276,6 +276,13 @@ class JurnalKoreksi extends Page implements HasForms
                             ->rows(3)
                             ->placeholder('Contoh: Koreksi salah pilih akun biaya operasional'),
 
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-koreksi')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal koreksi.'),
+
                         Forms\Components\Hidden::make('source_kelompok_id'),
                         Forms\Components\Hidden::make('source_rekening_id'),
                         Forms\Components\Hidden::make('source_nomor_bantu_id'),
@@ -300,6 +307,7 @@ class JurnalKoreksi extends Page implements HasForms
             'koreksi_nomor_bantu_id' => ['nullable', 'integer', 'exists:nomor_bantus,id'],
             'koreksi_kode_proyek_id' => ['nullable', 'integer', 'exists:kode_proyeks,id'],
             'jumlah_koreksi' => ['required', 'numeric', 'min:1'],
+            'lampiran' => ['nullable', 'string'],
             'source_posisi' => ['required', 'in:D,K'],
             'source_kelompok_id' => ['required', 'integer', 'exists:kelompoks,id'],
             'source_rekening_id' => ['required', 'integer', 'exists:rekenings,id'],
@@ -325,6 +333,7 @@ class JurnalKoreksi extends Page implements HasForms
                 'rp' => $jumlah,
                 'kode' => $kodeHeader,
                 'keterangan' => '[KOREKSI] ' . $data['keterangan'],
+                'lampiran' => $data['lampiran'] ?? null,
                 'ref' => '6',
                 'kode_proyek_id' => $data['source_kode_proyek_id'] ?? null,
                 'company_id' => 1,

@@ -103,6 +103,7 @@ class CreateJurnalPemakaianBahan extends CreateRecord
             'bukti' => $bukti,
             'rp' => $totalDebit, // Total transaksi
             'keterangan' => 'Jurnal Pemakaian Bahan - ' . count($items) . ' item(s)',
+            'lampiran' => $data['lampiran'] ?? null,
             'company_id' => $data['company_id'] ?? 1,
             'created_by' => auth()->id(),
             'is_confirmed' => false,

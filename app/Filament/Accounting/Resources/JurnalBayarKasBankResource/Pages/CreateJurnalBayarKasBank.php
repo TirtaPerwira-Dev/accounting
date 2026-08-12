@@ -126,6 +126,7 @@ class CreateJurnalBayarKasBank extends CreateRecord
                     'dibayar_kepada' => $data['dibayar_kepada'] ?? null,
                     'rp' => $jumlah,
                     'keterangan' => $item['keterangan'] ?? 'Jurnal Bayar Kas/Bank',
+                    'lampiran' => $data['lampiran'] ?? null,
                     'kode' => 'D',
                     'item_sequence' => $index + 1,
                     'company_id' => 1,

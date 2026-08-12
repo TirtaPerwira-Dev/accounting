@@ -26,6 +26,9 @@ class JurnalPenerimaanKas extends Model
         'tanggal',
         'nomor_bukti',
         'keterangan',
+        'lampiran',
+        'total_item_input',
+        'nominal_input',
         'detail_penerimaan',
         'total_amount',
         'no_reff',
@@ -44,6 +47,8 @@ class JurnalPenerimaanKas extends Model
     protected $casts = [
         'tanggal' => 'date',
         'total_amount' => 'decimal:2',
+        'nominal_input' => 'decimal:2',
+        'total_item_input' => 'integer',
         'detail_penerimaan' => 'array',
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
