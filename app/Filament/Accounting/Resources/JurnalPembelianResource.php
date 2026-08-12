@@ -428,7 +428,7 @@ class JurnalPembelianResource extends Resource
                         // Action untuk konfirmasi selesai menambah item
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('confirm_items_complete')
-                                ->label('Selesai')
+                                ->label('Konfirmasi')
                                 ->icon('heroicon-o-check-circle')
                                 ->color('warning')
                                 ->size('lg')
@@ -454,9 +454,9 @@ class JurnalPembelianResource extends Resource
                                         ->send();
                                 })
                                 ->requiresConfirmation()
-                                ->modalHeading('Konfirmasi Item Selesai')
-                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item pembelian? Setelah dikonfirmasi, Anda dapat menyimpan jurnal ini.')
-                                ->modalSubmitActionLabel('Ya, Selesai'),
+                                ->modalHeading('Konfirmasi Item Pembelian')
+                                ->modalDescription('Apakah Anda yakin data item pembelian sudah benar? Setelah dikonfirmasi, item tidak bisa diedit atau dihapus.')
+                                ->modalSubmitActionLabel('Ya, Konfirmasi'),
 
                             Forms\Components\Actions\Action::make('reset_items_confirmation')
                                 ->label('Reset Konfirmasi')
@@ -484,7 +484,7 @@ class JurnalPembelianResource extends Resource
                                 } else {
                                     $count = count($get('pembelian_items') ?? []);
                                     if ($count > 0) {
-                                        return "⚠️ {$count} item ditambahkan - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                        return "⚠️ {$count} item ditambahkan - Klik 'Konfirmasi' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
@@ -511,39 +511,6 @@ class JurnalPembelianResource extends Resource
                     ->compact()
                     ->collapsible()
                     ->collapsed(),
-
-                // === STATUS SUBMIT ===
-                Forms\Components\Section::make('Status Validasi')
-                    ->schema([
-                        Forms\Components\Placeholder::make('submit_status')
-                            ->label('')
-                            ->content(function (Forms\Get $get) {
-                                $items = $get('pembelian_items') ?? [];
-                                $itemsCompleted = $get('items_completed') ?? false;
-                                $rekeningKredit = $get('rekening_kredit_id');
-                                $nomorBantuKredit = $get('nomor_bantu_kredit_id');
-                                $tanggal = $get('tanggal');
-
-                                $checks = [];
-                                $checks[] = $tanggal ? '✅ Tanggal diisi' : '❌ Tanggal belum diisi';
-                                $checks[] = $rekeningKredit ? '✅ Rekening kredit dipilih' : '❌ Rekening kredit belum dipilih';
-                                $checks[] = $nomorBantuKredit ? '✅ Nomor bantu kredit dipilih' : '❌ Nomor bantu kredit belum dipilih';
-                                $checks[] = !empty($items) ? '✅ Item ditambahkan (' . count($items) . ')' : '❌ Belum ada item';
-                                $checks[] = $itemsCompleted ? '✅ Item dikonfirmasi selesai' : '❌ Item belum dikonfirmasi selesai';
-
-                                $allValid = $tanggal && $rekeningKredit && $nomorBantuKredit && !empty($items) && $itemsCompleted;
-
-                                $status = $allValid ?
-                                    '🎉 **SIAP UNTUK DISIMPAN** - Semua validasi terpenuhi!' :
-                                    '⚠️ **BELUM SIAP** - Lengkapi langkah berikut:';
-
-                                return $status . "\n\n" . implode("\n", $checks);
-                            })
-                            ->live()
-                            ->columnSpanFull(),
-                    ])
-                    ->compact()
-                    ->visible(fn(Forms\Get $get) => !empty($get('pembelian_items')) || $get('rekening_kredit_id')),
             ]);
     }
     public static function table(Table $table): Table
@@ -679,15 +646,6 @@ class JurnalPembelianResource extends Resource
                     ->sortable()
                     ->getStateUsing(fn($record) => $record->jurnalPembelian->is_posted ?? $record->is_posted),
 
-                Tables\Columns\IconColumn::make('is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->getStateUsing(fn($record) => $record->jurnalPembelian->is_confirmed ?? $record->is_confirmed),
-
                 Tables\Columns\TextColumn::make('no_reff')
                     ->label('No Reff')
                     ->searchable()
@@ -695,19 +653,6 @@ class JurnalPembelianResource extends Resource
                     ->getStateUsing(fn($record) => $record->jurnalPembelian->no_reff ?? $record->no_reff),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('is_confirmed')
-                    ->label('Status')
-                    ->options([
-                        1 => 'Dikonfirmasi',
-                        0 => 'Pending',
-                    ])
-                    ->query(function ($query, array $data) {
-                        if (isset($data['value'])) {
-                            return $query->where('jurnal_pembelians.is_confirmed', $data['value']);
-                        }
-                        return $query;
-                    }),
-
                 Tables\Filters\SelectFilter::make('kode_proyek_id')
                     ->label('Proyek')
                     ->options(KodeProyek::pluck('name', 'id'))
@@ -746,13 +691,13 @@ class JurnalPembelianResource extends Resource
                     Tables\Actions\Action::make('view_header')
                         ->label('Lihat Jurnal')
                         ->icon('heroicon-o-eye')
-                        ->url(fn($record) => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->url(fn($record) => Pages\ViewJurnalPembelian::getUrl(['record' => ($record->jurnalPembelian ?? $record)->id]))
                         ->openUrlInNewTab(false),
 
                     Tables\Actions\Action::make('edit_header')
                         ->label('Edit Jurnal')
                         ->icon('heroicon-o-pencil')
-                        ->url(fn($record) => Pages\EditJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id]))
+                        ->url(fn($record) => Pages\EditJurnalPembelian::getUrl(['record' => ($record->jurnalPembelian ?? $record)->id]))
                         ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
                             return !$header->is_posted && !$header->is_confirmed && auth()->user()->can('postToLedger', $header);
@@ -842,7 +787,7 @@ class JurnalPembelianResource extends Resource
                         })
                         ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_posted && !$header->is_confirmed && auth()->user()->can('postToLedger', $header);
+                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
                         }),
 
                     Tables\Actions\Action::make('delete_header')
@@ -856,7 +801,7 @@ class JurnalPembelianResource extends Resource
                         })
                         ->visible(function ($record) {
                             $header = $record->jurnalPembelian ?? $record;
-                            return !$header->is_posted && auth()->user()->can('postToLedger', $header);
+                            return !$header->is_posted && !$header->is_confirmed && auth()->user()->can('postToLedger', $header);
                         }),
                 ])
                     ->label('Actions')
@@ -947,7 +892,7 @@ class JurnalPembelianResource extends Resource
             ->defaultPaginationPageOption(25)
             ->paginated([10, 25, 50, 100])
             ->recordUrl(
-                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl([($record->jurnalPembelian ?? $record)->id])
+                fn(Model $record): string => Pages\ViewJurnalPembelian::getUrl(['record' => ($record->jurnalPembelian ?? $record)->id])
             );
     }
 

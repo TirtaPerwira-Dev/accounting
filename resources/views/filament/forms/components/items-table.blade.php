@@ -199,7 +199,7 @@
                                         <button
                                             type="button"
                                             wire:click="editItem({{ $index }})"
-                                            onclick="if(@this.get('items_completed')) { alert('Items sudah dikonfirmasi selesai. Klik Reset Konfirmasi untuk mengubah item.'); return false; }"
+                                            @disabled($get('items_completed'))
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-gray fi-btn-color-gray fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-primary-500 ring-1 ring-gray-950/10 dark:ring-white/20"
                                             title="Edit item"
                                         >
@@ -211,7 +211,8 @@
                                         <button
                                             type="button"
                                             wire:click="removeItem({{ $index }})"
-                                            onclick="if(@this.get('items_completed')) { alert('Items sudah dikonfirmasi selesai. Klik Reset Konfirmasi untuk mengubah item.'); return false; } return confirm('Apakah Anda yakin ingin menghapus item ini?');"
+                                            onclick="return confirm('Apakah Anda yakin ingin menghapus item ini?');"
+                                            @disabled($get('items_completed'))
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-danger fi-btn-color-danger fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-danger-600 hover:bg-danger-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-danger-400 dark:hover:bg-danger-500/10 dark:focus-visible:ring-primary-500 ring-1 ring-danger-600/20 dark:ring-danger-400/30"
                                             title="Hapus item"
                                         >

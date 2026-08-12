@@ -3,11 +3,9 @@
 namespace App\Filament\Accounting\Resources\JurnalRekeningAirResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalRekeningAirResource;
-use App\Models\JurnalRekeningAir;
-use App\Models\JurnalRekeningAirDetail;
-use App\Models\Rekening;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class CreateJurnalRekeningAir extends CreateRecord
 {
@@ -24,6 +22,15 @@ class CreateJurnalRekeningAir extends CreateRecord
     public function removeItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Reset konfirmasi terlebih dahulu jika ingin mengubah daftar item.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['rekening_air_items'] ?? [];
 
             if (isset($items[$index])) {
@@ -50,6 +57,15 @@ class CreateJurnalRekeningAir extends CreateRecord
     public function editItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Reset konfirmasi terlebih dahulu jika ingin mengubah daftar item.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['rekening_air_items'] ?? [];
 
             if (!isset($items[$index])) {
@@ -95,12 +111,22 @@ class CreateJurnalRekeningAir extends CreateRecord
                 throw new \Exception('Minimal harus ada 1 item transaksi');
             }
 
+            if (($data['items_completed'] ?? false) !== true) {
+                throw ValidationException::withMessages([
+                    'items_completed' => 'Konfirmasi item transaksi terlebih dahulu sebelum menyimpan.',
+                ]);
+            }
+
             // Hitung total debit dan kredit untuk validasi
-            $totalDebit = collect($items)->where('position', 'debit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
-            $totalKredit = collect($items)->where('position', 'kredit')->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalDebit = collect($items)
+                ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'debit')
+                ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalKredit = collect($items)
+                ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'kredit')
+                ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
             // Validasi balance
-            if (number_format($totalDebit, 2) !== number_format($totalKredit, 2)) {
+            if (abs($totalDebit - $totalKredit) > 0.01 || $totalDebit <= 0 || $totalKredit <= 0) {
                 throw new \Exception('Jurnal tidak balance! Total Debit: Rp ' . number_format($totalDebit, 0, ',', '.') . ', Total Kredit: Rp ' . number_format($totalKredit, 0, ',', '.'));
             }
 
@@ -112,8 +138,10 @@ class CreateJurnalRekeningAir extends CreateRecord
                 'rp' => $totalDebit,
                 'keterangan' => $data['keterangan'] ?? ('Jurnal Rekening Air ' . $data['bukti']),
                 'company_id' => 1,
-                'created_by' => auth()->id(),
-                'is_confirmed' => false,
+                'created_by' => Auth::id(),
+                'is_confirmed' => true,
+                'confirmed_by' => Auth::id(),
+                'confirmed_at' => now(),
             ]);
 
             $createdDetails = [];

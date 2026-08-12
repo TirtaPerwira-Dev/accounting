@@ -3,11 +3,9 @@
 namespace App\Filament\Accounting\Resources\JurnalPembelianResource\Pages;
 
 use App\Filament\Accounting\Resources\JurnalPembelianResource;
-use App\Models\JurnalPembelian;
 use App\Models\NomorBantu;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CreateJurnalPembelian extends CreateRecord
 {
@@ -19,6 +17,15 @@ class CreateJurnalPembelian extends CreateRecord
     public function removeItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Reset konfirmasi terlebih dahulu jika ingin mengubah daftar item.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['pembelian_items'] ?? [];
 
             if (isset($items[$index])) {
@@ -45,6 +52,15 @@ class CreateJurnalPembelian extends CreateRecord
     public function editItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Reset konfirmasi terlebih dahulu jika ingin mengubah daftar item.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['pembelian_items'] ?? [];
 
             if (!isset($items[$index])) {
@@ -87,7 +103,7 @@ class CreateJurnalPembelian extends CreateRecord
         }
     }
 
-    protected function handleRecordCreation(array $data): \App\Models\JurnalPembelianDetail
+    protected function handleRecordCreation(array $data): \App\Models\JurnalPembelian
     {
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
             $pembelianItems = $data['pembelian_items'] ?? [];
@@ -95,6 +111,12 @@ class CreateJurnalPembelian extends CreateRecord
 
             if (empty($pembelianItems)) {
                 throw new \Exception('Minimal harus ada 1 item pembelian');
+            }
+
+            if (($data['items_completed'] ?? false) !== true) {
+                throw ValidationException::withMessages([
+                    'items_completed' => 'Konfirmasi item pembelian terlebih dahulu sebelum menyimpan.',
+                ]);
             }
 
             // Hitung total dari semua items
@@ -128,7 +150,9 @@ class CreateJurnalPembelian extends CreateRecord
                 'keterangan' => $data['keterangan_header'] ?? ('Jurnal Pembelian Barang - ' . count($pembelianItems) . ' item(s)'),
                 'company_id' => 1,
                 'created_by' => auth()->id(),
-                'is_confirmed' => false,
+                'is_confirmed' => true,
+                'confirmed_by' => auth()->id(),
+                'confirmed_at' => now(),
             ];
 
             // Set data_k from nomor_bantu_kredit
@@ -140,14 +164,13 @@ class CreateJurnalPembelian extends CreateRecord
             // Create header
             $header = \App\Models\JurnalPembelian::create($headerData);
 
-            $createdDetails = [];
             foreach ($pembelianItems as $item) {
                 $nomorBantu = null;
                 if (!empty($item['nomor_bantu_debit_id'])) {
                     $nomorBantu = \App\Models\NomorBantu::with(['rekening.kelompok'])->find($item['nomor_bantu_debit_id']);
                 }
 
-                $createdDetails[] = \App\Models\JurnalPembelianDetail::create([
+                \App\Models\JurnalPembelianDetail::create([
                     'jurnal_pembelian_id' => $header->id,
                     'bukti' => $item['bukti'] ?? null,
                     'keterangan' => $item['keterangan'] ?? null,
@@ -159,8 +182,8 @@ class CreateJurnalPembelian extends CreateRecord
                 ]);
             }
 
-            // Return detail pertama agar Filament bisa redirect ke view/edit yang benar
-            return $createdDetails[0];
+            // Return header agar route resource /{record} tidak menghasilkan 404.
+            return $header;
         });
     }
 }

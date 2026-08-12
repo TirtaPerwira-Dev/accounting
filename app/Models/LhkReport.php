@@ -10,41 +10,32 @@ use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
-class JurnalPenerimaanKas extends Model
+class LhkReport extends Model
 {
     use SoftDeletes, LogsActivity;
 
-    protected $table = 'jurnal_penerimaan_kas';
+    protected $table = 'laporan_harian_keuangans';
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
-        'kelompok_id',
-        'rekening_id',
-        'kas_bank_id',
         'tanggal',
+        'no_reff',
         'nomor_bukti',
         'keterangan',
-        'detail_penerimaan',
-        'total_amount',
-        'no_reff',
-        'created_by',
-        'deleted_by',
+        'jenis',
+        'kas_bank_id',
+        'kelompok_id',
+        'rekening_id',
+        'kode_proyek_id',
+        'company_id',
         'is_confirmed',
         'confirmed_by',
         'confirmed_at',
-        'company_id',
-        'is_posted',
-        'posted_at',
-        'posted_by',
-        'journal_id',
+        'created_by',
+        'deleted_by',
     ];
 
     protected $casts = [
         'tanggal' => 'date',
-        'total_amount' => 'decimal:2',
-        'detail_penerimaan' => 'array',
         'is_confirmed' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
@@ -52,8 +43,8 @@ class JurnalPenerimaanKas extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['tanggal', 'nomor_bukti', 'keterangan', 'total_amount', 'is_confirmed'])
-            ->setDescriptionForEvent(fn(string $eventName) => "Jurnal Penerimaan Kas has been {$eventName}")
+            ->logOnly(['tanggal', 'nomor_bukti', 'keterangan', 'jenis', 'is_confirmed'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Laporan Harian Keuangan has been {$eventName}")
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -85,7 +76,17 @@ class JurnalPenerimaanKas extends Model
         });
     }
 
-    // Relations
+    // Relationships
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function kodeProyek(): BelongsTo
+    {
+        return $this->belongsTo(KodeProyek::class);
+    }
+
     public function kelompok(): BelongsTo
     {
         return $this->belongsTo(Kelompok::class, 'kelompok_id');
@@ -101,39 +102,19 @@ class JurnalPenerimaanKas extends Model
         return $this->belongsTo(NomorBantu::class, 'kas_bank_id');
     }
 
-    public function kodeProyek(): BelongsTo
-    {
-        return $this->belongsTo(KodeProyek::class);
-    }
-
     public function details(): HasMany
     {
-        return $this->hasMany(JurnalPenerimaanKasDetail::class, 'jurnal_penerimaan_kas_id');
-    }
-
-    public function journal(): BelongsTo
-    {
-        return $this->belongsTo(Journal::class);
-    }
-
-    public function postedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'posted_by');
-    }
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->hasMany(LhkReportDetail::class, 'laporan_harian_keuangan_id');
     }
 
     public function confirmedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function deletedBy(): BelongsTo
@@ -142,11 +123,11 @@ class JurnalPenerimaanKas extends Model
     }
 
     /**
-     * Generate nomor referensi - tetap '3' untuk Jurnal Penerimaan Kas
+     * Generate nomor referensi - tetap 'LHK' untuk Laporan Harian Keuangan
      */
     public function generateNoReff(): string
     {
-        return '3';
+        return 'LHK';
     }
 
     // Scopes
@@ -161,32 +142,35 @@ class JurnalPenerimaanKas extends Model
             ->whereMonth('tanggal', date('m'));
     }
 
+    public function scopePemasukan($query)
+    {
+        return $query->where('jenis', 'pemasukan');
+    }
+
+    public function scopePengeluaran($query)
+    {
+        return $query->where('jenis', 'pengeluaran');
+    }
+
     // Accessors
     public function getFormattedTanggalAttribute(): string
     {
         return $this->tanggal ? $this->tanggal->format('d/m/Y') : '';
     }
 
-    public function getFormattedTotalRpAttribute(): string
+    public function getJenisLabelAttribute(): string
     {
-        return 'Rp ' . number_format((float) ($this->rp ?? 0), 0, ',', '.');
+        return $this->jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
     }
 
-    /**
-     * Get total dari semua items dalam repeater
-     * Alias: total_from_items dan total_kredit akan mengembalikan nilai yang sama
-     */
+    public function getJenisBadgeColorAttribute(): string
+    {
+        return $this->jenis === 'pemasukan' ? 'success' : 'danger';
+    }
+
     public function getTotalFromItemsAttribute(): float
     {
         return (float) $this->details()->sum('jumlah');
-    }
-
-    /**
-     * Alias untuk getTotalFromItemsAttribute - untuk backward compatibility
-     */
-    public function getTotalKreditAttribute(): float
-    {
-        return $this->total_from_items;
     }
 
     public function generateJournalEntries(): array
@@ -201,35 +185,67 @@ class JurnalPenerimaanKas extends Model
             return $entries;
         }
 
-        // Entry untuk Kas/Bank (Debit)
-        $totalKredit = $this->total_kredit;
-        if ($totalKredit > 0) {
-            $entries[] = [
-                'tanggal' => $this->tanggal,
-                'bukti' => $this->nomor_bukti,
-                'rekening_id' => $this->kasBank?->rekening_id ?? null,
-                'nomor_bantu_id' => $this->kas_bank_id,
-                'debit' => $totalKredit, // Kas/Bank bertambah (debit)
-                'kredit' => 0,
-                'keterangan' => $this->keterangan,
-                'kode_proyek_id' => null,
-                'no_reff' => $this->no_reff,
-            ];
+        $totalAmount = $this->total_from_items;
+        if ($totalAmount <= 0) {
+            return $entries;
         }
 
-        // Entry untuk setiap sumber penerimaan (Kredit)
-        foreach ($this->details as $item) {
+        if ($this->jenis === 'pemasukan') {
+            // Kas/Bank bertambah (Debit)
             $entries[] = [
                 'tanggal' => $this->tanggal,
                 'bukti' => $this->nomor_bukti,
-                'rekening_id' => $item->rekening_id,
-                'nomor_bantu_id' => $item->nomor_bantu_id,
-                'debit' => 0,
-                'kredit' => $item->jumlah, // Sumber penerimaan (kredit)
-                'keterangan' => $item->keterangan_item ?? $this->keterangan,
-                'kode_proyek_id' => $item->kode_proyek_id,
+                'rekening_id' => $this->kasBank?->rekening_id ?? $this->rekening_id,
+                'nomor_bantu_id' => $this->kas_bank_id,
+                'debit' => $totalAmount,
+                'kredit' => 0,
+                'keterangan' => $this->keterangan,
+                'kode_proyek_id' => $this->kode_proyek_id,
                 'no_reff' => $this->no_reff,
             ];
+
+            // Sumber penerimaan (Kredit) - dari details
+            foreach ($this->details as $item) {
+                $entries[] = [
+                    'tanggal' => $this->tanggal,
+                    'bukti' => $item->nomor_bukti ?? $this->nomor_bukti,
+                    'rekening_id' => $item->rekening_id,
+                    'nomor_bantu_id' => $item->nomor_bantu_id,
+                    'debit' => 0,
+                    'kredit' => $item->jumlah,
+                    'keterangan' => $item->keterangan_item ?? $this->keterangan,
+                    'kode_proyek_id' => $item->kode_proyek_id ?? $this->kode_proyek_id,
+                    'no_reff' => $this->no_reff,
+                ];
+            }
+        } else {
+            // Pengeluaran: Kas/Bank berkurang (Kredit)
+            $entries[] = [
+                'tanggal' => $this->tanggal,
+                'bukti' => $this->nomor_bukti,
+                'rekening_id' => $this->kasBank?->rekening_id ?? $this->rekening_id,
+                'nomor_bantu_id' => $this->kas_bank_id,
+                'debit' => 0,
+                'kredit' => $totalAmount,
+                'keterangan' => $this->keterangan,
+                'kode_proyek_id' => $this->kode_proyek_id,
+                'no_reff' => $this->no_reff,
+            ];
+
+            // Tujuan pengeluaran (Debit) - dari details
+            foreach ($this->details as $item) {
+                $entries[] = [
+                    'tanggal' => $this->tanggal,
+                    'bukti' => $item->nomor_bukti ?? $this->nomor_bukti,
+                    'rekening_id' => $item->rekening_id,
+                    'nomor_bantu_id' => $item->nomor_bantu_id,
+                    'debit' => $item->jumlah,
+                    'kredit' => 0,
+                    'keterangan' => $item->keterangan_item ?? $this->keterangan,
+                    'kode_proyek_id' => $item->kode_proyek_id ?? $this->kode_proyek_id,
+                    'no_reff' => $this->no_reff,
+                ];
+            }
         }
 
         return $entries;

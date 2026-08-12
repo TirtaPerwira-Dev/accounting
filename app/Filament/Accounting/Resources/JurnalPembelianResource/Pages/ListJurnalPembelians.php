@@ -56,7 +56,7 @@ class ListJurnalPembelians extends ListRecords
                 ->color('primary'),
 
             Actions\Action::make('exportPdf')
-                ->label('Laporan PDF')
+                ->label('Report Submitted')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
@@ -112,13 +112,13 @@ class ListJurnalPembelians extends ListRecords
                         'kode_hutang' => $data['kode_hutang'] ?? null,
                         'status' => $data['status'] ?? 'all',
                     ]);
-                    
+
                     Notification::make()
                         ->title('PDF sedang diproses')
-                        ->body('Laporan PDF akan dibuka di tab baru')
+                        ->body('Report Submitted akan dibuka di tab baru')
                         ->success()
                         ->send();
-                    
+
                     $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];
@@ -158,12 +158,12 @@ class ListJurnalPembelians extends ListRecords
             'totalAmount' => $totalAmount,
             'generatedAt' => now()->format('d M Y H:i'),
         ])->setPaper('a4', 'portrait')
-          ->setOption('isHtml5ParserEnabled', true)
-          ->setOption('isRemoteEnabled', true);
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true);
 
         // Stream PDF untuk preview di browser (bukan download langsung)
         $filename = 'laporan-jurnal-pembelian-' . now()->format('Y-m-d-H-i-s') . '.pdf';
-        
+
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf; charset=utf-8')
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"')

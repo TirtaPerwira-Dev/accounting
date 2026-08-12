@@ -345,11 +345,11 @@ class JurnalPembelian extends Model
         foreach ($this->details as $detail) {
             $entries[] = [
                 'tanggal' => $this->tanggal,
-                'bukti' => $this->bukti,
-                'rekening_id' => $detail->rekening_id,
-                'nomor_bantu_id' => $detail->nomor_bantu_id,
-                'debit' => $detail->debit > 0 ? $detail->debit : $detail->jumlah,
-                'kredit' => $detail->credit,
+                'bukti' => $detail->bukti ?: $this->bukti,
+                'rekening_id' => $detail->rekening_debit_id,
+                'nomor_bantu_id' => $detail->nomor_bantu_debit_id,
+                'debit' => (float) ($detail->jumlah ?? 0),
+                'kredit' => 0,
                 'keterangan' => $detail->keterangan ?? $this->keterangan,
                 'kode_proyek_id' => $detail->kode_proyek_id ?? $this->kode_proyek_id,
                 'no_reff' => $this->no_reff,

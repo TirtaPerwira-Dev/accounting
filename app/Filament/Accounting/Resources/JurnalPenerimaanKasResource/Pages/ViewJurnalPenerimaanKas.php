@@ -10,6 +10,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ViewJurnalPenerimaanKas extends ViewRecord
 {
@@ -28,7 +30,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                 ->label('Export PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
-                ->visible(fn($record) => auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
+                ->visible(fn($record) => Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalPenerimaanKas))
                 ->action(function ($record) {
                     $header = $record->jurnalPenerimaanKas;
                     $header->load([
@@ -73,7 +75,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
+                ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalPenerimaanKas)),
         ];
     }
 
@@ -200,6 +202,15 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             Infolists\Components\TextEntry::make("created_at")
                                 ->label("Item Ditambahkan")
                                 ->dateTime("d F Y H:i"),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.posted_at')
+                                ->label('Diposting Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('Belum diposting'),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.postedBy.name')
+                                ->label('Diposting Oleh')
+                                ->placeholder('-'),
                         ]),
                     ]),
             ]);

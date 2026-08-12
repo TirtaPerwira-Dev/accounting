@@ -22,7 +22,7 @@ class ListJurnalPemakaianBahans extends ListRecords
                 ->icon('heroicon-o-plus-circle'),
 
             Actions\Action::make('exportPdf')
-                ->label('Laporan PDF')
+                ->label('Report Submitted')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
@@ -56,7 +56,7 @@ class ListJurnalPemakaianBahans extends ListRecords
                         'sampai_tanggal' => $data['sampai_tanggal'],
                         'status' => $data['status'] ?? 'all',
                     ]);
-                    
+
                     $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];

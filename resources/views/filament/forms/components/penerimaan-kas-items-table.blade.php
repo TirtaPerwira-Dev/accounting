@@ -188,6 +188,7 @@
                                     <button
                                         type="button"
                                         wire:click="editItem({{ $index }})"
+                                        @disabled($get('items_completed'))
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-custom fi-ac-action fi-ac-link-action"
                                         style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);"
                                         title="Edit item">
@@ -200,6 +201,7 @@
                                     <button
                                         type="button"
                                         wire:click="removeItem({{ $index }})"
+                                        @disabled($get('items_completed'))
                                         class="fi-link group/link relative inline-flex items-center justify-center outline-none fi-size-md fi-link-size-md gap-1.5 fi-color-danger fi-ac-action fi-ac-link-action"
                                         title="Hapus item">
                                         <svg class="fi-link-icon h-5 w-5 text-danger-500 dark:text-danger-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

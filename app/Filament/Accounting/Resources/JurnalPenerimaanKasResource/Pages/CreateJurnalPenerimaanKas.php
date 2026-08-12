@@ -5,10 +5,11 @@ namespace App\Filament\Accounting\Resources\JurnalPenerimaanKasResource\Pages;
 use App\Filament\Accounting\Resources\JurnalPenerimaanKasResource;
 use App\Models\JurnalPenerimaanKas;
 use App\Models\JurnalPenerimaanKasDetail;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class CreateJurnalPenerimaanKas extends CreateRecord
 {
@@ -20,6 +21,15 @@ class CreateJurnalPenerimaanKas extends CreateRecord
     public function removeItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Item yang sudah dikonfirmasi tidak bisa dihapus.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['penerimaan_items'] ?? [];
 
             if (isset($items[$index])) {
@@ -46,6 +56,15 @@ class CreateJurnalPenerimaanKas extends CreateRecord
     public function editItem($index)
     {
         try {
+            if (($this->data['items_completed'] ?? false) === true) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Item sudah dikonfirmasi')
+                    ->body('Item yang sudah dikonfirmasi tidak bisa diedit.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $items = $this->data['penerimaan_items'] ?? [];
 
             if (isset($items[$index])) {
@@ -90,6 +109,12 @@ class CreateJurnalPenerimaanKas extends CreateRecord
                 throw new \Exception('Minimal harus ada 1 item penerimaan');
             }
 
+            if (($data['items_completed'] ?? false) !== true) {
+                throw ValidationException::withMessages([
+                    'items_completed' => 'Konfirmasi item sumber penerimaan terlebih dahulu sebelum menyimpan.',
+                ]);
+            }
+
             // Calculate total
             $totalAmount = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
@@ -104,8 +129,10 @@ class CreateJurnalPenerimaanKas extends CreateRecord
                 'total_amount' => $totalAmount,
                 'no_reff' => '3',
                 'company_id' => 1,
-                'created_by' => auth()->id(),
-                'is_confirmed' => false,
+                'created_by' => Auth::id(),
+                'is_confirmed' => true,
+                'confirmed_by' => Auth::id(),
+                'confirmed_at' => now(),
             ]);
 
             $createdDetails = [];

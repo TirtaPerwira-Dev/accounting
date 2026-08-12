@@ -25,7 +25,7 @@ class ListJurnalRekeningAir extends ListRecords
                 ->color('primary'),
 
             Actions\Action::make('exportPdf')
-                ->label('Laporan PDF')
+                ->label('Report Submitted')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
@@ -59,7 +59,7 @@ class ListJurnalRekeningAir extends ListRecords
                         'sampai_tanggal' => $data['sampai_tanggal'],
                         'status' => $data['status'] ?? 'all',
                     ]);
-                    
+
                     $this->js('window.open("' . $url . '", "_blank")');
                 }),
         ];

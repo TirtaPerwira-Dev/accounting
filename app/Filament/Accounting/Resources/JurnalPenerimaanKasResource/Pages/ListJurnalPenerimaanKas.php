@@ -20,7 +20,7 @@ class ListJurnalPenerimaanKas extends ListRecords
                 ->color('primary'),
 
             Actions\Action::make('exportPdf')
-                ->label('Laporan PDF')
+                ->label('Report Submitted')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
                 ->form([
@@ -72,7 +72,7 @@ class ListJurnalPenerimaanKas extends ListRecords
                         'kas_bank' => $data['kas_bank_filter'] ?? '',
                         'status' => $data['status'] ?? 'all',
                     ]);
-                    
+
                     $this->js('window.open("' . $url . '", "_blank")');
                 })
                 ->modalWidth('md')

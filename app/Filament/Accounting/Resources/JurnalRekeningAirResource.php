@@ -4,9 +4,7 @@ namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalRekeningAirResource\Pages;
 use App\Filament\Widgets\JurnalRekeningAirStatsWidget;
-use App\Models\JurnalRekeningAir;
 use App\Models\JurnalRekeningAirDetail;
-use App\Models\Kelompok;
 use App\Models\Rekening;
 use App\Models\NomorBantu;
 use App\Models\KodeProyek;
@@ -19,6 +17,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Collection;
 
 class JurnalRekeningAirResource extends Resource
@@ -264,7 +264,7 @@ class JurnalRekeningAirResource extends Resource
                         // Action untuk konfirmasi selesai menambah item
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('confirm_items_complete')
-                                ->label('Konfirmasi Selesai Menambah Item')
+                                ->label('Konfirmasi')
                                 ->icon('heroicon-o-check-circle')
                                 ->color('success')
                                 ->size('lg')
@@ -282,10 +282,14 @@ class JurnalRekeningAirResource extends Resource
                                     }
 
                                     // Validasi balance
-                                    $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
-                                    $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                                    $totalDebit = collect($items)
+                                        ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'debit')
+                                        ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+                                    $totalKredit = collect($items)
+                                        ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'kredit')
+                                        ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
-                                    if ($totalDebit !== $totalKredit || $totalDebit == 0) {
+                                    if (abs($totalDebit - $totalKredit) > 0.01 || $totalDebit <= 0 || $totalKredit <= 0) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Jurnal Tidak Balance!')
                                             ->body("Total Debit: Rp " . number_format($totalDebit, 0, ',', '.') .
@@ -304,9 +308,9 @@ class JurnalRekeningAirResource extends Resource
                                         ->send();
                                 })
                                 ->requiresConfirmation()
-                                ->modalHeading('Konfirmasi Item Selesai')
-                                ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item? Sistem akan memvalidasi balance sebelum melanjutkan.')
-                                ->modalSubmitActionLabel('Ya, Selesai'),
+                                ->modalHeading('Konfirmasi Item Transaksi')
+                                ->modalDescription('Apakah Anda yakin data item transaksi sudah benar? Setelah dikonfirmasi, item tidak bisa diedit atau dihapus.')
+                                ->modalSubmitActionLabel('Ya, Konfirmasi'),
 
                             Forms\Components\Actions\Action::make('reset_items_confirmation')
                                 ->label('Reset Konfirmasi')
@@ -335,10 +339,14 @@ class JurnalRekeningAirResource extends Resource
                                     $count = count($get('rekening_air_items') ?? []);
                                     if ($count > 0) {
                                         $items = $get('rekening_air_items') ?? [];
-                                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
-                                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
-                                        $balance = $totalDebit === $totalKredit && $totalDebit > 0 ? '✅' : '⚠️';
-                                        return "{$balance} {$count} item ditambahkan - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                        $totalDebit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'debit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+                                        $totalKredit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'kredit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+                                        $balance = abs($totalDebit - $totalKredit) <= 0.01 && $totalDebit > 0 ? '✅' : '⚠️';
+                                        return "{$balance} {$count} item ditambahkan - Klik 'Konfirmasi' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
@@ -363,7 +371,9 @@ class JurnalRekeningAirResource extends Resource
                                     ->label('Total Debit')
                                     ->content(function (callable $get) {
                                         $items = $get('rekening_air_items') ?? [];
-                                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
+                                        $totalDebit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'debit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
                                         return 'Rp ' . number_format($totalDebit, 0, ',', '.');
                                     }),
 
@@ -371,7 +381,9 @@ class JurnalRekeningAirResource extends Resource
                                     ->label('Total Kredit')
                                     ->content(function (callable $get) {
                                         $items = $get('rekening_air_items') ?? [];
-                                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                                        $totalKredit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'kredit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
                                         return 'Rp ' . number_format($totalKredit, 0, ',', '.');
                                     }),
 
@@ -379,10 +391,14 @@ class JurnalRekeningAirResource extends Resource
                                     ->label('⚖️ Status Balance')
                                     ->content(function (callable $get) {
                                         $items = $get('rekening_air_items') ?? [];
-                                        $totalDebit = collect($items)->where('position', 'debit')->sum('jumlah');
-                                        $totalKredit = collect($items)->where('position', 'kredit')->sum('jumlah');
+                                        $totalDebit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'debit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+                                        $totalKredit = collect($items)
+                                            ->filter(fn($item) => strtolower(trim((string) ($item['position'] ?? ''))) === 'kredit')
+                                            ->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
 
-                                        $isBalance = $totalDebit === $totalKredit && $totalDebit > 0;
+                                        $isBalance = abs($totalDebit - $totalKredit) <= 0.01 && $totalDebit > 0;
                                         return $isBalance ? '✅ Balance' : '⚠️ Tidak Balance';
                                     }),
                             ]),
@@ -405,7 +421,7 @@ class JurnalRekeningAirResource extends Resource
                 // === HIDDEN FIELDS ===
                 Forms\Components\Hidden::make('no_reff')->default('2'),
                 Forms\Components\Hidden::make('company_id')->default(1),
-                Forms\Components\Hidden::make('created_by')->default(fn() => auth()->id()),
+                Forms\Components\Hidden::make('created_by')->default(fn() => Auth::id()),
             ]);
     }
 
@@ -547,16 +563,6 @@ class JurnalRekeningAirResource extends Resource
                     ->weight('medium')
                     ->size(Tables\Columns\TextColumn\TextColumnSize::Small),
 
-                Tables\Columns\IconColumn::make('jurnalRekeningAir.is_confirmed')
-                    ->label('Konfirmasi')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->sortable()
-                    ->alignCenter(),
-
                 Tables\Columns\IconColumn::make('jurnalRekeningAir.is_posted')
                     ->label('Posted')
                     ->boolean()
@@ -598,16 +604,6 @@ class JurnalRekeningAirResource extends Resource
                         }
                         return $indicators;
                     }),
-
-                Tables\Filters\TernaryFilter::make('is_confirmed')
-                    ->label('Status Konfirmasi')
-                    ->placeholder('Semua')
-                    ->trueLabel('Sudah Dikonfirmasi')
-                    ->falseLabel('Belum Dikonfirmasi')
-                    ->queries(
-                        true: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_confirmed', true)),
-                        false: fn($query) => $query->whereHas('jurnalRekeningAir', fn($q) => $q->where('is_confirmed', false)),
-                    ),
 
                 Tables\Filters\TernaryFilter::make('is_posted')
                     ->label('Status Posting')
@@ -693,13 +689,13 @@ class JurnalRekeningAirResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_posted && auth()->user()->can('postToLedger', $record->jurnalRekeningAir)),
+                        ->visible(fn($record) => !$record->jurnalRekeningAir->is_posted),
 
                     Tables\Actions\Action::make('exportPdf')
                         ->label('Export PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->visible(fn($record) => auth()->user()->can('postToLedger', $record->jurnalRekeningAir))
+                        ->visible(fn($record) => Auth::check() ? Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalRekeningAir) : false)
                         ->url(fn($record) => route('jurnal-rekening-air.single-pdf', $record->id))
                         ->openUrlInNewTab(),
                 ])
@@ -724,7 +720,7 @@ class JurnalRekeningAirResource extends Resource
                                 ->get();
 
                             foreach ($journals as $journal) {
-                                if (auth()->user()->can('confirm', $journal)) {
+                                if (Auth::check() && Gate::forUser(Auth::user())->allows('confirm', $journal)) {
                                     $journal->confirm();
                                 }
                             }
@@ -745,7 +741,7 @@ class JurnalRekeningAirResource extends Resource
                             $journals = \App\Models\JurnalRekeningAir::whereIn('id', $parentIds)
                                 ->where('is_posted', false)
                                 ->get()
-                                ->filter(fn($journal) => auth()->user()->can('postToLedger', $journal));
+                                ->filter(fn($journal) => Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $journal));
 
                             $success = 0;
                             $failed = 0;

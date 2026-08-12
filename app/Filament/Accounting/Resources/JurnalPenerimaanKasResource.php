@@ -3,8 +3,6 @@
 namespace App\Filament\Accounting\Resources;
 
 use App\Filament\Accounting\Resources\JurnalPenerimaanKasResource\Pages;
-use App\Filament\Widgets\JurnalPenerimaanKasStatsWidget;
-use App\Models\JurnalPenerimaanKas;
 use App\Models\JurnalPenerimaanKasDetail;
 use App\Models\Kelompok;
 use App\Models\Rekening;
@@ -20,6 +18,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class JurnalPenerimaanKasResource extends Resource
 {
@@ -194,7 +194,7 @@ class JurnalPenerimaanKasResource extends Resource
                                     return Rekening::with('kelompok')
                                         ->get()
                                         ->mapWithKeys(fn($rekening) => [
-                                            $rekening->id => "{$rekening->kelompok->no_kel}-{$rekening->no_rek} - {$rekening->nama_rek}"
+                                            $rekening->id => sprintf('%04d', (int) $rekening->no_rek) . " - {$rekening->nama_rek}"
                                         ]);
                                 })
                                 ->searchable()
@@ -302,7 +302,7 @@ class JurnalPenerimaanKasResource extends Resource
                         // Info saat form disabled
                         Forms\Components\Placeholder::make('form_disabled_info')
                             ->label('')
-                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai. Klik "Reset Konfirmasi" jika ingin menambah item lagi.')
+                            ->content('📝 **Form dinonaktifkan** - Item sudah dikonfirmasi selesai dan tidak dapat diubah.')
                             ->visible(fn(Forms\Get $get) => $get('items_completed') ?? false)
                             ->columnSpanFull(),
                     ]),
@@ -317,7 +317,7 @@ class JurnalPenerimaanKasResource extends Resource
                         // Action untuk konfirmasi selesai menambah item
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('confirm_items_complete')
-                                ->label('Konfirmasi Selesai Menambah Item')
+                                ->label('Konfirmasi')
                                 ->icon('heroicon-o-check-circle')
                                 ->color('success')
                                 ->size('lg')
@@ -356,22 +356,6 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->modalHeading('Konfirmasi Item Selesai')
                                 ->modalDescription('Apakah Anda yakin sudah selesai menambahkan semua item sumber penerimaan?')
                                 ->modalSubmitActionLabel('Ya, Selesai'),
-
-                            Forms\Components\Actions\Action::make('reset_items_confirmation')
-                                ->label('Reset Konfirmasi')
-                                ->icon('heroicon-o-arrow-path')
-                                ->color('warning')
-                                ->size('md')
-                                ->visible(fn(Forms\Get $get) => $get('items_completed'))
-                                ->action(function (Forms\Get $get, Forms\Set $set) {
-                                    $set('items_completed', false);
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('Konfirmasi direset')
-                                        ->body('Anda dapat menambah item lagi atau konfirmasi ulang.')
-                                        ->info()
-                                        ->send();
-                                })
                         ])->alignment('center')->columnSpanFull(),
 
                         // Status konfirmasi
@@ -385,7 +369,7 @@ class JurnalPenerimaanKasResource extends Resource
                                     if ($count > 0) {
                                         $items = $get('penerimaan_items') ?? [];
                                         $total = collect($items)->sum('jumlah');
-                                        return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi Selesai' untuk melanjutkan";
+                                        return "📋 {$count} item ditambahkan (Total: Rp " . number_format($total, 0, ',', '.') . ") - Klik 'Konfirmasi' untuk melanjutkan";
                                     }
                                     return '📋 Belum ada item yang ditambahkan';
                                 }
@@ -560,14 +544,6 @@ class JurnalPenerimaanKasResource extends Resource
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->alignRight(),
 
-                Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
-
                 Tables\Columns\IconColumn::make('jurnalPenerimaanKas.is_posted')
                     ->label('Posted')
                     ->boolean()
@@ -664,13 +640,13 @@ class JurnalPenerimaanKasResource extends Resource
                     Tables\Actions\EditAction::make()
                         ->label('Edit Jurnal')
                         ->icon('heroicon-o-pencil-square')
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalPenerimaanKas)),
 
                     Tables\Actions\Action::make('exportPdf')
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
-                        ->visible(fn($record) => auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
+                        ->visible(fn($record) => Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalPenerimaanKas))
                         ->action(function ($record) {
                             $parent = $record->jurnalPenerimaanKas;
                             $parent->load([
@@ -715,14 +691,14 @@ class JurnalPenerimaanKasResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas)),
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted),
 
 
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus Item')
                         ->modalHeading('Hapus Item Transaksi')
                         ->modalDescription(fn($record) => "Item ini akan dihapus dari jurnal {$record->jurnalPenerimaanKas->no_reff}")
-                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && auth()->user()->can('postToLedger', $record->jurnalPenerimaanKas))
+                        ->visible(fn($record) => !$record->jurnalPenerimaanKas->is_posted && !$record->jurnalPenerimaanKas->is_confirmed && Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $record->jurnalPenerimaanKas))
                         ->after(function ($record) {
                             // Check if parent jurnal still has details
                             $parent = $record->jurnalPenerimaanKas;
@@ -755,7 +731,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->unique('id');
 
                             foreach ($parents as $parent) {
-                                if (auth()->user()->can('confirm', $parent)) {
+                                if (Auth::check() && Gate::forUser(Auth::user())->allows('confirm', $parent)) {
                                     $parent->confirm();
                                 }
                             }
@@ -778,7 +754,7 @@ class JurnalPenerimaanKasResource extends Resource
                                 ->unique('id');
 
                             foreach ($parents as $parent) {
-                                if (auth()->user()->can('unconfirm', $parent)) {
+                                if (Auth::check() && Gate::forUser(Auth::user())->allows('unconfirm', $parent)) {
                                     $parent->unconfirm();
                                 }
                             }
@@ -798,7 +774,7 @@ class JurnalPenerimaanKasResource extends Resource
                             $parents = $records->map(fn($record) => $record->jurnalPenerimaanKas)
                                 ->filter(fn($parent) => $parent && !$parent->is_posted)
                                 ->unique('id')
-                                ->filter(fn($parent) => auth()->user()->can('postToLedger', $parent));
+                                ->filter(fn($parent) => Auth::check() && Gate::forUser(Auth::user())->allows('postToLedger', $parent));
 
                             if ($parents->isEmpty()) {
                                 Notification::make()

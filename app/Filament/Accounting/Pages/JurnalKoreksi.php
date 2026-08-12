@@ -19,6 +19,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class JurnalKoreksi extends Page implements HasForms
 {
@@ -158,59 +159,13 @@ class JurnalKoreksi extends Page implements HasForms
                 Forms\Components\Section::make('Section 2: Hasil Pencarian Item Sumber')
                     ->description('Data hasil pencarian dari section pertama ditampilkan di sini untuk dipilih.')
                     ->schema([
+                        Forms\Components\Hidden::make('item_sumber')
+                            ->required(),
 
-                        Forms\Components\Select::make('item_sumber')
-                            ->label('Item Sumber yang Dikoreksi')
-                            ->required()
-                            ->searchable()
-                            ->options(fn(Forms\Get $get): array => $get('source_search_results') ?? [])
-                            ->live()
-                            ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
-                                $source = $this->resolveSelectedSource($state);
-
-                                $set('source_kelompok_id', $source['kelompok_id'] ?? null);
-                                $set('source_rekening_id', $source['rekening_id'] ?? null);
-                                $set('source_nomor_bantu_id', $source['nomor_bantu_id'] ?? null);
-                                $set('source_kode_proyek_id', $source['kode_proyek_id'] ?? null);
-                                $set('source_posisi', $source['posisi'] ?? null);
-                                $set('source_jumlah', $source['jumlah'] ?? null);
-
-                                if (!empty($source['jumlah'])) {
-                                    $set('jumlah_koreksi', (float) $source['jumlah']);
-                                }
-                            })
-                            ->helperText('Menampilkan maksimal 100 data terbaru sesuai filter.'),
-
-                        Forms\Components\Placeholder::make('source_preview')
-                            ->label('Preview Item Sumber')
-                            ->content(function (Forms\Get $get): string {
-                                $source = $this->resolveSelectedSource($get('item_sumber'));
-                                if (!$source) {
-                                    return 'Belum ada item sumber yang dipilih.';
-                                }
-
-                                $kode = $source['kode_akun'] ?? '-';
-                                $nama = $source['nama_akun'] ?? '-';
-                                $posisi = $source['posisi'] ?? '-';
-                                $jumlah = number_format((float) ($source['jumlah'] ?? 0), 0, ',', '.');
-
-                                return "Akun: {$kode} {$nama} | Posisi: {$posisi} | Jumlah: Rp {$jumlah}";
-                            }),
-
-                        Forms\Components\Placeholder::make('jurnal_t_preview')
-                            ->label('Simulasi Jurnal T (Debit | Kredit)')
-                            ->content(function (Forms\Get $get): string {
-                                $source = $this->resolveSelectedSource($get('item_sumber'));
-                                if (!$source) {
-                                    return 'Belum ada item sumber yang dipilih.';
-                                }
-
-                                $sourcePosisi = strtoupper((string) ($source['posisi'] ?? '-'));
-                                $koreksiPosisi = $sourcePosisi === 'D' ? 'K' : 'D';
-                                $jumlah = number_format((float) ($get('jumlah_koreksi') ?? $source['jumlah'] ?? 0), 0, ',', '.');
-
-                                return "Sumber ({$sourcePosisi}) Rp {$jumlah} | Koreksi ({$koreksiPosisi}) Rp {$jumlah}";
-                            }),
+                        Forms\Components\ViewField::make('source_search_results')
+                            ->label('Pilih Item Sumber yang Dikoreksi')
+                            ->view('filament.forms.components.jurnal-koreksi-source-cards')
+                            ->dehydrated(false),
                     ])
                     ->visible(fn(Forms\Get $get): bool => !empty($get('source_search_results'))),
 
@@ -373,7 +328,7 @@ class JurnalKoreksi extends Page implements HasForms
                 'ref' => '6',
                 'kode_proyek_id' => $data['source_kode_proyek_id'] ?? null,
                 'company_id' => 1,
-                'created_by' => auth()->id(),
+                'created_by' => Auth::id(),
                 'is_confirmed' => false,
             ]);
 
@@ -405,6 +360,28 @@ class JurnalKoreksi extends Page implements HasForms
             'source_search_results' => [],
             'jumlah_koreksi' => 0,
         ]);
+    }
+
+    public function selectSourceItem(string $selected): void
+    {
+        $this->data['item_sumber'] = $selected;
+
+        $source = $this->resolveSelectedSource($selected);
+
+        $this->data['source_kelompok_id'] = $source['kelompok_id'] ?? null;
+        $this->data['source_rekening_id'] = $source['rekening_id'] ?? null;
+        $this->data['source_nomor_bantu_id'] = $source['nomor_bantu_id'] ?? null;
+        $this->data['source_kode_proyek_id'] = $source['kode_proyek_id'] ?? null;
+        $this->data['source_posisi'] = $source['posisi'] ?? null;
+        $this->data['source_jumlah'] = $source['jumlah'] ?? null;
+
+        // Isi otomatis Section 3 dengan data lama sebelum dikoreksi.
+        $this->data['koreksi_rekening_id'] = $source['rekening_id'] ?? null;
+        $this->data['koreksi_nomor_bantu_id'] = $source['nomor_bantu_id'] ?? null;
+        $this->data['koreksi_kode_proyek_id'] = $source['kode_proyek_id'] ?? null;
+        if (!empty($source['jumlah'])) {
+            $this->data['jumlah_koreksi'] = (float) $source['jumlah'];
+        }
     }
 
     private function getAllSourceItemOptions(?string $keyword, ?string $searchBy): array
