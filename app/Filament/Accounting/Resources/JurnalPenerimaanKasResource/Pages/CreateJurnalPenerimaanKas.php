@@ -117,6 +117,8 @@ class CreateJurnalPenerimaanKas extends CreateRecord
 
             // Calculate total
             $totalAmount = collect($items)->sum(fn($item) => (float) ($item['jumlah'] ?? 0));
+            $totalItemInput = (int) preg_replace('/[^0-9]/', '', (string) ($data['total_item_input'] ?? '0'));
+            $nominalInput = (float) preg_replace('/[^0-9]/', '', (string) ($data['nominal_input'] ?? '0'));
 
             // Buat header jurnal
             $jurnal = JurnalPenerimaanKas::create([
@@ -126,6 +128,9 @@ class CreateJurnalPenerimaanKas extends CreateRecord
                 'tanggal' => $data['tanggal'],
                 'nomor_bukti' => $items[0]['nomor_bukti'] ?? 'BKM-' . date('YmdHis'),
                 'keterangan' => $data['keterangan'] ?? 'Penerimaan Kas/Bank',
+                'lampiran' => $data['lampiran'] ?? null,
+                'total_item_input' => $totalItemInput,
+                'nominal_input' => $nominalInput,
                 'total_amount' => $totalAmount,
                 'no_reff' => '3',
                 'company_id' => 1,

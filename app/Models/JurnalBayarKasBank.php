@@ -28,6 +28,7 @@ class JurnalBayarKasBank extends Model
         'rp',
         'kode',
         'keterangan',
+        'lampiran',
         'ref',
         'kode_proyek_id',
         'item_sequence',

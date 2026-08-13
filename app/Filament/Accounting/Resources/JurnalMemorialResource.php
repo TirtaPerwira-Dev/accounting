@@ -80,6 +80,13 @@ class JurnalMemorialResource extends Resource
                         ]),
 
                         Forms\Components\Hidden::make('no_reff'),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran PDF (Opsional)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-memorial')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ]),
 
                 // SECTION 2: CARI DATA SUMBER
@@ -497,17 +504,14 @@ class JurnalMemorialResource extends Resource
                     ->falseColor('gray')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('jurnalMemorial.is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
-
                 Tables\Columns\TextColumn::make('jurnalMemorial.no_reff')
                     ->label('No Reff')
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('keterangan')
+                    ->label('Keterangan')
+                    ->limit(40)
+                    ->wrap(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import')

@@ -77,6 +77,7 @@ class EditJurnalMemorial extends EditRecord
         $data['bukti'] = $header->bukti;
         $data['tanggal'] = $header->tanggal;
         $data['no_reff'] = $header->no_reff;
+        $data['lampiran'] = $header->lampiran;
 
         $data['memorial_items'] = $header->details->map(function ($detail) {
             return [
@@ -119,6 +120,7 @@ class EditJurnalMemorial extends EditRecord
                 'tanggal' => $data['tanggal'],
                 'rp' => $totalDebit,
                 'keterangan' => $items[0]['keterangan'] ?? $header->keterangan,
+                'lampiran' => $data['lampiran'] ?? null,
             ]);
 
             // Delete existing details

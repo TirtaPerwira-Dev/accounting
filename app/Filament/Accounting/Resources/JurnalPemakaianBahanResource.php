@@ -84,6 +84,13 @@ class JurnalPemakaianBahanResource extends Resource
                         ]),
 
                         Forms\Components\Hidden::make('no_reff'),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran PDF (Opsional)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jpbik')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ]),
 
                 // SECTION 2: FORM TAMBAH ITEM PEMAKAIAN BAHAN
@@ -401,6 +408,11 @@ class JurnalPemakaianBahanResource extends Resource
                     ->searchable(false)
                     ->wrap(),
 
+                Tables\Columns\TextColumn::make('keterangan')
+                    ->label('Keterangan')
+                    ->limit(40)
+                    ->wrap(),
+
                 Tables\Columns\TextColumn::make('kode')
                     ->label('Kode')
                     ->getStateUsing(function ($record) {
@@ -444,14 +456,6 @@ class JurnalPemakaianBahanResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable(),
-
-                Tables\Columns\IconColumn::make('jurnalPemakaianBahan.is_confirmed')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
 
                 Tables\Columns\TextColumn::make('jurnalPemakaianBahan.no_reff')
                     ->label('No Reff')

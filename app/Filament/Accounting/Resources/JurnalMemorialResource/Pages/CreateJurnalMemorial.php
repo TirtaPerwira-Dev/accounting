@@ -102,6 +102,7 @@ class CreateJurnalMemorial extends CreateRecord
                 'no_reff' => '6',
                 'rp' => $totalDebit,
                 'keterangan' => $items[0]['keterangan'] ?? 'Jurnal Memorial',
+                'lampiran' => $data['lampiran'] ?? null,
                 'company_id' => 1,
                 'created_by' => auth()->id(),
                 'is_confirmed' => false,

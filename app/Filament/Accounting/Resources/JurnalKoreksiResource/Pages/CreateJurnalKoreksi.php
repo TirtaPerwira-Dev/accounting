@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Filament\Accounting\Pages;
+namespace App\Filament\Accounting\Resources\JurnalKoreksiResource\Pages;
 
+use App\Filament\Accounting\Resources\JurnalKoreksiResource;
 use App\Models\JurnalBayarKasBankDetail;
 use App\Models\JurnalMemorial;
 use App\Models\JurnalMemorialDetail;
@@ -17,23 +18,17 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
+use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
-class JurnalKoreksi extends Page implements HasForms
+class CreateJurnalKoreksi extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
+    protected static string $resource = JurnalKoreksiResource::class;
 
     protected static string $view = 'filament.accounting.pages.jurnal-koreksi';
-
-    protected static ?string $navigationLabel = 'Jurnal Koreksi';
-
-    protected static ?string $navigationGroup = 'Jurnal';
-
-    protected static ?int $navigationSort = 7;
 
     public ?array $data = [];
 
@@ -276,6 +271,13 @@ class JurnalKoreksi extends Page implements HasForms
                             ->rows(3)
                             ->placeholder('Contoh: Koreksi salah pilih akun biaya operasional'),
 
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran PDF (Opsional)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-koreksi')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal koreksi.'),
+
                         Forms\Components\Hidden::make('source_kelompok_id'),
                         Forms\Components\Hidden::make('source_rekening_id'),
                         Forms\Components\Hidden::make('source_nomor_bantu_id'),
@@ -300,6 +302,7 @@ class JurnalKoreksi extends Page implements HasForms
             'koreksi_nomor_bantu_id' => ['nullable', 'integer', 'exists:nomor_bantus,id'],
             'koreksi_kode_proyek_id' => ['nullable', 'integer', 'exists:kode_proyeks,id'],
             'jumlah_koreksi' => ['required', 'numeric', 'min:1'],
+            'lampiran' => ['nullable', 'string'],
             'source_posisi' => ['required', 'in:D,K'],
             'source_kelompok_id' => ['required', 'integer', 'exists:kelompoks,id'],
             'source_rekening_id' => ['required', 'integer', 'exists:rekenings,id'],
@@ -325,6 +328,7 @@ class JurnalKoreksi extends Page implements HasForms
                 'rp' => $jumlah,
                 'kode' => $kodeHeader,
                 'keterangan' => '[KOREKSI] ' . $data['keterangan'],
+                'lampiran' => $data['lampiran'] ?? null,
                 'ref' => '6',
                 'kode_proyek_id' => $data['source_kode_proyek_id'] ?? null,
                 'company_id' => 1,

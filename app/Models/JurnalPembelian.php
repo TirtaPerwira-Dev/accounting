@@ -21,6 +21,7 @@ class JurnalPembelian extends Model
         'bukti',
         'rp',
         'keterangan',
+        'lampiran',
         'nomor_bantu_kredit_id',
         'nama_nomor_bantu_kredit', // Denormalized for display
         'data_k',

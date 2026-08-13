@@ -103,6 +103,7 @@ class CreateJurnalPemakaianBahan extends CreateRecord
             'bukti' => $bukti,
             'rp' => $totalDebit, // Total transaksi
             'keterangan' => 'Jurnal Pemakaian Bahan - ' . count($items) . ' item(s)',
+            'lampiran' => $data['lampiran'] ?? null,
             'company_id' => $data['company_id'] ?? 1,
             'created_by' => auth()->id(),
             'is_confirmed' => false,
@@ -112,7 +113,6 @@ class CreateJurnalPemakaianBahan extends CreateRecord
         $header = JurnalPemakaianBahan::create($headerData);
 
         // Create detail records
-        $createdDetails = [];
         foreach ($items as $item) {
             $rekening = null;
             if (!empty($item['rekening'])) {
@@ -142,10 +142,10 @@ class CreateJurnalPemakaianBahan extends CreateRecord
                 $detailData['nomor_bantu_kredit_id'] = $item['nomor_bantu'] ?? null;
             }
 
-            $createdDetails[] = \App\Models\JurnalPemakaianBahanDetail::create($detailData);
+            \App\Models\JurnalPemakaianBahanDetail::create($detailData);
         }
 
-        return $createdDetails[0];
+        return $header;
     }
 
     protected function getRedirectUrl(): string

@@ -22,6 +22,7 @@ class JurnalMemorial extends Model
         'rp',
         'kode',
         'keterangan',
+        'lampiran',
         'ref',
         'kode_proyek_id',
         'data',

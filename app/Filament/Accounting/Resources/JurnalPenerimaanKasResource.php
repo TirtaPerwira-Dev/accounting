@@ -154,6 +154,36 @@ class JurnalPenerimaanKasResource extends Resource
                             ->columnSpanFull()
                             ->disabled(fn(Forms\Get $get) => $get('items_completed') ?? false)
                             ->dehydrated(),
+
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('total_item_input')
+                                ->label('Total Item Input (Jumlah Item)')
+                                ->default(0)
+                                ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
+                                ]),
+
+                            Forms\Components\TextInput::make('nominal_input')
+                                ->label('Nominal Pembayaran (Rp)')
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->live()
+                                ->extraAttributes([
+                                    'inputmode' => 'numeric',
+                                    'style' => 'text-align: right;',
+                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                ]),
+                        ]),
+
+                        Forms\Components\FileUpload::make('lampiran')
+                            ->label('Lampiran PDF (Opsional)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('lampiran/jurnal-penerimaan-kas')
+                            ->disk('public')
+                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ])
                     ->collapsible(),
 
@@ -161,7 +191,7 @@ class JurnalPenerimaanKasResource extends Resource
                 Forms\Components\Section::make('Tambah Sumber Penerimaan')
                     ->description('Isi form di bawah ini lalu klik "Tambah Item"')
                     ->schema([
-                        Forms\Components\Grid::make(4)->schema([
+                        Forms\Components\Grid::make(5)->schema([
                             // Nomor Bukti
                             Forms\Components\TextInput::make('temp_nomor_bukti')
                                 ->label('Nomor Bukti')

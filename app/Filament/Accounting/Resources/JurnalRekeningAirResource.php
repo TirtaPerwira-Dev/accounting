@@ -98,6 +98,67 @@ class JurnalRekeningAirResource extends Resource
                             ->rows(2)
                             ->columnSpanFull()
                             ->required(),
+
+                        Forms\Components\Section::make('Data Bantu')
+                            ->schema([
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\Fieldset::make('Debet (D)')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('total_item_input_debit')
+                                                ->label('Total Item Input Debet (Jumlah Item)')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
+                                                ]),
+
+                                            Forms\Components\TextInput::make('nominal_input_debit')
+                                                ->label('Nominal Debet (Rp)')
+                                                ->prefix('Rp')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                                ]),
+                                        ]),
+
+                                    Forms\Components\Fieldset::make('Kredit (K)')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('total_item_input_kredit')
+                                                ->label('Total Item Input Kredit (Jumlah Item)')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "");',
+                                                ]),
+
+                                            Forms\Components\TextInput::make('nominal_input_kredit')
+                                                ->label('Nominal Kredit (Rp)')
+                                                ->prefix('Rp')
+                                                ->default(0)
+                                                ->live()
+                                                ->extraAttributes([
+                                                    'inputmode' => 'numeric',
+                                                    'style' => 'text-align: right;',
+                                                    'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");',
+                                                ]),
+                                        ]),
+                                ]),
+
+                                Forms\Components\FileUpload::make('lampiran')
+                                    ->label('Lampiran PDF (Opsional)')
+                                    ->acceptedFileTypes(['application/pdf'])
+                                    ->directory('lampiran/jurnal-rekening-air')
+                                    ->disk('public')
+                                    ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
+                            ])
+                            ->compact(),
                     ])
                     ->collapsible(),
 
@@ -577,6 +638,11 @@ class JurnalRekeningAirResource extends Resource
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
                     ->label('No Reff')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.keterangan')
+                    ->label('Keterangan')
+                    ->limit(40)
+                    ->wrap(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')

@@ -1,6 +1,9 @@
 @php
     $items = $getState() ?? [];
     $total = 0;
+    $livewire = $getLivewire();
+    $formData = data_get($livewire, 'data', []);
+    $itemsCompleted = (bool) data_get($formData, 'items_completed', false);
 
     // Calculate total from items
     if (is_array($items) && !empty($items)) {
@@ -199,7 +202,7 @@
                                         <button
                                             type="button"
                                             wire:click="editItem({{ $index }})"
-                                            @disabled($get('items_completed'))
+                                            @disabled($itemsCompleted)
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-gray fi-btn-color-gray fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-primary-500 ring-1 ring-gray-950/10 dark:ring-white/20"
                                             title="Edit item"
                                         >
@@ -212,7 +215,7 @@
                                             type="button"
                                             wire:click="removeItem({{ $index }})"
                                             onclick="return confirm('Apakah Anda yakin ingin menghapus item ini?');"
-                                            @disabled($get('items_completed'))
+                                            @disabled($itemsCompleted)
                                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-danger fi-btn-color-danger fi-size-sm fi-btn-size-sm gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-danger-600 hover:bg-danger-50 focus-visible:ring-primary-600 dark:bg-white/5 dark:text-danger-400 dark:hover:bg-danger-500/10 dark:focus-visible:ring-primary-500 ring-1 ring-danger-600/20 dark:ring-danger-400/30"
                                             title="Hapus item"
                                         >
