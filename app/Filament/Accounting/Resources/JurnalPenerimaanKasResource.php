@@ -179,7 +179,7 @@ class JurnalPenerimaanKasResource extends Resource
                         ]),
 
                         Forms\Components\FileUpload::make('lampiran')
-                            ->label('Lampiran (PDF)')
+                            ->label('Lampiran PDF (Opsional)')
                             ->acceptedFileTypes(['application/pdf'])
                             ->directory('lampiran/jurnal-penerimaan-kas')
                             ->disk('public')
@@ -191,7 +191,7 @@ class JurnalPenerimaanKasResource extends Resource
                 Forms\Components\Section::make('Tambah Sumber Penerimaan')
                     ->description('Isi form di bawah ini lalu klik "Tambah Item"')
                     ->schema([
-                        Forms\Components\Grid::make(4)->schema([
+                        Forms\Components\Grid::make(5)->schema([
                             // Nomor Bukti
                             Forms\Components\TextInput::make('temp_nomor_bukti')
                                 ->label('Nomor Bukti')

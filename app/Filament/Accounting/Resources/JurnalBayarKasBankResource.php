@@ -174,7 +174,7 @@ class JurnalBayarKasBankResource extends Resource
                         ]),
 
                         Forms\Components\FileUpload::make('lampiran')
-                            ->label('Lampiran (PDF)')
+                            ->label('Lampiran PDF (Opsional)')
                             ->acceptedFileTypes(['application/pdf'])
                             ->directory('lampiran/jurnal-bayar-kas-bank')
                             ->disk('public')

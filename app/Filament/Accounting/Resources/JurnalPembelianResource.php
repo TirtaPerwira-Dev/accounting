@@ -189,7 +189,7 @@ class JurnalPembelianResource extends Resource
                         Forms\Components\Hidden::make('company_id')->default(1),
 
                         Forms\Components\FileUpload::make('lampiran')
-                            ->label('Lampiran (PDF)')
+                            ->label('Lampiran PDF (Opsional)')
                             ->acceptedFileTypes(['application/pdf'])
                             ->directory('lampiran/jurnal-pembelian')
                             ->disk('public')

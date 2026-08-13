@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Filament\Accounting\Pages;
+namespace App\Filament\Accounting\Resources\JurnalKoreksiResource\Pages;
 
+use App\Filament\Accounting\Resources\JurnalKoreksiResource;
 use App\Models\JurnalBayarKasBankDetail;
 use App\Models\JurnalMemorial;
 use App\Models\JurnalMemorialDetail;
@@ -17,23 +18,17 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
+use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
-class JurnalKoreksi extends Page implements HasForms
+class CreateJurnalKoreksi extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
+    protected static string $resource = JurnalKoreksiResource::class;
 
     protected static string $view = 'filament.accounting.pages.jurnal-koreksi';
-
-    protected static ?string $navigationLabel = 'Jurnal Koreksi';
-
-    protected static ?string $navigationGroup = 'Jurnal';
-
-    protected static ?int $navigationSort = 7;
 
     public ?array $data = [];
 
@@ -277,7 +272,7 @@ class JurnalKoreksi extends Page implements HasForms
                             ->placeholder('Contoh: Koreksi salah pilih akun biaya operasional'),
 
                         Forms\Components\FileUpload::make('lampiran')
-                            ->label('Lampiran (PDF)')
+                            ->label('Lampiran PDF (Opsional)')
                             ->acceptedFileTypes(['application/pdf'])
                             ->directory('lampiran/jurnal-koreksi')
                             ->disk('public')

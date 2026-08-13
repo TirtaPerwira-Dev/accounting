@@ -99,7 +99,7 @@ class JurnalRekeningAirResource extends Resource
                             ->columnSpanFull()
                             ->required(),
 
-                        Forms\Components\Section::make()
+                        Forms\Components\Section::make('Data Bantu')
                             ->schema([
                                 Forms\Components\Grid::make(2)->schema([
                                     Forms\Components\Fieldset::make('Debet (D)')
@@ -150,15 +150,15 @@ class JurnalRekeningAirResource extends Resource
                                                 ]),
                                         ]),
                                 ]),
+
+                                Forms\Components\FileUpload::make('lampiran')
+                                    ->label('Lampiran PDF (Opsional)')
+                                    ->acceptedFileTypes(['application/pdf'])
+                                    ->directory('lampiran/jurnal-rekening-air')
+                                    ->disk('public')
+                                    ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                             ])
                             ->compact(),
-
-                        Forms\Components\FileUpload::make('lampiran')
-                            ->label('Lampiran (PDF)')
-                            ->acceptedFileTypes(['application/pdf'])
-                            ->directory('lampiran/jurnal-rekening-air')
-                            ->disk('public')
-                            ->helperText('Opsional. Upload file PDF sebagai lampiran jurnal.'),
                     ])
                     ->collapsible(),
 
@@ -638,6 +638,11 @@ class JurnalRekeningAirResource extends Resource
                 Tables\Columns\TextColumn::make('jurnalRekeningAir.no_reff')
                     ->label('No Reff')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('jurnalRekeningAir.keterangan')
+                    ->label('Keterangan')
+                    ->limit(40)
+                    ->wrap(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal')

@@ -11,7 +11,7 @@ class JurnalPemakaianBahanStatsWidget extends BaseWidget
 {
     protected static ?string $pollingInterval = '30s';
     protected static bool $isDiscovered = false;
-    protected int $columns = 5;
+    protected int $columns = 4;
 
     protected function getStats(): array
     {
@@ -37,11 +37,6 @@ class JurnalPemakaianBahanStatsWidget extends BaseWidget
             ->whereMonth('tanggal', date('m'))
             ->count();
 
-        // Belum dikonfirmasi
-        $pending = JurnalPemakaianBahan::where('company_id', $companyId)
-            ->where('is_confirmed', false)
-            ->count();
-
         // Belum diposting
         $notPosted = JurnalPemakaianBahan::where('company_id', $companyId)
             ->where('is_confirmed', true)
@@ -63,11 +58,6 @@ class JurnalPemakaianBahanStatsWidget extends BaseWidget
                 ->description('Transaksi bulan ini')
                 ->descriptionIcon('heroicon-m-clipboard-document-list')
                 ->color('primary'),
-
-            Stat::make('Belum Dikonfirmasi', $pending)
-                ->description($pending > 0 ? 'Perlu konfirmasi' : 'Semua sudah dikonfirmasi')
-                ->descriptionIcon($pending > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
-                ->color($pending > 0 ? 'warning' : 'success'),
 
             Stat::make('Belum Diposting', $notPosted)
                 ->description($notPosted > 0 ? 'Perlu posting ke Buku Besar' : 'Semua sudah diposting')
