@@ -159,74 +159,83 @@ class ViewJurnalBayarKasBank extends ViewRecord
 
                 // Section 2: Detail Transaksi
                 Components\Section::make('Detail Transaksi')
-                    ->description(fn($record) => 'Daftar item pembayaran dari voucher ini')
+                    ->description(fn($record) => 'Total item detail: ' . $record->grouped_items->count())
                     ->schema([
                         Components\RepeatableEntry::make('grouped_items')
-                            ->label('')
+                            ->label(false)
+                            ->grid(1)
                             ->schema([
-                                // Baris 1: Rekening dan Jumlah
-                                Components\Grid::make(3)
+                                Components\Section::make()
                                     ->schema([
-                                        Components\TextEntry::make('rekening.nama_rek')
-                                            ->label('Rekening Tujuan')
-                                            ->formatStateUsing(function ($record) {
-                                                if (!$record->rekening) return '-';
+                                        // Baris 1: Rekening dan Jumlah
+                                        Components\Grid::make(3)
+                                            ->schema([
+                                                Components\TextEntry::make('rekening.nama_rek')
+                                                    ->label('Rekening Tujuan')
+                                                    ->formatStateUsing(function ($record) {
+                                                        if (!$record->rekening) return '-';
 
-                                                $noKel = $record->rekening->kelompok?->no_kel ?? '';
-                                                $noRek = $record->rekening->no_rek ?? '';
-                                                $namaRek = $record->rekening->nama_rek ?? '';
+                                                        $noKel = $record->rekening->kelompok?->no_kel ?? '';
+                                                        $noRek = $record->rekening->no_rek ?? '';
+                                                        $namaRek = $record->rekening->nama_rek ?? '';
 
-                                                return ($noKel ? $noKel . '-' : '') . $noRek . ' - ' . $namaRek;
-                                            })
-                                            ->icon('heroicon-m-inbox-stack')
-                                            ->weight(FontWeight::SemiBold)
-                                            ->color('info')
-                                            ->columnSpan(2),
+                                                        return ($noKel ? $noKel . '-' : '') . $noRek . ' - ' . $namaRek;
+                                                    })
+                                                    ->icon('heroicon-m-inbox-stack')
+                                                    ->weight(FontWeight::SemiBold)
+                                                    ->color('info')
+                                                    ->columnSpan(2),
 
-                                        Components\TextEntry::make('rp')
-                                            ->label('Jumlah')
-                                            ->money('IDR')
-                                            ->weight(FontWeight::Bold)
-                                            ->size(Components\TextEntry\TextEntrySize::Large)
-                                            ->color('warning')
-                                            ->badge()
-                                            ->columnSpan(1),
-                                    ]),
+                                                Components\TextEntry::make('rp')
+                                                    ->label('Nominal')
+                                                    ->money('IDR')
+                                                    ->weight(FontWeight::Bold)
+                                                    ->size(Components\TextEntry\TextEntrySize::Large)
+                                                    ->color('warning')
+                                                    ->badge()
+                                                    ->alignEnd()
+                                                    ->columnSpan(1),
+                                            ]),
 
-                                // Baris 2: Detail tambahan
-                                Components\Grid::make(3)
-                                    ->schema([
-                                        Components\TextEntry::make('nomorBantu.nm_bantu')
-                                            ->label('Nomor Bantu')
+                                        // Baris 2: Detail tambahan
+                                        Components\Grid::make(3)
+                                            ->schema([
+                                                Components\TextEntry::make('nomorBantu.nm_bantu')
+                                                    ->label('Nomor Bantu')
+                                                    ->placeholder('-')
+                                                    ->icon('heroicon-m-hashtag')
+                                                    ->formatStateUsing(function ($record) {
+                                                        if (!$record->nomorBantu) return '-';
+                                                        return $record->nomorBantu->no_bantu . ' - ' . $record->nomorBantu->nm_bantu;
+                                                    }),
+
+                                                Components\TextEntry::make('kodeProyek.name')
+                                                    ->label('Kode Proyek')
+                                                    ->placeholder('-')
+                                                    ->icon('heroicon-m-folder')
+                                                    ->formatStateUsing(function ($record) {
+                                                        if (!$record->kodeProyek) return '-';
+                                                        return $record->kodeProyek->kode . ' - ' . $record->kodeProyek->name;
+                                                    }),
+
+                                                Components\TextEntry::make('item_sequence')
+                                                    ->label('Item Ke-')
+                                                    ->badge()
+                                                    ->color('gray')
+                                                    ->formatStateUsing(fn($state) => '#' . $state),
+                                            ]),
+
+                                        // Baris 3: Keterangan
+                                        Components\TextEntry::make('keterangan')
+                                            ->label('Keterangan')
                                             ->placeholder('-')
-                                            ->icon('heroicon-m-hashtag')
-                                            ->formatStateUsing(function ($record) {
-                                                if (!$record->nomorBantu) return '-';
-                                                return $record->nomorBantu->no_bantu . ' - ' . $record->nomorBantu->nm_bantu;
-                                            }),
-
-                                        Components\TextEntry::make('kodeProyek.name')
-                                            ->label('Kode Proyek')
-                                            ->placeholder('-')
-                                            ->icon('heroicon-m-folder')
-                                            ->formatStateUsing(function ($record) {
-                                                if (!$record->kodeProyek) return '-';
-                                                return $record->kodeProyek->kode . ' - ' . $record->kodeProyek->name;
-                                            }),
-
-                                        Components\TextEntry::make('item_sequence')
-                                            ->label('Item Ke-')
-                                            ->badge()
-                                            ->color('gray')
-                                            ->formatStateUsing(fn($state) => '#' . $state),
-                                    ]),
-
-                                // Baris 3: Keterangan
-                                Components\TextEntry::make('keterangan')
-                                    ->label('Keterangan')
-                                    ->placeholder('-')
-                                    ->icon('heroicon-m-document-text')
-                                    ->columnSpanFull(),
+                                            ->icon('heroicon-m-document-text')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->icon('heroicon-o-receipt-percent')
+                                    ->compact()
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
                             ->contained(true)
                             ->columnSpanFull(),

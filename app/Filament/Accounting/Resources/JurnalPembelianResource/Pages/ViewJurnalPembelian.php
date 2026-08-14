@@ -139,37 +139,51 @@ class ViewJurnalPembelian extends ViewRecord
                     ->collapsible(),
 
                 Components\Section::make('Detail Transaksi')
-                    ->description('Detail item barang/jasa yang dibeli')
+                    ->description(fn($record) => 'Total item detail: ' . ($record->details?->count() ?? 0))
                     ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('details')
-                            ->hiddenLabel()
+                            ->label(false)
                             ->schema([
-                                Components\Grid::make(3)
+                                Components\Section::make()
                                     ->schema([
-                                        Components\TextEntry::make('nama_akun_debit')
-                                            ->label('Kode/Nama Rekening')
-                                            ->formatStateUsing(fn($state, $record) => "[$record->kode_sakep_debit] $state")
-                                            ->weight('medium'),
+                                        Components\Grid::make(4)
+                                            ->schema([
+                                                Components\TextEntry::make('nama_akun_debit')
+                                                    ->label('Kode/Nama Rekening')
+                                                    ->formatStateUsing(fn($state, $record) => "[$record->kode_sakep_debit] $state")
+                                                    ->weight('medium')
+                                                    ->columnSpan(2),
 
-                                        Components\TextEntry::make('kodeProyek.name')
-                                            ->label('Proyek')
-                                            ->placeholder('-')
-                                            ->weight('medium'),
+                                                Components\TextEntry::make('kodeProyek.name')
+                                                    ->label('Proyek')
+                                                    ->placeholder('-')
+                                                    ->weight('medium')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('jumlah')
-                                            ->label('Nominal')
-                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
-                                            ->alignRight()
-                                            ->weight('bold')
-                                            ->color('success'),
+                                                Components\TextEntry::make('jumlah')
+                                                    ->label('Nominal')
+                                                    ->money('IDR')
+                                                    ->alignEnd()
+                                                    ->size('xl')
+                                                    ->weight('bold')
+                                                    ->badge()
+                                                    ->color('success')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('keterangan')
-                                            ->label('Keterangan')
-                                            ->columnSpanFull(),
-                                    ]),
+                                                Components\TextEntry::make('keterangan')
+                                                    ->label('Keterangan')
+                                                    ->placeholder('-')
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ])
+                                    ->icon('heroicon-o-document-text')
+                                            ->compact()
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
                             ->grid(1)
+                            ->contained(true)
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),

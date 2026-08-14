@@ -176,56 +176,70 @@ class ViewJurnalMemorial extends ViewRecord
                     ->collapsible(),
 
                 Components\Section::make('Detail Transaksi')
-                    ->description(fn() => 'Total baris item: ' . ($header?->details?->count() ?? 0))
+                    ->description(fn() => 'Total item detail: ' . ($header?->details?->count() ?? 0))
                     ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('jurnalMemorial.details')
-                            ->hiddenLabel()
+                            ->label(false)
                             ->schema([
-                                Components\Grid::make(3)
+                                Components\Section::make()
                                     ->schema([
-                                        Components\TextEntry::make('kode_akun')
-                                            ->label('Kode/Nama Rekening')
-                                            ->state(function ($record) {
-                                                if (!$record?->rekening) {
-                                                    return '-';
-                                                }
+                                        Components\Grid::make(6)
+                                            ->schema([
+                                                Components\TextEntry::make('kode_akun')
+                                                    ->label('Kode/Nama Rekening')
+                                                    ->state(function ($record) {
+                                                        if (!$record?->rekening) {
+                                                            return '-';
+                                                        }
 
-                                                $noKel = (int) ($record->rekening->kelompok?->no_kel ?? 0);
-                                                $noRek = (int) $record->rekening->no_rek;
-                                                $noBantu = $record->nomorBantu?->no_bantu;
-                                                $kode = $noBantu
-                                                    ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
-                                                    : sprintf('%02d-%04d', $noKel, $noRek);
+                                                        $noKel = (int) ($record->rekening->kelompok?->no_kel ?? 0);
+                                                        $noRek = (int) $record->rekening->no_rek;
+                                                        $noBantu = $record->nomorBantu?->no_bantu;
+                                                        $kode = $noBantu
+                                                            ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
+                                                            : sprintf('%02d-%04d', $noKel, $noRek);
 
-                                                return '[' . $kode . '] ' . ($record->rekening->nama_rek ?? '-');
-                                            })
-                                            ->weight('medium'),
+                                                        return '[' . $kode . '] ' . ($record->rekening->nama_rek ?? '-');
+                                                    })
+                                                    ->weight('medium')
+                                                    ->columnSpan(3),
 
-                                        Components\TextEntry::make('kodeProyek.name')
-                                            ->label('Proyek')
-                                            ->placeholder('-'),
+                                                Components\TextEntry::make('kodeProyek.name')
+                                                    ->label('Proyek')
+                                                    ->placeholder('-')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('jumlah')
-                                            ->label('Nominal')
-                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
-                                            ->alignRight()
-                                            ->weight('bold')
-                                            ->color('success'),
+                                                Components\TextEntry::make('posisi')
+                                                    ->label('Posisi')
+                                                    ->badge()
+                                                    ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
+                                                    ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('posisi')
-                                            ->label('Posisi')
-                                            ->badge()
-                                            ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
-                                            ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit'),
+                                                Components\TextEntry::make('jumlah')
+                                                    ->label('Nominal')
+                                                    ->money('IDR')
+                                                    ->alignEnd()
+                                                    ->size('xl')
+                                                    ->weight('bold')
+                                                    ->badge()
+                                                    ->color('success')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('keterangan')
-                                            ->label('Keterangan')
-                                            ->columnSpanFull()
-                                            ->placeholder('-'),
-                                    ]),
+                                                Components\TextEntry::make('keterangan')
+                                                    ->label('Keterangan')
+                                                    ->columnSpanFull()
+                                                    ->placeholder('-'),
+                                            ]),
+                                    ])
+                                    ->icon('heroicon-o-document-text')
+                                    ->compact()
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
                             ->grid(1)
+                            ->contained(true)
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),

@@ -122,8 +122,9 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                 Infolists\Components\Section::make("Detail Transaksi")
                     ->icon("heroicon-o-table-cells")
                     ->description(function () use ($parentJurnal) {
+                        if (!$parentJurnal) return "Tidak ada detail";
                         $parentJurnal->loadMissing("details");
-                        return "Total sumber: " . $parentJurnal->details->count();
+                        return "Total item detail: " . $parentJurnal->details->count();
                     })
                     ->schema([
                         Infolists\Components\RepeatableEntry::make("jurnalPenerimaanKas.details")
@@ -156,15 +157,18 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                                                 ->placeholder("-")
                                                 ->state(fn($record) => $record->nomorBantu ?
                                                     $record->nomorBantu->no_bantu . " - " .
-                                                    $record->nomorBantu->nm_bantu : "-"),
+                                                    $record->nomorBantu->nm_bantu : "-")
+                                                ->columnSpan(2),
 
                                             Infolists\Components\TextEntry::make("jumlah")
-                                                ->label("Jumlah")
+                                                ->label("Nominal")
                                                 ->money("IDR")
                                                 ->size("xl")
                                                 ->weight("bold")
                                                 ->alignEnd()
-                                                ->color("success"),
+                                                ->badge()
+                                                ->color("success")
+                                                ->columnSpan(2),
 
                                             Infolists\Components\TextEntry::make("keterangan_item")
                                                 ->label("Keterangan")
@@ -172,11 +176,13 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                                                 ->columnSpanFull(),
                                         ]),
                                     ])
+                                    ->compact()
                                     ->collapsible()
                                     ->collapsed(false)
                                     ->icon("heroicon-o-currency-dollar")
                                     ->iconColor("success"),
                             ])
+                                    ->contained(true)
                             ->columnSpanFull(),
                     ]),
 

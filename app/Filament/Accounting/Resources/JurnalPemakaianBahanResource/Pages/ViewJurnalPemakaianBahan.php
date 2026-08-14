@@ -117,7 +117,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                     ->description(function () use ($parentJurnal) {
                         if (!$parentJurnal) return "Tidak ada detail";
                         $parentJurnal->loadMissing("details");
-                        return "Total item: " . $parentJurnal->details->count();
+                        return "Total item detail: " . $parentJurnal->details->count();
                     })
                     ->schema([
                         Infolists\Components\RepeatableEntry::make("jurnalPemakaianBahan.details")
@@ -132,7 +132,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->placeholder("-"),
 
                                             Infolists\Components\TextEntry::make("kodeProyek")
-                                                ->label("Kode Proyek")
+                                                ->label("Proyek")
                                                 ->placeholder("-")
                                                 ->state(fn($record) => $record->kodeProyek ?
                                                     $record->kodeProyek->kode . " - " . $record->kodeProyek->name : "-"),
@@ -144,11 +144,12 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
 
                                             Infolists\Components\TextEntry::make("jumlah")
-                                                ->label("Jumlah")
+                                                ->label("Nominal")
                                                 ->money("IDR")
                                                 ->size("xl")
                                                 ->weight("bold")
                                                 ->alignEnd()
+                                                ->badge()
                                                 ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
                                         ]),
 
@@ -191,11 +192,13 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                             ->placeholder("-")
                                             ->columnSpanFull(),
                                     ])
+                                    ->compact()
                                     ->collapsible()
                                     ->collapsed(false)
                                     ->icon("heroicon-o-wrench-screwdriver")
                                     ->iconColor("warning"),
                             ])
+                                    ->contained(true)
                             ->columnSpanFull(),
                     ]),
 

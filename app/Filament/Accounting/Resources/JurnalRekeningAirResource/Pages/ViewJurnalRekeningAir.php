@@ -117,7 +117,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ->description(function ($record) {
                         $parentJurnal = $record->jurnalRekeningAir;
                         $parentJurnal->loadMissing('details');
-                        return 'Total baris: ' . $parentJurnal->details->count();
+                        return 'Total item detail: ' . $parentJurnal->details->count();
                     })
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('jurnalRekeningAir.details')
@@ -145,15 +145,6 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                     $record->rekening->nama_rek : '-')
                                                 ->columnSpan(3),
 
-                                            // NOMOR BANTU
-                                            Infolists\Components\TextEntry::make('nomorBantu.nm_bantu')
-                                                ->label('Nomor Bantu')
-                                                ->default('-')
-                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                                                    $record->nomorBantu->no_bantu . ' - ' .
-                                                    $record->nomorBantu->nm_bantu : '-')
-                                                ->columnSpan(2),
-
                                             // POSISI D/K (BADGE)
                                             Infolists\Components\TextEntry::make('position')
                                                 ->label('Posisi')
@@ -163,17 +154,28 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                 ->formatStateUsing(fn($state) => $state === 'debit' ? 'DEBIT' : 'KREDIT')
                                                 ->columnSpan(1),
 
+                                            // NOMOR BANTU
+                                            Infolists\Components\TextEntry::make('nomorBantu.nm_bantu')
+                                                ->label('Nomor Bantu')
+                                                ->default('-')
+                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
+                                                    $record->nomorBantu->no_bantu . ' - ' .
+                                                    $record->nomorBantu->nm_bantu : '-')
+                                                ->columnSpan(3),
+
                                             // JUMLAH
                                             Infolists\Components\TextEntry::make('jumlah')
-                                                ->label('')
+                                                ->label('Nominal')
                                                 ->money('IDR')
                                                 ->size('xl')
                                                 ->weight('bold')
                                                 ->alignEnd()
-                                                ->columnSpan(2)
+                                                ->badge()
+                                                ->columnSpan(3)
                                                 ->color(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                                         ]),
                                     ])
+                                    ->compact()
                                     ->collapsible()
                                     ->collapsed(false)
                                     ->description(fn($record) => $record->position === 'debit'
@@ -184,6 +186,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                                         : 'heroicon-o-arrow-down-right')
                                     ->iconColor(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                             ])
+                                    ->contained(true)
                             ->columnSpanFull(),
                     ]),
 
