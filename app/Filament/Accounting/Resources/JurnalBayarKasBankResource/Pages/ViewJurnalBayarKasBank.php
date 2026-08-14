@@ -89,6 +89,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
             ->schema([
                 // Section 1: Informasi Transaksi
                 Components\Section::make('Informasi Transaksi')
+                    ->description('Informasi utama jurnal bayar kas/bank.')
                     ->schema([
                         // Baris 1: No Voucher dan Tanggal
                         Components\Grid::make(3)
@@ -111,7 +112,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                 Components\TextEntry::make('no_reff')
                                     ->label('No. Referensi')
                                     ->badge()
-                                    ->color('gray')
+                                    ->color('primary')
                                     ->columnSpan(1),
                             ]),
 

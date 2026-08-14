@@ -99,7 +99,9 @@ class ViewJurnalPenerimaanKas extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPenerimaanKas.tanggal")
                                 ->label("Tanggal")
-                                ->date("d F Y")
+                                ->date("d/m/Y")
+                                ->badge()
+                                ->color('info')
                                 ->icon("heroicon-m-calendar-days"),
 
                             Infolists\Components\TextEntry::make("kasBank")
@@ -114,7 +116,8 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             ->label("Keterangan")
                             ->columnSpanFull()
                             ->placeholder("-"),
-                    ]),
+                    ])
+                    ->compact(),
 
                 Infolists\Components\Section::make("Detail Sumber Penerimaan")
                     ->icon("heroicon-o-table-cells")

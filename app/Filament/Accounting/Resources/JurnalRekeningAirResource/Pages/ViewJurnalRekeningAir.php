@@ -84,6 +84,8 @@ class ViewJurnalRekeningAir extends ViewRecord
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.no_reff')
                                 ->label('No. Referensi')
                                 ->copyable()
+                                ->badge()
+                                ->color('primary')
                                 ->icon('heroicon-m-hashtag'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.bukti')
@@ -94,7 +96,9 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.tanggal')
                                 ->label('Tanggal')
-                                ->date('d F Y')
+                                ->date('d/m/Y')
+                                ->badge()
+                                ->color('info')
                                 ->icon('heroicon-m-calendar-days'),
                         ]),
 
@@ -102,7 +106,8 @@ class ViewJurnalRekeningAir extends ViewRecord
                             ->label('Keterangan')
                             ->columnSpanFull()
                             ->placeholder('-'),
-                    ]),
+                    ])
+                    ->compact(),
 
                 // ===================== DETAIL TRANSAKSI =====================
                 Infolists\Components\Section::make('Detail Transaksi')

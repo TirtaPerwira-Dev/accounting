@@ -129,7 +129,8 @@ class ViewJurnalMemorial extends ViewRecord
                             ->columnSpanFull()
                             ->placeholder('-'),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->compact(),
 
                 Components\Section::make('Akun Header Memorial')
                     ->description('Akun utama di header transaksi memorial')

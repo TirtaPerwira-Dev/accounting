@@ -114,7 +114,8 @@ class ViewJurnalPembelian extends ViewRecord
                                     ->color('info'),
                             ]),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->compact(),
 
                 Components\Section::make('Akun Hutang/Kredit')
                     ->description('Informasi rekening yang dikreditkan')

@@ -99,7 +99,9 @@ class ViewJurnalPemakaianBahan extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.tanggal")
                                 ->label("Tanggal")
-                                ->date("d F Y")
+                                ->date("d/m/Y")
+                                ->badge()
+                                ->color('info')
                                 ->icon("heroicon-m-calendar-days"),
                         ]),
 
@@ -107,7 +109,8 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                             ->label("Keterangan")
                             ->columnSpanFull()
                             ->placeholder("-"),
-                    ]),
+                    ])
+                    ->compact(),
 
                 Infolists\Components\Section::make("Detail Pemakaian Bahan")
                     ->icon("heroicon-o-table-cells")
@@ -199,7 +202,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                 Infolists\Components\Section::make("Ringkasan Total")
                     ->icon("heroicon-o-calculator")
                     ->schema([
-                        Infolists\Components\Grid::make(2)->schema([
+                        Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("totalDebit")
                                 ->label("Total Debit")
                                 ->state(function () use ($parentJurnal) {
@@ -223,16 +226,14 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 ->color("success")
                                 ->size("xl")
                                 ->weight("bold"),
-                        ]),
-
-                        Infolists\Components\TextEntry::make("balance")
+                            Infolists\Components\TextEntry::make("balance")
                             ->label("Status Balance")
                             ->state(function () use ($parentJurnal) {
                                 if (!$parentJurnal) return "N/A";
                                 $parentJurnal->loadMissing("details");
                                 $debit = $parentJurnal->details->whereNotNull('rekening_debit_id')->sum("jumlah");
                                 $kredit = $parentJurnal->details->whereNotNull('rekening_kredit_id')->sum("jumlah");
-                                return $debit == $kredit ? "✅ Balance (Debit = Kredit)" : "⚠️ Tidak Balance (Selisih: Rp " . number_format(abs($debit - $kredit), 0, ',', '.') . ")";
+                                return $debit == $kredit ? "✅ Balance" : "⚠️ Tidak Balance (Selisih: Rp " . number_format(abs($debit - $kredit), 0, ',', '.') . ")";
                             })
                             ->badge()
                             ->color(function () use ($parentJurnal) {
@@ -242,6 +243,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 $kredit = $parentJurnal->details->whereNotNull('rekening_kredit_id')->sum("jumlah");
                                 return $debit == $kredit ? "success" : "danger";
                             }),
+                        ]),
                     ]),
 
                 Infolists\Components\Section::make("Status & Audit")
