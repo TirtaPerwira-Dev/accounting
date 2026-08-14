@@ -191,25 +191,44 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             ->weight("bold"),
                     ]),
 
-                Infolists\Components\Section::make("Informasi Sistem")
+                Infolists\Components\Section::make("Status & Audit")
                     ->icon("heroicon-o-clock")
                     ->schema([
-                        Infolists\Components\Grid::make(2)->schema([
-                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.created_at")
-                                ->label("Dibuat Pada")
-                                ->dateTime("d F Y H:i"),
+                        Infolists\Components\Grid::make(4)->schema([
+                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.createdBy.name")
+                                ->label("Di Input Oleh")
+                                ->placeholder("-"),
 
-                            Infolists\Components\TextEntry::make("created_at")
-                                ->label("Item Ditambahkan")
+                            Infolists\Components\TextEntry::make("jurnalPenerimaanKas.created_at")
+                                ->label("Di Input Pada")
                                 ->dateTime("d F Y H:i"),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.posted_at')
-                                ->label('Diposting Pada')
+                                ->label('Di Posting Tanggal')
                                 ->dateTime('d F Y H:i')
                                 ->placeholder('Belum diposting'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.postedBy.name')
-                                ->label('Diposting Oleh')
+                                ->label('Di Posting Oleh')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.updated_at')
+                                ->label('Di Edit Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.edit_by_display')
+                                ->label('Di Edit Oleh')
+                                ->state('-')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.deleted_at')
+                                ->label('Di Hapus Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalPenerimaanKas.deletedBy.name')
+                                ->label('Di Hapus Oleh')
                                 ->placeholder('-'),
                         ]),
                     ]),

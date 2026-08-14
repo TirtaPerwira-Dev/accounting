@@ -117,14 +117,6 @@ class ViewJurnalMemorial extends ViewRecord
                                     ->date('d/m/Y')
                                     ->badge()
                                     ->color('info'),
-
-                                Components\IconEntry::make('jurnalMemorial.is_confirmed')
-                                    ->label('Status Konfirmasi')
-                                    ->boolean()
-                                    ->trueIcon('heroicon-o-check-circle')
-                                    ->falseIcon('heroicon-o-clock')
-                                    ->trueColor('success')
-                                    ->falseColor('warning'),
                             ]),
 
                         Components\TextEntry::make('jurnalMemorial.bukti')
@@ -246,6 +238,51 @@ class ViewJurnalMemorial extends ViewRecord
                             ]),
                     ])
                     ->compact(),
+
+                Components\Section::make('Status & Audit')
+                    ->schema([
+                        Components\Grid::make(4)
+                            ->schema([
+                                Components\TextEntry::make('jurnalMemorial.createdBy.name')
+                                    ->label('Di Input Oleh')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.created_at')
+                                    ->label('Di Input Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.posted_at')
+                                    ->label('Di Posting Tanggal')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.postedBy.name')
+                                    ->label('Di Posting Oleh')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.updated_at')
+                                    ->label('Di Edit Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.edit_by_display')
+                                    ->label('Di Edit Oleh')
+                                    ->state('-')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.deleted_at')
+                                    ->label('Di Hapus Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.deletedBy.name')
+                                    ->label('Di Hapus Oleh')
+                                    ->placeholder('-'),
+                            ]),
+                    ])
+                    ->icon('heroicon-o-shield-check')
+                    ->collapsible(),
             ]);
     }
 }

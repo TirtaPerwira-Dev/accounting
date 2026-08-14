@@ -257,23 +257,54 @@ class ViewJurnalBayarKasBank extends ViewRecord
                     ->icon('heroicon-o-list-bullet')
                     ->collapsible(),
 
-                Components\Section::make('Riwayat Input dan Posting')
+                Components\Section::make('Status & Audit')
                     ->schema([
-                        Components\Grid::make(2)
+                        Components\Grid::make(4)
                             ->schema([
                                 Components\TextEntry::make('createdBy.name')
-                                    ->label('Diinput Oleh')
+                                    ->label('Di Input Oleh')
                                     ->placeholder('-')
-                                    ->icon('heroicon-m-user')
-                                    ->badge()
-                                    ->color('gray'),
+                                    ->icon('heroicon-m-user'),
+
+                                Components\TextEntry::make('created_at')
+                                    ->label('Di Input Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-clock'),
+
+                                Components\TextEntry::make('posted_at')
+                                    ->label('Di Posting Tanggal')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-arrow-up-tray'),
 
                                 Components\TextEntry::make('postedBy.name')
-                                    ->label('Diposting Oleh')
+                                    ->label('Di Posting Oleh')
                                     ->placeholder('-')
-                                    ->icon('heroicon-m-user-plus')
-                                    ->badge()
-                                    ->color('info'),
+                                    ->icon('heroicon-m-user-plus'),
+
+                                Components\TextEntry::make('updated_at')
+                                    ->label('Di Edit Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-pencil-square'),
+
+                                Components\TextEntry::make('edit_by_display')
+                                    ->label('Di Edit Oleh')
+                                    ->state('-')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-user-circle'),
+
+                                Components\TextEntry::make('deleted_at')
+                                    ->label('Di Hapus Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-trash'),
+
+                                Components\TextEntry::make('deletedBy.name')
+                                    ->label('Di Hapus Oleh')
+                                    ->placeholder('-')
+                                    ->icon('heroicon-m-user-minus'),
                             ]),
                     ])
                     ->icon('heroicon-o-clock')

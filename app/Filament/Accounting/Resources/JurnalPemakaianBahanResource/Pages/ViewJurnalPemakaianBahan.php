@@ -81,7 +81,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
                     ->schema([
-                        Infolists\Components\Grid::make(4)->schema([
+                        Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.no_reff")
                                 ->label("No. Referensi")
                                 ->copyable()
@@ -100,13 +100,6 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 ->label("Tanggal")
                                 ->date("d F Y")
                                 ->icon("heroicon-m-calendar-days"),
-
-                            Infolists\Components\TextEntry::make("status")
-                                ->label("Status")
-                                ->state(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'Dikonfirmasi' : 'Pending')
-                                ->badge()
-                                ->color(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'success' : 'warning')
-                                ->icon(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'heroicon-m-check-circle' : 'heroicon-m-clock'),
                         ]),
 
                         Infolists\Components\TextEntry::make("jurnalPemakaianBahan.keterangan")
@@ -250,45 +243,55 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                             }),
                     ]),
 
-                Infolists\Components\Section::make("Informasi Sistem")
+                Infolists\Components\Section::make("Status & Audit")
                     ->icon("heroicon-o-clock")
                     ->collapsible()
                     ->collapsed()
                     ->schema([
-                        Infolists\Components\Grid::make(3)->schema([
+                        Infolists\Components\Grid::make(4)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.createdBy.name")
-                                ->label("Dibuat Oleh")
+                                ->label("Di Input Oleh")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-user"),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.created_at")
-                                ->label("Dibuat Pada")
+                                ->label("Di Input Pada")
                                 ->dateTime("d F Y H:i")
                                 ->icon("heroicon-m-clock"),
-
-                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.confirmedBy.name")
-                                ->label("Dikonfirmasi Oleh")
-                                ->placeholder("-")
-                                ->icon("heroicon-m-check-badge"),
-
-                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.confirmed_at")
-                                ->label("Dikonfirmasi Pada")
-                                ->dateTime("d F Y H:i")
-                                ->placeholder("-")
-                                ->icon("heroicon-m-clock"),
-
-                            Infolists\Components\TextEntry::make("isPosted")
-                                ->label("Status Posting")
-                                ->state(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'Sudah Diposting' : 'Belum Diposting')
-                                ->badge()
-                                ->color(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'success' : 'gray')
-                                ->icon(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'heroicon-m-check-badge' : 'heroicon-m-clock'),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.posted_at")
-                                ->label("Diposting Pada")
+                                ->label("Di Posting Tanggal")
                                 ->dateTime("d F Y H:i")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-arrow-up-tray"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.postedBy.name")
+                                ->label("Di Posting Oleh")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-plus"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.updated_at")
+                                ->label("Di Edit Pada")
+                                ->dateTime("d F Y H:i")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-pencil-square"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.edit_by_display")
+                                ->label("Di Edit Oleh")
+                                ->state('-')
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-circle"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deleted_at")
+                                ->label("Di Hapus Pada")
+                                ->dateTime("d F Y H:i")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-clock"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deletedBy.name")
+                                ->label("Di Hapus Oleh")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-minus"),
                         ]),
                     ]),
             ]);

@@ -228,30 +228,42 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ->icon('heroicon-o-shield-check')
                     ->schema([
                         Infolists\Components\Grid::make(4)->schema([
-                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_confirmed')
-                                ->label('Status Konfirmasi')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-clock')
-                                ->trueColor('success')
-                                ->falseColor('warning'),
-
-                            Infolists\Components\TextEntry::make('jurnalRekeningAir.confirmed_at')
-                                ->label('Dikonfirmasi Pada')
-                                ->dateTime('d F Y H:i')
-                                ->placeholder('Belum dikonfirmasi'),
-
-                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_posted')
-                                ->label('Status Posting')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-x-circle')
-                                ->trueColor('success')
-                                ->falseColor('gray'),
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.createdBy.name')
+                                ->label('Di Input Oleh')
+                                ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.created_at')
-                                ->label('Dibuat Pada')
-                                ->dateTime('d F Y H:i'),
+                                ->label('Di Input Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.posted_at')
+                                ->label('Di Posting Tanggal')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.postedBy.name')
+                                ->label('Di Posting Oleh')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.updated_at')
+                                ->label('Di Edit Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.edit_by_display')
+                                ->label('Di Edit Oleh')
+                                ->state('-')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.deleted_at')
+                                ->label('Di Hapus Pada')
+                                ->dateTime('d F Y H:i')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.deletedBy.name')
+                                ->label('Di Hapus Oleh')
+                                ->placeholder('-'),
                         ]),
                     ]),
             ]);
