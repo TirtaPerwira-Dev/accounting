@@ -98,6 +98,7 @@ class ViewJurnalPembelian extends ViewRecord
             ->schema([
                 Components\Section::make('Informasi Jurnal')
                     ->description('Informasi dasar transaksi jurnal pembelian')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
@@ -187,49 +188,59 @@ class ViewJurnalPembelian extends ViewRecord
                     ->compact(),
 
                 Components\Section::make('Status & Audit')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
                     ->schema([
                         Components\Grid::make(4)
                             ->schema([
                                 Components\TextEntry::make('createdBy.name')
                                     ->label('Di Input Oleh')
+                                    ->icon('heroicon-m-user')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('created_at')
                                     ->label('Di Input Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-clock')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('posted_at')
                                     ->label('Di Posting Tanggal')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-arrow-up-tray')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('postedBy.name')
                                     ->label('Di Posting Oleh')
+                                    ->icon('heroicon-m-user-plus')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('updated_at')
                                     ->label('Di Edit Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-pencil-square')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('edit_by_display')
                                     ->label('Di Edit Oleh')
                                     ->state('-')
+                                    ->icon('heroicon-m-user-circle')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('deleted_at')
                                     ->label('Di Hapus Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-trash')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('deletedBy.name')
                                     ->label('Di Hapus Oleh')
+                                    ->icon('heroicon-m-user-minus')
                                     ->placeholder('-'),
                             ]),
                     ])
                     ->icon('heroicon-o-shield-check')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 }

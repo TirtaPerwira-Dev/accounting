@@ -80,6 +80,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
+                    ->description('Informasi utama jurnal pemakaian bahan.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.no_reff")
@@ -244,7 +245,8 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                     ]),
 
                 Infolists\Components\Section::make("Status & Audit")
-                    ->icon("heroicon-o-clock")
+                    ->icon("heroicon-o-shield-check")
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
@@ -256,12 +258,12 @@ class ViewJurnalPemakaianBahan extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.created_at")
                                 ->label("Di Input Pada")
-                                ->dateTime("d F Y H:i")
+                                ->dateTime("d/m/Y H:i")
                                 ->icon("heroicon-m-clock"),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.posted_at")
                                 ->label("Di Posting Tanggal")
-                                ->dateTime("d F Y H:i")
+                                ->dateTime("d/m/Y H:i")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-arrow-up-tray"),
 
@@ -272,7 +274,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.updated_at")
                                 ->label("Di Edit Pada")
-                                ->dateTime("d F Y H:i")
+                                ->dateTime("d/m/Y H:i")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-pencil-square"),
 
@@ -284,7 +286,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deleted_at")
                                 ->label("Di Hapus Pada")
-                                ->dateTime("d F Y H:i")
+                                ->dateTime("d/m/Y H:i")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-clock"),
 

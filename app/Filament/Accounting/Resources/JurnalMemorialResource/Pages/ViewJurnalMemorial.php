@@ -104,6 +104,7 @@ class ViewJurnalMemorial extends ViewRecord
             ->schema([
                 Components\Section::make('Informasi Jurnal')
                     ->description('Informasi dasar transaksi jurnal memorial')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
@@ -240,49 +241,59 @@ class ViewJurnalMemorial extends ViewRecord
                     ->compact(),
 
                 Components\Section::make('Status & Audit')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
                     ->schema([
                         Components\Grid::make(4)
                             ->schema([
                                 Components\TextEntry::make('jurnalMemorial.createdBy.name')
                                     ->label('Di Input Oleh')
+                                    ->icon('heroicon-m-user')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.created_at')
                                     ->label('Di Input Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-clock')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.posted_at')
                                     ->label('Di Posting Tanggal')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-arrow-up-tray')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.postedBy.name')
                                     ->label('Di Posting Oleh')
+                                    ->icon('heroicon-m-user-plus')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.updated_at')
                                     ->label('Di Edit Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-pencil-square')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.edit_by_display')
                                     ->label('Di Edit Oleh')
                                     ->state('-')
+                                    ->icon('heroicon-m-user-circle')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.deleted_at')
                                     ->label('Di Hapus Pada')
                                     ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-trash')
                                     ->placeholder('-'),
 
                                 Components\TextEntry::make('jurnalMemorial.deletedBy.name')
                                     ->label('Di Hapus Oleh')
+                                    ->icon('heroicon-m-user-minus')
                                     ->placeholder('-'),
                             ]),
                     ])
                     ->icon('heroicon-o-shield-check')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 }

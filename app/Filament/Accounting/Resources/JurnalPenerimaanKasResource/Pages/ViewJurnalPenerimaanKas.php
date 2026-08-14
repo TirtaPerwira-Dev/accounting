@@ -87,6 +87,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
+                    ->description('Informasi utama jurnal penerimaan kas/bank.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPenerimaanKas.no_reff")
@@ -192,43 +193,54 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                     ]),
 
                 Infolists\Components\Section::make("Status & Audit")
-                    ->icon("heroicon-o-clock")
+                    ->icon("heroicon-o-shield-check")
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
+                    ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Infolists\Components\Grid::make(4)->schema([
                             Infolists\Components\TextEntry::make("jurnalPenerimaanKas.createdBy.name")
                                 ->label("Di Input Oleh")
+                                ->icon('heroicon-m-user')
                                 ->placeholder("-"),
 
                             Infolists\Components\TextEntry::make("jurnalPenerimaanKas.created_at")
                                 ->label("Di Input Pada")
-                                ->dateTime("d F Y H:i"),
+                                ->dateTime("d/m/Y H:i")
+                                ->icon('heroicon-m-clock'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.posted_at')
                                 ->label('Di Posting Tanggal')
-                                ->dateTime('d F Y H:i')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-arrow-up-tray')
                                 ->placeholder('Belum diposting'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.postedBy.name')
                                 ->label('Di Posting Oleh')
+                                ->icon('heroicon-m-user-plus')
                                 ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.updated_at')
                                 ->label('Di Edit Pada')
-                                ->dateTime('d F Y H:i')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-pencil-square')
                                 ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.edit_by_display')
                                 ->label('Di Edit Oleh')
                                 ->state('-')
+                                ->icon('heroicon-m-user-circle')
                                 ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.deleted_at')
                                 ->label('Di Hapus Pada')
-                                ->dateTime('d F Y H:i')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-trash')
                                 ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalPenerimaanKas.deletedBy.name')
                                 ->label('Di Hapus Oleh')
+                                ->icon('heroicon-m-user-minus')
                                 ->placeholder('-'),
                         ]),
                     ]),

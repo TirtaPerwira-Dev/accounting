@@ -258,6 +258,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                     ->collapsible(),
 
                 Components\Section::make('Status & Audit')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
                     ->schema([
                         Components\Grid::make(4)
                             ->schema([
@@ -307,7 +308,7 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                     ->icon('heroicon-m-user-minus'),
                             ]),
                     ])
-                    ->icon('heroicon-o-clock')
+                    ->icon('heroicon-o-shield-check')
                     ->compact()
                     ->collapsible()
                     ->collapsed(),
