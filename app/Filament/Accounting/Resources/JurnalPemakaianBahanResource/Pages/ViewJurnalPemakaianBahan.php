@@ -80,7 +80,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
-                    ->description('Informasi utama jurnal pemakaian bahan.')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.no_reff")
@@ -112,7 +112,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                     ])
                     ->compact(),
 
-                Infolists\Components\Section::make("Detail Pemakaian Bahan")
+                Infolists\Components\Section::make("Detail Transaksi")
                     ->icon("heroicon-o-table-cells")
                     ->description(function () use ($parentJurnal) {
                         if (!$parentJurnal) return "Tidak ada detail";
@@ -141,7 +141,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->label("D/K")
                                                 ->state(fn($record) => $record->rekening_debit_id ? 'Debit' : ($record->rekening_kredit_id ? 'Kredit' : '-'))
                                                 ->badge()
-                                                ->color(fn($record) => $record->rekening_debit_id ? 'info' : 'success'),
+                                                ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
 
                                             Infolists\Components\TextEntry::make("jumlah")
                                                 ->label("Jumlah")
@@ -149,7 +149,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->size("xl")
                                                 ->weight("bold")
                                                 ->alignEnd()
-                                                ->color(fn($record) => $record->rekening_debit_id ? 'info' : 'success'),
+                                                ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
                                         ]),
 
                                         Infolists\Components\Grid::make(2)->schema([
@@ -199,7 +199,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                             ->columnSpanFull(),
                     ]),
 
-                Infolists\Components\Section::make("Ringkasan Total")
+                Infolists\Components\Section::make("Ringkasan Transaksi")
                     ->icon("heroicon-o-calculator")
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
@@ -290,7 +290,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 ->label("Di Hapus Pada")
                                 ->dateTime("d/m/Y H:i")
                                 ->placeholder("-")
-                                ->icon("heroicon-m-clock"),
+                                ->icon("heroicon-m-trash"),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deletedBy.name")
                                 ->label("Di Hapus Oleh")

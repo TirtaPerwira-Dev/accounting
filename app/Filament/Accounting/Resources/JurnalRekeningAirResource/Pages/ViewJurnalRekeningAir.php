@@ -78,7 +78,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                 // ===================== INFORMASI JURNAL =====================
                 Infolists\Components\Section::make('Informasi Jurnal')
                     ->icon('heroicon-o-document-text')
-                    ->description('Informasi utama jurnal rekening air dan non-air.')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.no_reff')
@@ -90,8 +90,10 @@ class ViewJurnalRekeningAir extends ViewRecord
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.bukti')
                                 ->label('No. Bukti')
-                                ->weight('bold')
                                 ->copyable()
+                                ->badge()
+                                ->color('info')
+                                ->weight('bold')
                                 ->icon('heroicon-m-document-magnifying-glass'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.tanggal')
@@ -186,7 +188,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ]),
 
                 // ===================== RINGKASAN TOTAL =====================
-                Infolists\Components\Section::make('Ringkasan')
+                Infolists\Components\Section::make('Ringkasan Transaksi')
                     ->icon('heroicon-o-calculator')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([

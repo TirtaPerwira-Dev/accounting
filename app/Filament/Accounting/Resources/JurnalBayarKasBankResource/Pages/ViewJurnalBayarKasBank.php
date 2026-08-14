@@ -87,9 +87,9 @@ class ViewJurnalBayarKasBank extends ViewRecord
     {
         return $infolist
             ->schema([
-                // Section 1: Informasi Transaksi
-                Components\Section::make('Informasi Transaksi')
-                    ->description('Informasi utama jurnal bayar kas/bank.')
+                // Section 1: Informasi Jurnal
+                Components\Section::make('Informasi Jurnal')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
                         // Baris 1: No Voucher dan Tanggal
                         Components\Grid::make(3)
@@ -106,13 +106,16 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                     ->label('Tanggal Check')
                                     ->icon('heroicon-m-calendar')
                                     ->date('d/m/Y')
-                                    ->color('success')
+                                    ->badge()
+                                    ->color('info')
                                     ->columnSpan(1),
 
                                 Components\TextEntry::make('no_reff')
                                     ->label('No. Referensi')
+                                    ->copyable()
                                     ->badge()
                                     ->color('primary')
+                                    ->icon('heroicon-m-hashtag')
                                     ->columnSpan(1),
                             ]),
 
@@ -150,12 +153,12 @@ class ViewJurnalBayarKasBank extends ViewRecord
                                     ->columnSpan(1),
                             ]),
                     ])
-                    ->icon('heroicon-o-information-circle')
+                    ->icon('heroicon-o-document-text')
                     ->compact()
                     ->columns(1),
 
-                // Section 2: Rincian Item Pembayaran
-                Components\Section::make('Rincian Item Pembayaran')
+                // Section 2: Detail Transaksi
+                Components\Section::make('Detail Transaksi')
                     ->description(fn($record) => 'Daftar item pembayaran dari voucher ini')
                     ->schema([
                         Components\RepeatableEntry::make('grouped_items')
@@ -228,35 +231,35 @@ class ViewJurnalBayarKasBank extends ViewRecord
                             ->contained(true)
                             ->columnSpanFull(),
 
-                        // Summary di bawah (selalu terlihat)
-                        Components\Section::make('')
-                            ->schema([
-                                Components\Grid::make(2)
-                                    ->schema([
-                                        Components\TextEntry::make('total_items')
-                                            ->label('Total Item')
-                                            ->state(fn($record) => $record->grouped_items->count() . ' Item')
-                                            ->icon('heroicon-m-list-bullet')
-                                            ->badge()
-                                            ->color('info')
-                                            ->size(Components\TextEntry\TextEntrySize::Large)
-                                            ->weight(FontWeight::Bold),
-
-                                        Components\TextEntry::make('grand_total')
-                                            ->label('Total Pembayaran')
-                                            ->state(fn($record) => 'Rp ' . number_format($record->grouped_items->sum('rp'), 0, ',', '.'))
-                                            ->icon('heroicon-m-currency-dollar')
-                                            ->badge()
-                                            ->color('warning')
-                                            ->size(Components\TextEntry\TextEntrySize::Large)
-                                            ->weight(FontWeight::Bold),
-                                    ]),
-                            ])
-                            ->compact()
-                            ->columnSpanFull(),
                     ])
-                    ->icon('heroicon-o-list-bullet')
+                    ->icon('heroicon-o-table-cells')
                     ->collapsible(),
+
+                Components\Section::make('Ringkasan Transaksi')
+                    ->icon('heroicon-o-calculator')
+                    ->schema([
+                        Components\Grid::make(2)
+                            ->schema([
+                                Components\TextEntry::make('total_items')
+                                    ->label('Total Item')
+                                    ->state(fn($record) => $record->grouped_items->count() . ' Item')
+                                    ->icon('heroicon-m-list-bullet')
+                                    ->badge()
+                                    ->color('info')
+                                    ->size(Components\TextEntry\TextEntrySize::Large)
+                                    ->weight(FontWeight::Bold),
+
+                                Components\TextEntry::make('grand_total')
+                                    ->label('Total Pembayaran')
+                                    ->state(fn($record) => 'Rp ' . number_format($record->grouped_items->sum('rp'), 0, ',', '.'))
+                                    ->icon('heroicon-m-currency-dollar')
+                                    ->badge()
+                                    ->color('warning')
+                                    ->size(Components\TextEntry\TextEntrySize::Large)
+                                    ->weight(FontWeight::Bold),
+                            ]),
+                    ])
+                    ->compact(),
 
                 Components\Section::make('Status & Audit')
                     ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')

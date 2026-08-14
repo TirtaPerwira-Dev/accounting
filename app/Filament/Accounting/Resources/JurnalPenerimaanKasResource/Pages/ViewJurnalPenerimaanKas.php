@@ -87,11 +87,11 @@ class ViewJurnalPenerimaanKas extends ViewRecord
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
-                    ->description('Informasi utama jurnal penerimaan kas/bank.')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPenerimaanKas.no_reff")
-                                ->label("Referensi")
+                                ->label("No. Referensi")
                                 ->copyable()
                                 ->badge()
                                 ->color("primary")
@@ -119,7 +119,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                     ])
                     ->compact(),
 
-                Infolists\Components\Section::make("Detail Sumber Penerimaan")
+                Infolists\Components\Section::make("Detail Transaksi")
                     ->icon("heroicon-o-table-cells")
                     ->description(function () use ($parentJurnal) {
                         $parentJurnal->loadMissing("details");
@@ -180,7 +180,7 @@ class ViewJurnalPenerimaanKas extends ViewRecord
                             ->columnSpanFull(),
                     ]),
 
-                Infolists\Components\Section::make("Total Penerimaan")
+                Infolists\Components\Section::make("Ringkasan Transaksi")
                     ->icon("heroicon-o-calculator")
                     ->schema([
                         Infolists\Components\TextEntry::make("total")

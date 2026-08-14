@@ -97,15 +97,17 @@ class ViewJurnalPembelian extends ViewRecord
         return $infolist
             ->schema([
                 Components\Section::make('Informasi Jurnal')
-                    ->description('Informasi dasar transaksi jurnal pembelian')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
                                 Components\TextEntry::make('no_reff')
                                     ->label('No. Referensi')
+                                    ->copyable()
                                     ->badge()
-                                    ->color('primary'),
+                                    ->color('primary')
+                                    ->icon('heroicon-m-hashtag'),
 
                                 Components\TextEntry::make('tanggal')
                                     ->label('Tanggal')
@@ -117,8 +119,9 @@ class ViewJurnalPembelian extends ViewRecord
                     ->collapsible()
                     ->compact(),
 
-                Components\Section::make('Akun Hutang/Kredit')
-                    ->description('Informasi rekening yang dikreditkan')
+                Components\Section::make('Akun Utama')
+                    ->description('Informasi akun utama pada header jurnal.')
+                    ->icon('heroicon-o-building-library')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([
@@ -135,8 +138,9 @@ class ViewJurnalPembelian extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Daftar Item Pembelian')
+                Components\Section::make('Detail Transaksi')
                     ->description('Detail item barang/jasa yang dibeli')
+                    ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('details')
                             ->hiddenLabel()
@@ -170,7 +174,8 @@ class ViewJurnalPembelian extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Total Transaksi')
+                Components\Section::make('Ringkasan Transaksi')
+                    ->icon('heroicon-o-calculator')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([

@@ -103,15 +103,17 @@ class ViewJurnalMemorial extends ViewRecord
         return $infolist
             ->schema([
                 Components\Section::make('Informasi Jurnal')
-                    ->description('Informasi dasar transaksi jurnal memorial')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
                                 Components\TextEntry::make('jurnalMemorial.no_reff')
                                     ->label('No. Referensi')
+                                    ->copyable()
                                     ->badge()
-                                    ->color('primary'),
+                                    ->color('primary')
+                                    ->icon('heroicon-m-hashtag'),
 
                                 Components\TextEntry::make('jurnalMemorial.tanggal')
                                     ->label('Tanggal')
@@ -122,7 +124,10 @@ class ViewJurnalMemorial extends ViewRecord
 
                         Components\TextEntry::make('jurnalMemorial.bukti')
                             ->label('No. Bukti')
-                            ->copyable(),
+                            ->copyable()
+                            ->badge()
+                            ->color('info')
+                            ->icon('heroicon-m-document'),
 
                         Components\TextEntry::make('jurnalMemorial.keterangan')
                             ->label('Keterangan')
@@ -132,8 +137,9 @@ class ViewJurnalMemorial extends ViewRecord
                     ->collapsible()
                     ->compact(),
 
-                Components\Section::make('Akun Header Memorial')
-                    ->description('Akun utama di header transaksi memorial')
+                Components\Section::make('Akun Utama')
+                    ->description('Informasi akun utama pada header jurnal.')
+                    ->icon('heroicon-o-building-library')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
@@ -169,8 +175,9 @@ class ViewJurnalMemorial extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Daftar Item Memorial')
+                Components\Section::make('Detail Transaksi')
                     ->description(fn() => 'Total baris item: ' . ($header?->details?->count() ?? 0))
+                    ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('jurnalMemorial.details')
                             ->hiddenLabel()
@@ -223,7 +230,8 @@ class ViewJurnalMemorial extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Total Transaksi')
+                Components\Section::make('Ringkasan Transaksi')
+                    ->icon('heroicon-o-calculator')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([
