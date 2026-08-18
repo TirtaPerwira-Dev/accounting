@@ -14,12 +14,12 @@ class JurnalBayarKasBankStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $companyId = auth()->user()?->company_id ?? 1;
-        $baseQuery = JurnalBayarKasBank::where('company_id', $companyId);
+        $baseQuery = fn() => JurnalBayarKasBank::query()->where('company_id', $companyId);
 
-        $thisMonth = $baseQuery->whereYear('tanggal', date('Y'))->whereMonth('tanggal', date('m'));
+        $thisMonth = $baseQuery()->whereYear('tanggal', date('Y'))->whereMonth('tanggal', date('m'));
         $totalThisMonth = $thisMonth->sum('rp');
         $countThisMonth = $thisMonth->count();
-        $pending = $baseQuery->where('is_confirmed', false)->count();
+        $pending = $baseQuery()->where('is_posted', false)->count();
 
         return [
             Stat::make('Total Bayar Kas/Bank Bulan Ini', 'Rp ' . number_format($totalThisMonth, 0, ',', '.'))
@@ -32,8 +32,8 @@ class JurnalBayarKasBankStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-clipboard-document-list')
                 ->color('info'),
 
-            Stat::make('Belum Dikonfirmasi', $pending)
-                ->description($pending > 0 ? 'Perlu konfirmasi' : 'Semua sudah dikonfirmasi')
+            Stat::make('Belum Diposting', $pending)
+                ->description($pending > 0 ? 'Perlu posting ke Buku Besar' : 'Semua sudah diposting')
                 ->descriptionIcon($pending > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
                 ->color($pending > 0 ? 'warning' : 'success'),
         ];

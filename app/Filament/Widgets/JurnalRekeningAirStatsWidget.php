@@ -35,7 +35,11 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
             ->whereMonth('tanggal', date('m'))
             ->count();
 
-        $totalTahunan = JurnalRekeningAirDetail::query()
+        $totalTahunanTransaksi = $headerQuery()
+            ->whereYear('tanggal', date('Y'))
+            ->count();
+
+        $totalTahunanItem = JurnalRekeningAirDetail::query()
             ->whereHas('jurnalRekeningAir', function ($query) use ($companyId) {
                 $query->where('company_id', $companyId)
                     ->whereYear('tanggal', date('Y'));
@@ -65,7 +69,7 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-scale')
                 ->color('primary'),
 
-            Stat::make('Transaksi Bulan/Tahun', number_format((float) $totalBulanan, 0, ',', '.') . ' / ' . number_format((float) $totalTahunan, 0, ',', '.') . ' transaksi')
+            Stat::make('Transaksi Bulan/Tahun', number_format((float) $totalBulanan, 0, ',', '.') . ' / ' . number_format((float) $totalTahunanTransaksi, 0, ',', '.') . ' transaksi')
                 ->description('Bulan berjalan dibanding total tahun ini')
                 ->descriptionIcon('heroicon-m-clipboard-document-list')
                 ->color('info'),
@@ -75,7 +79,7 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-calculator')
                 ->color('success'),
 
-            Stat::make('Status Posting', number_format((float) $totalTahunan, 0, ',', '.') . ' / ' . number_format((float) $totalUnpostedTahunan, 0, ',', '.'))
+            Stat::make('Status Posting', number_format((float) $totalTahunanItem, 0, ',', '.') . ' / ' . number_format((float) $totalUnpostedTahunan, 0, ',', '.'))
                 ->description('Item Tahunan Terinput / Item Belum Diposting')
                 ->descriptionIcon($totalUnpostedTahunan > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
                 ->color($totalUnpostedTahunan > 0 ? 'warning' : 'success'),
