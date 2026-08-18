@@ -49,7 +49,7 @@
                 };
                 
                 $indexUrl = $resource ? $resource::getUrl('index', [
-                    'tableFilters[is_posted][value]' => '0',
+                    'tableFilters[is_posted][value]' => $action === 'post' ? '0' : '1',
                 ], panel: 'accounting') : '#';
             @endphp
 

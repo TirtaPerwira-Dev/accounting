@@ -27,6 +27,28 @@ class JurnalKoreksiResource extends Resource
 
     protected static ?string $slug = 'jurnal-koreksi';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return '0';
+        }
+
+        $companyId = (int) ($user->company_id ?? 1);
+
+        return (string) static::getModel()::query()
+            ->where('company_id', $companyId)
+            ->where('keterangan', 'like', '[KOREKSI]%')
+            ->where('is_posted', false)
+            ->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getNavigationBadge() > 0 ? 'warning' : 'success';
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()

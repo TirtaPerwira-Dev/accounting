@@ -35,11 +35,11 @@
                                     </button>
                                 </div>
                                 <div class="grid gap-3">
-                                    @foreach($data['unposted'] as $record)
+                                    @foreach($data['records'] as $record)
                                         @include('livewire.notification-item', [
                                             'record' => $record,
                                             'type' => $type,
-                                            'action' => 'post',
+                                            'action' => $data['action'] ?? 'post',
                                             'canAct' => $data['can_post'] ?? false,
                                         ])
                                     @endforeach
@@ -137,6 +137,9 @@
                                 </div>
                             </div>
                         @endforeach
+                        <a href="{{ \App\Filament\Accounting\Resources\AuthenticationLogResource::getUrl(panel: 'accounting') }}" class="block p-2 text-center text-xs font-semibold text-primary-600 hover:underline">
+                            View all security logs
+                        </a>
                     </div>
                 </div>
             @endif

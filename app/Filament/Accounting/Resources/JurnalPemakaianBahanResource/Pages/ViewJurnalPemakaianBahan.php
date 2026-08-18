@@ -80,8 +80,9 @@ class ViewJurnalPemakaianBahan extends ViewRecord
             ->schema([
                 Infolists\Components\Section::make("Informasi Jurnal")
                     ->icon("heroicon-o-document-text")
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
-                        Infolists\Components\Grid::make(4)->schema([
+                        Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.no_reff")
                                 ->label("No. Referensi")
                                 ->copyable()
@@ -98,29 +99,25 @@ class ViewJurnalPemakaianBahan extends ViewRecord
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.tanggal")
                                 ->label("Tanggal")
-                                ->date("d F Y")
-                                ->icon("heroicon-m-calendar-days"),
-
-                            Infolists\Components\TextEntry::make("status")
-                                ->label("Status")
-                                ->state(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'Dikonfirmasi' : 'Pending')
+                                ->date("d/m/Y")
                                 ->badge()
-                                ->color(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'success' : 'warning')
-                                ->icon(fn($record) => $record->jurnalPemakaianBahan?->is_confirmed ? 'heroicon-m-check-circle' : 'heroicon-m-clock'),
+                                ->color('info')
+                                ->icon("heroicon-m-calendar-days"),
                         ]),
 
                         Infolists\Components\TextEntry::make("jurnalPemakaianBahan.keterangan")
                             ->label("Keterangan")
                             ->columnSpanFull()
                             ->placeholder("-"),
-                    ]),
+                    ])
+                    ->compact(),
 
-                Infolists\Components\Section::make("Detail Pemakaian Bahan")
+                Infolists\Components\Section::make("Detail Transaksi")
                     ->icon("heroicon-o-table-cells")
                     ->description(function () use ($parentJurnal) {
                         if (!$parentJurnal) return "Tidak ada detail";
                         $parentJurnal->loadMissing("details");
-                        return "Total item: " . $parentJurnal->details->count();
+                        return "Total item detail: " . $parentJurnal->details->count();
                     })
                     ->schema([
                         Infolists\Components\RepeatableEntry::make("jurnalPemakaianBahan.details")
@@ -135,7 +132,7 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->placeholder("-"),
 
                                             Infolists\Components\TextEntry::make("kodeProyek")
-                                                ->label("Kode Proyek")
+                                                ->label("Proyek")
                                                 ->placeholder("-")
                                                 ->state(fn($record) => $record->kodeProyek ?
                                                     $record->kodeProyek->kode . " - " . $record->kodeProyek->name : "-"),
@@ -144,15 +141,16 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                                 ->label("D/K")
                                                 ->state(fn($record) => $record->rekening_debit_id ? 'Debit' : ($record->rekening_kredit_id ? 'Kredit' : '-'))
                                                 ->badge()
-                                                ->color(fn($record) => $record->rekening_debit_id ? 'info' : 'success'),
+                                                ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
 
                                             Infolists\Components\TextEntry::make("jumlah")
-                                                ->label("Jumlah")
+                                                ->label("Nominal")
                                                 ->money("IDR")
                                                 ->size("xl")
                                                 ->weight("bold")
                                                 ->alignEnd()
-                                                ->color(fn($record) => $record->rekening_debit_id ? 'info' : 'success'),
+                                                ->badge()
+                                                ->color(fn($record) => $record->rekening_debit_id ? 'danger' : 'success'),
                                         ]),
 
                                         Infolists\Components\Grid::make(2)->schema([
@@ -194,18 +192,20 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                             ->placeholder("-")
                                             ->columnSpanFull(),
                                     ])
+                                    ->compact()
                                     ->collapsible()
                                     ->collapsed(false)
                                     ->icon("heroicon-o-wrench-screwdriver")
                                     ->iconColor("warning"),
                             ])
+                                    ->contained(true)
                             ->columnSpanFull(),
                     ]),
 
-                Infolists\Components\Section::make("Ringkasan Total")
+                Infolists\Components\Section::make("Ringkasan Transaksi")
                     ->icon("heroicon-o-calculator")
                     ->schema([
-                        Infolists\Components\Grid::make(2)->schema([
+                        Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make("totalDebit")
                                 ->label("Total Debit")
                                 ->state(function () use ($parentJurnal) {
@@ -229,16 +229,14 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 ->color("success")
                                 ->size("xl")
                                 ->weight("bold"),
-                        ]),
-
-                        Infolists\Components\TextEntry::make("balance")
+                            Infolists\Components\TextEntry::make("balance")
                             ->label("Status Balance")
                             ->state(function () use ($parentJurnal) {
                                 if (!$parentJurnal) return "N/A";
                                 $parentJurnal->loadMissing("details");
                                 $debit = $parentJurnal->details->whereNotNull('rekening_debit_id')->sum("jumlah");
                                 $kredit = $parentJurnal->details->whereNotNull('rekening_kredit_id')->sum("jumlah");
-                                return $debit == $kredit ? "✅ Balance (Debit = Kredit)" : "⚠️ Tidak Balance (Selisih: Rp " . number_format(abs($debit - $kredit), 0, ',', '.') . ")";
+                                return $debit == $kredit ? "✅ Balance" : "⚠️ Tidak Balance (Selisih: Rp " . number_format(abs($debit - $kredit), 0, ',', '.') . ")";
                             })
                             ->badge()
                             ->color(function () use ($parentJurnal) {
@@ -248,47 +246,59 @@ class ViewJurnalPemakaianBahan extends ViewRecord
                                 $kredit = $parentJurnal->details->whereNotNull('rekening_kredit_id')->sum("jumlah");
                                 return $debit == $kredit ? "success" : "danger";
                             }),
+                        ]),
                     ]),
 
-                Infolists\Components\Section::make("Informasi Sistem")
-                    ->icon("heroicon-o-clock")
+                Infolists\Components\Section::make("Status & Audit")
+                    ->icon("heroicon-o-shield-check")
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
-                        Infolists\Components\Grid::make(3)->schema([
+                        Infolists\Components\Grid::make(4)->schema([
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.createdBy.name")
-                                ->label("Dibuat Oleh")
+                                ->label("Di Input Oleh")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-user"),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.created_at")
-                                ->label("Dibuat Pada")
-                                ->dateTime("d F Y H:i")
+                                ->label("Di Input Pada")
+                                ->dateTime("d/m/Y H:i")
                                 ->icon("heroicon-m-clock"),
-
-                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.confirmedBy.name")
-                                ->label("Dikonfirmasi Oleh")
-                                ->placeholder("-")
-                                ->icon("heroicon-m-check-badge"),
-
-                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.confirmed_at")
-                                ->label("Dikonfirmasi Pada")
-                                ->dateTime("d F Y H:i")
-                                ->placeholder("-")
-                                ->icon("heroicon-m-clock"),
-
-                            Infolists\Components\TextEntry::make("isPosted")
-                                ->label("Status Posting")
-                                ->state(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'Sudah Diposting' : 'Belum Diposting')
-                                ->badge()
-                                ->color(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'success' : 'gray')
-                                ->icon(fn($record) => $record->jurnalPemakaianBahan?->is_posted ? 'heroicon-m-check-badge' : 'heroicon-m-clock'),
 
                             Infolists\Components\TextEntry::make("jurnalPemakaianBahan.posted_at")
-                                ->label("Diposting Pada")
-                                ->dateTime("d F Y H:i")
+                                ->label("Di Posting Tanggal")
+                                ->dateTime("d/m/Y H:i")
                                 ->placeholder("-")
                                 ->icon("heroicon-m-arrow-up-tray"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.postedBy.name")
+                                ->label("Di Posting Oleh")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-plus"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.updated_at")
+                                ->label("Di Edit Pada")
+                                ->dateTime("d/m/Y H:i")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-pencil-square"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.edit_by_display")
+                                ->label("Di Edit Oleh")
+                                ->state('-')
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-circle"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deleted_at")
+                                ->label("Di Hapus Pada")
+                                ->dateTime("d/m/Y H:i")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-trash"),
+
+                            Infolists\Components\TextEntry::make("jurnalPemakaianBahan.deletedBy.name")
+                                ->label("Di Hapus Oleh")
+                                ->placeholder("-")
+                                ->icon("heroicon-m-user-minus"),
                         ]),
                     ]),
             ]);

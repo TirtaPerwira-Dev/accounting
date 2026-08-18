@@ -38,7 +38,20 @@ class JurnalMemorialResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalMemorial::where('is_posted', 0)->count();
+        $user = auth()->user();
+
+        if (!$user) {
+            return '0';
+        }
+
+        $companyId = (int) ($user->company_id ?? 1);
+
+        return (string) static::getModel()::query()
+            ->whereHas('jurnalMemorial', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId)
+                    ->where('is_posted', false);
+            })
+            ->count();
     }
 
     public static function getNavigationBadgeColor(): ?string

@@ -78,22 +78,29 @@ class ViewJurnalRekeningAir extends ViewRecord
                 // ===================== INFORMASI JURNAL =====================
                 Infolists\Components\Section::make('Informasi Jurnal')
                     ->icon('heroicon-o-document-text')
+                    ->description('Informasi utama dokumen jurnal.')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.no_reff')
                                 ->label('No. Referensi')
                                 ->copyable()
+                                ->badge()
+                                ->color('primary')
                                 ->icon('heroicon-m-hashtag'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.bukti')
                                 ->label('No. Bukti')
-                                ->weight('bold')
                                 ->copyable()
+                                ->badge()
+                                ->color('info')
+                                ->weight('bold')
                                 ->icon('heroicon-m-document-magnifying-glass'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.tanggal')
                                 ->label('Tanggal')
-                                ->date('d F Y')
+                                ->date('d/m/Y')
+                                ->badge()
+                                ->color('info')
                                 ->icon('heroicon-m-calendar-days'),
                         ]),
 
@@ -101,7 +108,8 @@ class ViewJurnalRekeningAir extends ViewRecord
                             ->label('Keterangan')
                             ->columnSpanFull()
                             ->placeholder('-'),
-                    ]),
+                    ])
+                    ->compact(),
 
                 // ===================== DETAIL TRANSAKSI =====================
                 Infolists\Components\Section::make('Detail Transaksi')
@@ -109,7 +117,7 @@ class ViewJurnalRekeningAir extends ViewRecord
                     ->description(function ($record) {
                         $parentJurnal = $record->jurnalRekeningAir;
                         $parentJurnal->loadMissing('details');
-                        return 'Total baris: ' . $parentJurnal->details->count();
+                        return 'Total item detail: ' . $parentJurnal->details->count();
                     })
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('jurnalRekeningAir.details')
@@ -137,15 +145,6 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                     $record->rekening->nama_rek : '-')
                                                 ->columnSpan(3),
 
-                                            // NOMOR BANTU
-                                            Infolists\Components\TextEntry::make('nomorBantu.nm_bantu')
-                                                ->label('Nomor Bantu')
-                                                ->default('-')
-                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
-                                                    $record->nomorBantu->no_bantu . ' - ' .
-                                                    $record->nomorBantu->nm_bantu : '-')
-                                                ->columnSpan(2),
-
                                             // POSISI D/K (BADGE)
                                             Infolists\Components\TextEntry::make('position')
                                                 ->label('Posisi')
@@ -155,17 +154,28 @@ class ViewJurnalRekeningAir extends ViewRecord
                                                 ->formatStateUsing(fn($state) => $state === 'debit' ? 'DEBIT' : 'KREDIT')
                                                 ->columnSpan(1),
 
+                                            // NOMOR BANTU
+                                            Infolists\Components\TextEntry::make('nomorBantu.nm_bantu')
+                                                ->label('Nomor Bantu')
+                                                ->default('-')
+                                                ->formatStateUsing(fn($record) => $record->nomorBantu ?
+                                                    $record->nomorBantu->no_bantu . ' - ' .
+                                                    $record->nomorBantu->nm_bantu : '-')
+                                                ->columnSpan(3),
+
                                             // JUMLAH
                                             Infolists\Components\TextEntry::make('jumlah')
-                                                ->label('')
+                                                ->label('Nominal')
                                                 ->money('IDR')
                                                 ->size('xl')
                                                 ->weight('bold')
                                                 ->alignEnd()
-                                                ->columnSpan(2)
+                                                ->badge()
+                                                ->columnSpan(3)
                                                 ->color(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                                         ]),
                                     ])
+                                    ->compact()
                                     ->collapsible()
                                     ->collapsed(false)
                                     ->description(fn($record) => $record->position === 'debit'
@@ -176,11 +186,12 @@ class ViewJurnalRekeningAir extends ViewRecord
                                         : 'heroicon-o-arrow-down-right')
                                     ->iconColor(fn($record) => $record->position === 'debit' ? 'danger' : 'success'),
                             ])
+                                    ->contained(true)
                             ->columnSpanFull(),
                     ]),
 
                 // ===================== RINGKASAN TOTAL =====================
-                Infolists\Components\Section::make('Ringkasan')
+                Infolists\Components\Section::make('Ringkasan Transaksi')
                     ->icon('heroicon-o-calculator')
                     ->schema([
                         Infolists\Components\Grid::make(3)->schema([
@@ -226,32 +237,55 @@ class ViewJurnalRekeningAir extends ViewRecord
                 // ===================== STATUS & AUDIT =====================
                 Infolists\Components\Section::make('Status & Audit')
                     ->icon('heroicon-o-shield-check')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
+                    ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Infolists\Components\Grid::make(4)->schema([
-                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_confirmed')
-                                ->label('Status Konfirmasi')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-clock')
-                                ->trueColor('success')
-                                ->falseColor('warning'),
-
-                            Infolists\Components\TextEntry::make('jurnalRekeningAir.confirmed_at')
-                                ->label('Dikonfirmasi Pada')
-                                ->dateTime('d F Y H:i')
-                                ->placeholder('Belum dikonfirmasi'),
-
-                            Infolists\Components\IconEntry::make('jurnalRekeningAir.is_posted')
-                                ->label('Status Posting')
-                                ->boolean()
-                                ->trueIcon('heroicon-o-check-badge')
-                                ->falseIcon('heroicon-o-x-circle')
-                                ->trueColor('success')
-                                ->falseColor('gray'),
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.createdBy.name')
+                                ->label('Di Input Oleh')
+                                ->icon('heroicon-m-user')
+                                ->placeholder('-'),
 
                             Infolists\Components\TextEntry::make('jurnalRekeningAir.created_at')
-                                ->label('Dibuat Pada')
-                                ->dateTime('d F Y H:i'),
+                                ->label('Di Input Pada')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-clock')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.posted_at')
+                                ->label('Di Posting Tanggal')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-arrow-up-tray')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.postedBy.name')
+                                ->label('Di Posting Oleh')
+                                ->icon('heroicon-m-user-plus')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.updated_at')
+                                ->label('Di Edit Pada')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-pencil-square')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.edit_by_display')
+                                ->label('Di Edit Oleh')
+                                ->state('-')
+                                ->icon('heroicon-m-user-circle')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.deleted_at')
+                                ->label('Di Hapus Pada')
+                                ->dateTime('d/m/Y H:i')
+                                ->icon('heroicon-m-trash')
+                                ->placeholder('-'),
+
+                            Infolists\Components\TextEntry::make('jurnalRekeningAir.deletedBy.name')
+                                ->label('Di Hapus Oleh')
+                                ->icon('heroicon-m-user-minus')
+                                ->placeholder('-'),
                         ]),
                     ]),
             ]);

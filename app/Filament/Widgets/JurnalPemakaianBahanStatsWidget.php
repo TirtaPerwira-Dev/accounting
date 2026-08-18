@@ -38,9 +38,10 @@ class JurnalPemakaianBahanStatsWidget extends BaseWidget
             ->count();
 
         // Belum diposting
-        $notPosted = JurnalPemakaianBahan::where('company_id', $companyId)
-            ->where('is_confirmed', true)
-            ->where('is_posted', false)
+        $notPosted = JurnalPemakaianBahanDetail::whereHas('jurnalPemakaianBahan', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId)
+                ->where('is_posted', false);
+        })
             ->count();
 
         return [

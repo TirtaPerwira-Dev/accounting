@@ -103,43 +103,43 @@ class ViewJurnalMemorial extends ViewRecord
         return $infolist
             ->schema([
                 Components\Section::make('Informasi Jurnal')
-                    ->description('Informasi dasar transaksi jurnal memorial')
+                    ->description('Informasi utama dokumen jurnal.')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
                                 Components\TextEntry::make('jurnalMemorial.no_reff')
                                     ->label('No. Referensi')
+                                    ->copyable()
                                     ->badge()
-                                    ->color('primary'),
+                                    ->color('primary')
+                                    ->icon('heroicon-m-hashtag'),
 
                                 Components\TextEntry::make('jurnalMemorial.tanggal')
                                     ->label('Tanggal')
                                     ->date('d/m/Y')
                                     ->badge()
                                     ->color('info'),
-
-                                Components\IconEntry::make('jurnalMemorial.is_confirmed')
-                                    ->label('Status Konfirmasi')
-                                    ->boolean()
-                                    ->trueIcon('heroicon-o-check-circle')
-                                    ->falseIcon('heroicon-o-clock')
-                                    ->trueColor('success')
-                                    ->falseColor('warning'),
                             ]),
 
                         Components\TextEntry::make('jurnalMemorial.bukti')
                             ->label('No. Bukti')
-                            ->copyable(),
+                            ->copyable()
+                            ->badge()
+                            ->color('info')
+                            ->icon('heroicon-m-document'),
 
                         Components\TextEntry::make('jurnalMemorial.keterangan')
                             ->label('Keterangan')
                             ->columnSpanFull()
                             ->placeholder('-'),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->compact(),
 
-                Components\Section::make('Akun Header Memorial')
-                    ->description('Akun utama di header transaksi memorial')
+                Components\Section::make('Akun Utama')
+                    ->description('Informasi akun utama pada header jurnal.')
+                    ->icon('heroicon-o-building-library')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
@@ -175,61 +175,77 @@ class ViewJurnalMemorial extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Daftar Item Memorial')
-                    ->description(fn() => 'Total baris item: ' . ($header?->details?->count() ?? 0))
+                Components\Section::make('Detail Transaksi')
+                    ->description(fn() => 'Total item detail: ' . ($header?->details?->count() ?? 0))
+                    ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('jurnalMemorial.details')
-                            ->hiddenLabel()
+                            ->label(false)
                             ->schema([
-                                Components\Grid::make(3)
+                                Components\Section::make()
                                     ->schema([
-                                        Components\TextEntry::make('kode_akun')
-                                            ->label('Kode/Nama Rekening')
-                                            ->state(function ($record) {
-                                                if (!$record?->rekening) {
-                                                    return '-';
-                                                }
+                                        Components\Grid::make(6)
+                                            ->schema([
+                                                Components\TextEntry::make('kode_akun')
+                                                    ->label('Kode/Nama Rekening')
+                                                    ->state(function ($record) {
+                                                        if (!$record?->rekening) {
+                                                            return '-';
+                                                        }
 
-                                                $noKel = (int) ($record->rekening->kelompok?->no_kel ?? 0);
-                                                $noRek = (int) $record->rekening->no_rek;
-                                                $noBantu = $record->nomorBantu?->no_bantu;
-                                                $kode = $noBantu
-                                                    ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
-                                                    : sprintf('%02d-%04d', $noKel, $noRek);
+                                                        $noKel = (int) ($record->rekening->kelompok?->no_kel ?? 0);
+                                                        $noRek = (int) $record->rekening->no_rek;
+                                                        $noBantu = $record->nomorBantu?->no_bantu;
+                                                        $kode = $noBantu
+                                                            ? sprintf('%02d-%04d-%s', $noKel, $noRek, $noBantu)
+                                                            : sprintf('%02d-%04d', $noKel, $noRek);
 
-                                                return '[' . $kode . '] ' . ($record->rekening->nama_rek ?? '-');
-                                            })
-                                            ->weight('medium'),
+                                                        return '[' . $kode . '] ' . ($record->rekening->nama_rek ?? '-');
+                                                    })
+                                                    ->weight('medium')
+                                                    ->columnSpan(3),
 
-                                        Components\TextEntry::make('kodeProyek.name')
-                                            ->label('Proyek')
-                                            ->placeholder('-'),
+                                                Components\TextEntry::make('kodeProyek.name')
+                                                    ->label('Proyek')
+                                                    ->placeholder('-')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('jumlah')
-                                            ->label('Nominal')
-                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
-                                            ->alignRight()
-                                            ->weight('bold')
-                                            ->color('success'),
+                                                Components\TextEntry::make('posisi')
+                                                    ->label('Posisi')
+                                                    ->badge()
+                                                    ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
+                                                    ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('posisi')
-                                            ->label('Posisi')
-                                            ->badge()
-                                            ->color(fn($state) => $state === 'D' ? 'danger' : 'success')
-                                            ->formatStateUsing(fn($state) => $state === 'D' ? 'Debit' : 'Kredit'),
+                                                Components\TextEntry::make('jumlah')
+                                                    ->label('Nominal')
+                                                    ->money('IDR')
+                                                    ->alignEnd()
+                                                    ->size('xl')
+                                                    ->weight('bold')
+                                                    ->badge()
+                                                    ->color('success')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('keterangan')
-                                            ->label('Keterangan')
-                                            ->columnSpanFull()
-                                            ->placeholder('-'),
-                                    ]),
+                                                Components\TextEntry::make('keterangan')
+                                                    ->label('Keterangan')
+                                                    ->columnSpanFull()
+                                                    ->placeholder('-'),
+                                            ]),
+                                    ])
+                                    ->icon('heroicon-o-document-text')
+                                    ->compact()
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
                             ->grid(1)
+                            ->contained(true)
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Total Transaksi')
+                Components\Section::make('Ringkasan Transaksi')
+                    ->icon('heroicon-o-calculator')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([
@@ -246,6 +262,61 @@ class ViewJurnalMemorial extends ViewRecord
                             ]),
                     ])
                     ->compact(),
+
+                Components\Section::make('Status & Audit')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
+                    ->schema([
+                        Components\Grid::make(4)
+                            ->schema([
+                                Components\TextEntry::make('jurnalMemorial.createdBy.name')
+                                    ->label('Di Input Oleh')
+                                    ->icon('heroicon-m-user')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.created_at')
+                                    ->label('Di Input Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-clock')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.posted_at')
+                                    ->label('Di Posting Tanggal')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-arrow-up-tray')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.postedBy.name')
+                                    ->label('Di Posting Oleh')
+                                    ->icon('heroicon-m-user-plus')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.updated_at')
+                                    ->label('Di Edit Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-pencil-square')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.edit_by_display')
+                                    ->label('Di Edit Oleh')
+                                    ->state('-')
+                                    ->icon('heroicon-m-user-circle')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.deleted_at')
+                                    ->label('Di Hapus Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-trash')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('jurnalMemorial.deletedBy.name')
+                                    ->label('Di Hapus Oleh')
+                                    ->icon('heroicon-m-user-minus')
+                                    ->placeholder('-'),
+                            ]),
+                    ])
+                    ->icon('heroicon-o-shield-check')
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 }

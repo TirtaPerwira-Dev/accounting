@@ -11,22 +11,37 @@ class JurnalPembelianStatsWidget extends BaseWidget
 {
     protected function getStats(): array
     {
+        $companyId = auth()->user()?->company_id ?? 1;
         $today = Carbon::today();
-        $thisMonth = Carbon::now()->startOfMonth();
-
         // Total transaksi hari ini
-        $todayCount = JurnalPembelian::whereDate('tanggal', $today)->count();
+        $todayCount = JurnalPembelian::query()
+            ->where('company_id', $companyId)
+            ->whereDate('tanggal', $today)
+            ->count();
 
         // Total transaksi bulan ini
-        $monthCount = JurnalPembelian::where('tanggal', '>=', $thisMonth)->count();
+        $monthCount = JurnalPembelian::query()
+            ->where('company_id', $companyId)
+            ->whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->count();
 
         // Total uang bulan ini
-        $monthTotal = JurnalPembelian::where('tanggal', '>=', $thisMonth)
+        $monthTotal = JurnalPembelian::query()
+            ->where('company_id', $companyId)
+            ->whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
             ->sum('rp');
 
-        // Transaksi belum dikonfirmasi
-        $pendingCount = JurnalPembelian::where('is_confirmed', false)->count();
-        $pendingTotal = JurnalPembelian::where('is_confirmed', false)->sum('rp');
+        // Baris transaksi belum diposting
+        $pendingCount = JurnalPembelian::query()
+            ->where('company_id', $companyId)
+            ->where('is_posted', false)
+            ->count();
+        $pendingTotal = JurnalPembelian::query()
+            ->where('company_id', $companyId)
+            ->where('is_posted', false)
+            ->sum('rp');
 
         return [
             Stat::make('Transaksi Hari Ini', $todayCount)
@@ -47,7 +62,7 @@ class JurnalPembelianStatsWidget extends BaseWidget
                 ->chart([10, 20, 15, 35, 25, 40, 50])
                 ->color('warning'),
 
-            Stat::make('Belum Dikonfirmasi', $pendingCount)
+            Stat::make('Belum Diposting', $pendingCount)
                 ->description('Nilai: Rp ' . number_format($pendingTotal, 0, ',', '.'))
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color('danger'),

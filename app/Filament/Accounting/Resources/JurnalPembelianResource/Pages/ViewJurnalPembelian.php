@@ -97,34 +97,31 @@ class ViewJurnalPembelian extends ViewRecord
         return $infolist
             ->schema([
                 Components\Section::make('Informasi Jurnal')
-                    ->description('Informasi dasar transaksi jurnal pembelian')
+                    ->description('Informasi utama dokumen jurnal.')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Components\Grid::make(3)
                             ->schema([
                                 Components\TextEntry::make('no_reff')
                                     ->label('No. Referensi')
+                                    ->copyable()
                                     ->badge()
-                                    ->color('primary'),
+                                    ->color('primary')
+                                    ->icon('heroicon-m-hashtag'),
 
                                 Components\TextEntry::make('tanggal')
                                     ->label('Tanggal')
                                     ->date('d/m/Y')
                                     ->badge()
                                     ->color('info'),
-
-                                Components\IconEntry::make('is_confirmed')
-                                    ->label('Status Konfirmasi')
-                                    ->boolean()
-                                    ->trueIcon('heroicon-o-check-circle')
-                                    ->falseIcon('heroicon-o-clock')
-                                    ->trueColor('success')
-                                    ->falseColor('warning'),
                             ]),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->compact(),
 
-                Components\Section::make('Akun Hutang/Kredit')
-                    ->description('Informasi rekening yang dikreditkan')
+                Components\Section::make('Akun Utama')
+                    ->description('Informasi akun utama pada header jurnal.')
+                    ->icon('heroicon-o-building-library')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([
@@ -141,42 +138,58 @@ class ViewJurnalPembelian extends ViewRecord
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Daftar Item Pembelian')
-                    ->description('Detail item barang/jasa yang dibeli')
+                Components\Section::make('Detail Transaksi')
+                    ->description(fn($record) => 'Total item detail: ' . ($record->details?->count() ?? 0))
+                    ->icon('heroicon-o-table-cells')
                     ->schema([
                         Components\RepeatableEntry::make('details')
-                            ->hiddenLabel()
+                            ->label(false)
                             ->schema([
-                                Components\Grid::make(3)
+                                Components\Section::make()
                                     ->schema([
-                                        Components\TextEntry::make('nama_akun_debit')
-                                            ->label('Kode/Nama Rekening')
-                                            ->formatStateUsing(fn($state, $record) => "[$record->kode_sakep_debit] $state")
-                                            ->weight('medium'),
+                                        Components\Grid::make(4)
+                                            ->schema([
+                                                Components\TextEntry::make('nama_akun_debit')
+                                                    ->label('Kode/Nama Rekening')
+                                                    ->formatStateUsing(fn($state, $record) => "[$record->kode_sakep_debit] $state")
+                                                    ->weight('medium')
+                                                    ->columnSpan(2),
 
-                                        Components\TextEntry::make('kodeProyek.name')
-                                            ->label('Proyek')
-                                            ->placeholder('-')
-                                            ->weight('medium'),
+                                                Components\TextEntry::make('kodeProyek.name')
+                                                    ->label('Proyek')
+                                                    ->placeholder('-')
+                                                    ->weight('medium')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('jumlah')
-                                            ->label('Nominal')
-                                            ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
-                                            ->alignRight()
-                                            ->weight('bold')
-                                            ->color('success'),
+                                                Components\TextEntry::make('jumlah')
+                                                    ->label('Nominal')
+                                                    ->money('IDR')
+                                                    ->alignEnd()
+                                                    ->size('xl')
+                                                    ->weight('bold')
+                                                    ->badge()
+                                                    ->color('success')
+                                                    ->columnSpan(1),
 
-                                        Components\TextEntry::make('keterangan')
-                                            ->label('Keterangan')
-                                            ->columnSpanFull(),
-                                    ]),
+                                                Components\TextEntry::make('keterangan')
+                                                    ->label('Keterangan')
+                                                    ->placeholder('-')
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ])
+                                    ->icon('heroicon-o-document-text')
+                                            ->compact()
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
                             ->grid(1)
+                            ->contained(true)
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),
 
-                Components\Section::make('Total Transaksi')
+                Components\Section::make('Ringkasan Transaksi')
+                    ->icon('heroicon-o-calculator')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([
@@ -193,6 +206,61 @@ class ViewJurnalPembelian extends ViewRecord
                             ]),
                     ])
                     ->compact(),
+
+                Components\Section::make('Status & Audit')
+                    ->description('Riwayat input, posting, perubahan, dan penghapusan data jurnal.')
+                    ->schema([
+                        Components\Grid::make(4)
+                            ->schema([
+                                Components\TextEntry::make('createdBy.name')
+                                    ->label('Di Input Oleh')
+                                    ->icon('heroicon-m-user')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('created_at')
+                                    ->label('Di Input Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-clock')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('posted_at')
+                                    ->label('Di Posting Tanggal')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-arrow-up-tray')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('postedBy.name')
+                                    ->label('Di Posting Oleh')
+                                    ->icon('heroicon-m-user-plus')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('updated_at')
+                                    ->label('Di Edit Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-pencil-square')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('edit_by_display')
+                                    ->label('Di Edit Oleh')
+                                    ->state('-')
+                                    ->icon('heroicon-m-user-circle')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('deleted_at')
+                                    ->label('Di Hapus Pada')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon('heroicon-m-trash')
+                                    ->placeholder('-'),
+
+                                Components\TextEntry::make('deletedBy.name')
+                                    ->label('Di Hapus Oleh')
+                                    ->icon('heroicon-m-user-minus')
+                                    ->placeholder('-'),
+                            ]),
+                    ])
+                    ->icon('heroicon-o-shield-check')
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 }
