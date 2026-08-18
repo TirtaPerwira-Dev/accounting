@@ -35,8 +35,11 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
             ->whereMonth('tanggal', date('m'))
             ->count();
 
-        $totalTahunan = $headerQuery()
-            ->whereYear('tanggal', date('Y'))
+        $totalTahunan = JurnalRekeningAirDetail::query()
+            ->whereHas('jurnalRekeningAir', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId)
+                    ->whereYear('tanggal', date('Y'));
+            })
             ->count();
 
         $nominalBulanan = $headerQuery()
@@ -46,9 +49,12 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
 
         $avgPerTransaksi = $totalBulanan > 0 ? ($nominalBulanan / $totalBulanan) : 0;
 
-        $totalUnpostedTahunan = $headerQuery()
-            ->whereYear('tanggal', date('Y'))
-            ->where('is_posted', false)
+        $totalUnpostedTahunan = JurnalRekeningAirDetail::query()
+            ->whereHas('jurnalRekeningAir', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId)
+                    ->whereYear('tanggal', date('Y'))
+                    ->where('is_posted', false);
+            })
             ->count();
 
         $formatCurrency = fn(float $value): string => 'Rp ' . number_format($value, 0, ',', '.');
@@ -70,7 +76,7 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
                 ->color('success'),
 
             Stat::make('Status Posting', number_format((float) $totalTahunan, 0, ',', '.') . ' / ' . number_format((float) $totalUnpostedTahunan, 0, ',', '.'))
-                ->description('Tahunan Terinput / Belum Diposting')
+                ->description('Item Tahunan Terinput / Item Belum Diposting')
                 ->descriptionIcon($totalUnpostedTahunan > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
                 ->color($totalUnpostedTahunan > 0 ? 'warning' : 'success'),
         ];

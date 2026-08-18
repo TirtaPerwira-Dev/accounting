@@ -46,9 +46,11 @@ class JurnalMemorialResource extends Resource
 
         $companyId = (int) ($user->company_id ?? 1);
 
-        return (string) \App\Models\JurnalMemorial::query()
-            ->where('company_id', $companyId)
-            ->where('is_posted', false)
+        return (string) static::getModel()::query()
+            ->whereHas('jurnalMemorial', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId)
+                    ->where('is_posted', false);
+            })
             ->count();
     }
 
