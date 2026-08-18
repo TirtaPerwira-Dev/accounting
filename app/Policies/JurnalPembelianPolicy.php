@@ -105,4 +105,12 @@ class JurnalPembelianPolicy
     {
         return $user->can('reorder_jurnal::pembelian');
     }
+
+    /**
+     * Determine whether the user can post to ledger.
+     */
+    public function postToLedger(User $user, JurnalPembelian $jurnalPembelian): bool
+    {
+        return $user->can('post_jurnal::pembelian');
+    }
 }

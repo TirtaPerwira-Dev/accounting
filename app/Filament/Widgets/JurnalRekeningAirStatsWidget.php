@@ -46,8 +46,10 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
 
         $avgPerTransaksi = $totalBulanan > 0 ? ($nominalBulanan / $totalBulanan) : 0;
 
-        $totalConfirmed = $headerQuery()->where('is_confirmed', true)->count();
-        $totalUnconfirmed = $headerQuery()->where('is_confirmed', false)->count();
+        $totalUnpostedTahunan = $headerQuery()
+            ->whereYear('tanggal', date('Y'))
+            ->where('is_posted', false)
+            ->count();
 
         $formatCurrency = fn(float $value): string => 'Rp ' . number_format($value, 0, ',', '.');
 
@@ -67,10 +69,10 @@ class JurnalRekeningAirStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-calculator')
                 ->color('success'),
 
-            Stat::make('Status Konfirmasi', number_format((float) $totalConfirmed, 0, ',', '.') . ' / ' . number_format((float) $totalUnconfirmed, 0, ',', '.'))
-                ->description('Terkonfirmasi / Belum terkonfirmasi')
-                ->descriptionIcon($totalUnconfirmed > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
-                ->color($totalUnconfirmed > 0 ? 'warning' : 'success'),
+            Stat::make('Status Posting', number_format((float) $totalTahunan, 0, ',', '.') . ' / ' . number_format((float) $totalUnpostedTahunan, 0, ',', '.'))
+                ->description('Tahunan Terinput / Belum Diposting')
+                ->descriptionIcon($totalUnpostedTahunan > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
+                ->color($totalUnpostedTahunan > 0 ? 'warning' : 'success'),
         ];
     }
 

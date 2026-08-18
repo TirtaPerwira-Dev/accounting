@@ -29,10 +29,21 @@ class ActivityLogResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()
-            ->where('causer_id', auth()->id())
-            ->where('causer_type', 'App\Models\User')
-            ->latest();
+        $query = parent::getEloquentQuery()->latest();
+
+        $user = auth()->user();
+
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query
+            ->where('causer_id', $user->id)
+            ->where('causer_type', 'App\\Models\\User');
     }
 
     public static function form(Form $form): Form
@@ -146,6 +157,16 @@ class ActivityLogResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->check();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->check();
     }
 
     public static function canEdit($record): bool

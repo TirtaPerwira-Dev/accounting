@@ -41,7 +41,18 @@ class JurnalRekeningAirResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \App\Models\JurnalRekeningAir::where('is_posted', 0)->count();
+        $user = auth()->user();
+
+        if (!$user) {
+            return '0';
+        }
+
+        $companyId = (int) ($user->company_id ?? 1);
+
+        return (string) \App\Models\JurnalRekeningAir::query()
+            ->where('company_id', $companyId)
+            ->where('is_posted', false)
+            ->count();
     }
 
     public static function getNavigationBadgeColor(): ?string

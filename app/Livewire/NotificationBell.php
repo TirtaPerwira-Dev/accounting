@@ -10,6 +10,7 @@ use App\Models\JurnalPembelian;
 use App\Models\JurnalMemorial;
 use App\Models\JurnalPemakaianBahan;
 use App\Models\JurnalRekeningAir;
+use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
 use Rappasoft\LaravelAuthenticationLog\Models\AuthenticationLog;
 
@@ -21,6 +22,19 @@ class NotificationBell extends Component
         $notificationsCount = 0;
         $pendingJournals = [];
         $recentLogs = [];
+
+        $isSuperAdmin = $user?->hasRole('super_admin') ?? false;
+        $isKepalaSubBagian = $user?->hasAnyRole([
+            'kepala_sub_bagian',
+            'kepala_sub_bagian_anggaran_pendapatan',
+            'kepala_sub_bagian_verifikasi_pembukuan',
+        ]) ?? false;
+        $isStaffOrPelaksana = $user?->hasAnyRole([
+            'staff',
+            'staff_anggaran_pendapatan',
+            'staff_verifikasi_pembukuan',
+            'pelaksana',
+        ]) ?? false;
 
         // Get dismissed items from session
         $dismissedJournals = session()->get('dismissed_journals', []);
@@ -69,29 +83,74 @@ class NotificationBell extends Component
 
             $dismissedIds = $dismissedJournals[$label] ?? [];
 
-            $unposted = $model::where('is_posted', 0)
-                ->whereNotIn('id', $dismissedIds)
-                ->latest()->take(5)->get();
+            if ($isStaffOrPelaksana && !$isKepalaSubBagian && !$isSuperAdmin) {
+                $records = $model::query()
+                    ->where('created_by', $user->id)
+                    ->where('is_posted', 1)
+                    ->whereNotIn('id', $dismissedIds)
+                    ->latest('posted_at')
+                    ->take(5)
+                    ->get();
 
-            if ($unposted->count() > 0) {
+                $count = $model::query()
+                    ->where('created_by', $user->id)
+                    ->where('is_posted', 1)
+                    ->whereNotIn('id', $dismissedIds)
+                    ->count();
+
+                $action = 'view_posted';
+                $canAct = false;
+            } else {
+                $records = $model::query()
+                    ->where('is_posted', 0)
+                    ->whereNotIn('id', $dismissedIds)
+                    ->latest()
+                    ->take(5)
+                    ->get();
+
+                $count = $model::query()
+                    ->where('is_posted', 0)
+                    ->whereNotIn('id', $dismissedIds)
+                    ->count();
+
+                $action = 'post';
+                $canAct = $canPost;
+            }
+
+            if ($records->count() > 0) {
                 $pendingJournals[$label] = [
-                    'count' => $model::where('is_posted', 0)->whereNotIn('id', $dismissedIds)->count(),
-                    'unposted' => $unposted,
-                    'can_post' => $canPost,
+                    'count' => $count,
+                    'records' => $records,
+                    'can_post' => $canAct,
+                    'action' => $action,
                 ];
                 $notificationsCount += $pendingJournals[$label]['count'];
             }
         }
 
-        if ($user->hasRole('super_admin')) {
-            $recentLogs = [
-                'activity' => Activity::whereNotIn('id', $dismissedLogs['activity'] ?? [])->latest()->take(5)->get(),
-                'auth' => AuthenticationLog::whereNotIn('id', $dismissedLogs['auth'] ?? [])->orderBy('login_at', 'desc')->take(5)->get(),
-            ];
-            
-            $notificationsCount += $recentLogs['activity']->count();
-            $notificationsCount += $recentLogs['auth']->count();
+        $activityQuery = Activity::query()
+            ->whereNotIn('id', $dismissedLogs['activity'] ?? []);
+
+        $authQuery = AuthenticationLog::query()
+            ->whereNotIn('id', $dismissedLogs['auth'] ?? []);
+
+        if (!$isSuperAdmin) {
+            $activityQuery
+                ->where('causer_type', User::class)
+                ->where('causer_id', $user->id);
+
+            $authQuery
+                ->where('authenticatable_type', User::class)
+                ->where('authenticatable_id', $user->id);
         }
+
+        $recentLogs = [
+            'activity' => $activityQuery->latest()->take(5)->get(),
+            'auth' => $authQuery->orderBy('login_at', 'desc')->take(5)->get(),
+        ];
+
+        $notificationsCount += $recentLogs['activity']->count();
+        $notificationsCount += $recentLogs['auth']->count();
 
         return view('livewire.notification-bell', [
             'notificationsCount' => $notificationsCount,
@@ -138,7 +197,22 @@ class NotificationBell extends Component
         };
 
         if ($model) {
-            $ids = $model::where('is_posted', 0)->pluck('id')->toArray();
+            $isStaffOrPelaksana = $user?->hasAnyRole([
+                'staff',
+                'staff_anggaran_pendapatan',
+                'staff_verifikasi_pembukuan',
+                'pelaksana',
+            ]) ?? false;
+
+            $query = $model::query();
+
+            if ($isStaffOrPelaksana && !($user?->hasRole('super_admin') ?? false)) {
+                $query->where('created_by', $user->id)->where('is_posted', 1);
+            } else {
+                $query->where('is_posted', 0);
+            }
+
+            $ids = $query->pluck('id')->toArray();
             $dismissed = session()->get('dismissed_journals', []);
             $dismissed[$type] = array_unique(array_merge($dismissed[$type] ?? [], $ids));
             session()->put('dismissed_journals', $dismissed);
