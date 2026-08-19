@@ -105,12 +105,4 @@ class JurnalBayarKasBankPolicy
     {
         return $user->can('reorder_jurnal::bayar::kas::bank');
     }
-
-    /**
-     * Determine whether the user can post to ledger.
-     */
-    public function postToLedger(User $user, JurnalBayarKasBank $jurnalBayarKasBank): bool
-    {
-        return $user->can('post_jurnal::bayar::kas::bank');
-    }
 }

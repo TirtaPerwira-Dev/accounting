@@ -15,7 +15,7 @@ class JurnalMemorialPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_jurnal::memorial');
+        return $user->can('view_any_jurnal::koreksi');
     }
 
     /**
@@ -23,7 +23,7 @@ class JurnalMemorialPolicy
      */
     public function view(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('view_jurnal::memorial');
+        return $user->can('view_jurnal::koreksi');
     }
 
     /**
@@ -31,7 +31,7 @@ class JurnalMemorialPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_jurnal::memorial');
+        return $user->can('create_jurnal::koreksi');
     }
 
     /**
@@ -39,7 +39,7 @@ class JurnalMemorialPolicy
      */
     public function update(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('update_jurnal::memorial');
+        return $user->can('update_jurnal::koreksi');
     }
 
     /**
@@ -47,7 +47,7 @@ class JurnalMemorialPolicy
      */
     public function delete(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('delete_jurnal::memorial');
+        return $user->can('delete_jurnal::koreksi');
     }
 
     /**
@@ -55,7 +55,7 @@ class JurnalMemorialPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_jurnal::memorial');
+        return $user->can('delete_any_jurnal::koreksi');
     }
 
     /**
@@ -63,7 +63,7 @@ class JurnalMemorialPolicy
      */
     public function forceDelete(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('force_delete_jurnal::memorial');
+        return $user->can('force_delete_jurnal::koreksi');
     }
 
     /**
@@ -71,7 +71,7 @@ class JurnalMemorialPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_jurnal::memorial');
+        return $user->can('force_delete_any_jurnal::koreksi');
     }
 
     /**
@@ -79,7 +79,7 @@ class JurnalMemorialPolicy
      */
     public function restore(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('restore_jurnal::memorial');
+        return $user->can('restore_jurnal::koreksi');
     }
 
     /**
@@ -87,7 +87,7 @@ class JurnalMemorialPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_jurnal::memorial');
+        return $user->can('restore_any_jurnal::koreksi');
     }
 
     /**
@@ -95,7 +95,7 @@ class JurnalMemorialPolicy
      */
     public function replicate(User $user, JurnalMemorial $jurnalMemorial): bool
     {
-        return $user->can('replicate_jurnal::memorial');
+        return $user->can('replicate_jurnal::koreksi');
     }
 
     /**
@@ -103,30 +103,6 @@ class JurnalMemorialPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_jurnal::memorial');
-    }
-
-    /**
-     * Determine whether the user can confirm.
-     */
-    public function confirm(User $user, JurnalMemorial $jurnalMemorial): bool
-    {
-        return $user->can('confirm_jurnal::memorial');
-    }
-
-    /**
-     * Determine whether the user can unconfirm.
-     */
-    public function unconfirm(User $user, JurnalMemorial $jurnalMemorial): bool
-    {
-        return $user->can('unconfirm_jurnal::memorial');
-    }
-
-    /**
-     * Determine whether the user can post to ledger.
-     */
-    public function postToLedger(User $user, JurnalMemorial $jurnalMemorial): bool
-    {
-        return $user->can('post_jurnal::memorial');
+        return $user->can('reorder_jurnal::koreksi');
     }
 }
